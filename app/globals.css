@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------- */
+/* Kumo Design System                                                */
+/* Paleta pastel inspirada en cielo: sky / lavender / peach / mint   */
+/* ---------------------------------------------------------------- */
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Plus Jakarta Sans', var(--font-sans);
+
+  /* Sky (azul cielo) — primario */
+  --color-sky-50: #f0f9ff;
+  --color-sky-100: #e0f2fe;
+  --color-sky-200: #bae6fd;
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-sky-600: #0284c7;
+  --color-sky-700: #0369a1;
+
+  /* Lavender (violeta suave) — secundario */
+  --color-lavender-50: #faf5ff;
+  --color-lavender-100: #f3e8ff;
+  --color-lavender-200: #e9d5ff;
+  --color-lavender-300: #d8b4fe;
+  --color-lavender-400: #c084fc;
+  --color-lavender-500: #a855f7;
+
+  /* Peach (durazno) — para alertas suaves */
+  --color-peach-50: #fff7ed;
+  --color-peach-100: #ffedd5;
+  --color-peach-200: #fed7aa;
+  --color-peach-300: #fdba74;
+  --color-peach-400: #fb923c;
+
+  /* Mint (verde menta) — para éxito */
+  --color-mint-50: #ecfdf5;
+  --color-mint-100: #d1fae5;
+  --color-mint-200: #a7f3d0;
+  --color-mint-300: #6ee7b7;
+  --color-mint-400: #34d399;
+  --color-mint-500: #10b981;
+
+  /* Rose (rosa pastel) — para borrar / negativos */
+  --color-rose-50: #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-200: #fecdd3;
+  --color-rose-300: #fda4af;
+  --color-rose-400: #fb7185;
+
+  /* Brand gradient */
+  --color-brand-from: #818cf8;
+  --color-brand-via: #6366f1;
+  --color-brand-to: #8b5cf6;
+}
+
+/* ---------------------------------------------------------------- */
+/* Base styles                                                        */
+/* ---------------------------------------------------------------- */
+
+html {
+  scroll-behavior: smooth;
+  font-family: var(--font-sans);
+}
+
+body {
+  background: linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
+  color: #0f172a;
+  min-height: 100vh;
+}
+
+/* Scrollbar suave */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e0e7ff;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c7d2fe;
+}
+
+/* ---------------------------------------------------------------- */
+/* Utilities                                                          */
+/* ---------------------------------------------------------------- */
+
+@utility kumo-card {
+  background: white;
+  border: 1px solid rgb(226 232 240 / 0.7);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.04), 0 8px 24px -8px rgb(15 23 42 / 0.06);
+}
+
+@utility kumo-gradient {
+  background: linear-gradient(135deg, var(--color-brand-from), var(--color-brand-via), var(--color-brand-to));
+}
+
+@utility kumo-gradient-text {
+  background: linear-gradient(135deg, var(--color-brand-from), var(--color-brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Floating cloud animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@utility cloud-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes drift {
+  0% { transform: translateX(-20px); }
+  100% { transform: translateX(20px); }
+}
+
+@utility cloud-drift {
+  animation: drift 12s ease-in-out infinite alternate;
+}
