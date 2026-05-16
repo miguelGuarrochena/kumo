@@ -1,33 +1,56 @@
-import { EmptyState } from '@/components/EmptyState';
+import { createClient } from '@/lib/supabase/server';
+import { CalendarClient } from './CalendarClient';
+import { type Currency } from '@/lib/currency';
 
-export default function CalendarPage() {
+type SearchParams = {
+  month?: string; // YYYY-MM
+};
+
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const supabase = await createClient();
+  const params = await searchParams;
+
+  const monthStr = params.month ?? new Date().toISOString().slice(0, 7);
+  const [yearStr, mStr] = monthStr.split('-');
+  const year = Number(yearStr);
+  const month = Number(mStr); // 1-12
+
+  // Rango ampliado: para mostrar también los días del mes vecino que entran en el grid 6x7
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+  // Para incluir días del grid (semana anterior y siguiente), tomamos un buffer de 7 días
+  const queryStart = new Date(year, month - 1, -6).toISOString().slice(0, 10);
+  const queryEnd = new Date(year, month, 7).toISOString().slice(0, 10);
+
+  const [{ data: expenses }, { data: reminders }, { data: settings }] = await Promise.all([
+    supabase
+      .from('expenses')
+      .select('id, description, amount, currency, due_date, expense_date, paid, categories(name, color)')
+      .or(`due_date.gte.${queryStart},expense_date.gte.${queryStart}`)
+      .or(`due_date.lte.${queryEnd},expense_date.lte.${queryEnd}`),
+    supabase
+      .from('reminders')
+      .select('id, title, reminder_date, reminder_time, reminder_type')
+      .gte('reminder_date', queryStart)
+      .lte('reminder_date', queryEnd),
+    supabase.from('user_settings').select('default_currency').single(),
+  ]);
+
+  const defaultCurrency = (settings?.default_currency ?? 'ARS') as Currency;
+
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Calendario</h1>
-        <p className="text-slate-500 mt-1">
-          Todas tus fechas: vencimientos, citas y cumpleaños en un solo lugar.
-        </p>
-      </header>
-
-      {/* TODO: implementar
-          - Vista mensual con grid de días
-          - Pintar días según tipo de evento (gasto, recordatorio, cumple)
-          - Modal con detalle del día al click
-          - Navegación entre meses
-          - Botón "Hoy"
-          - Más adelante: sync con Google Calendar (export only para empezar)
-      */}
-
-      <EmptyState
-        title="Próximamente: tu calendario"
-        description="Vencimientos, citas y cumpleaños pintados sobre un calendario mensual."
-        action={
-          <span className="inline-block text-xs px-3 py-1 rounded-full bg-peach-100 text-peach-400">
-            En construcción
-          </span>
-        }
-      />
-    </div>
+    <CalendarClient
+      year={year}
+      month={month}
+      startDate={startDate.toISOString().slice(0, 10)}
+      endDate={endDate.toISOString().slice(0, 10)}
+      expenses={expenses ?? []}
+      reminders={reminders ?? []}
+      defaultCurrency={defaultCurrency}
+    />
   );
 }

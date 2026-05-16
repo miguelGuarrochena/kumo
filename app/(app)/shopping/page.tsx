@@ -1,33 +1,12 @@
-import { EmptyState } from '@/components/EmptyState';
+import { createClient } from '@/lib/supabase/server';
+import { ShoppingClient } from './ShoppingClient';
 
-export default function ShoppingPage() {
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Lista de compras</h1>
-        <p className="text-slate-500 mt-1">
-          Anotá lo que falta. Tickeá mientras estás en el súper.
-        </p>
-      </header>
+export default async function ShoppingPage() {
+  const supabase = await createClient();
+  const { data: items } = await supabase
+    .from('shopping_items')
+    .select('*')
+    .order('position', { ascending: true });
 
-      {/* TODO: implementar
-          - Input rápido para sumar item
-          - Multiple listas (Supermercado, Farmacia, Ferretería, etc.)
-          - Tickear/destickear con animación
-          - Reordenar drag-and-drop
-          - Vista compacta optimizada para mobile
-          - Botón "Limpiar comprados"
-      */}
-
-      <EmptyState
-        title="Próximamente: tu lista"
-        description="Anotá lo que necesitás y tickealo mientras hacés las compras."
-        action={
-          <span className="inline-block text-xs px-3 py-1 rounded-full bg-mint-100 text-mint-500">
-            En construcción
-          </span>
-        }
-      />
-    </div>
-  );
+  return <ShoppingClient initialItems={items ?? []} />;
 }

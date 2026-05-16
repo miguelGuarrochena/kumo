@@ -1,32 +1,21 @@
-import { EmptyState } from '@/components/EmptyState';
+import { createClient } from '@/lib/supabase/server';
+import { RemindersClient } from './RemindersClient';
 
-export default function RemindersPage() {
+export default async function RemindersPage() {
+  const supabase = await createClient();
+
+  const [{ data: reminders }, { data: contacts }] = await Promise.all([
+    supabase.from('reminders').select('*').order('reminder_date', { ascending: true }),
+    supabase
+      .from('notification_contacts')
+      .select('id, name, relationship, is_self, phone')
+      .order('created_at'),
+  ]);
+
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Recordatorios</h1>
-        <p className="text-slate-500 mt-1">
-          Citas médicas, cumpleaños y fechas que no querés olvidar.
-        </p>
-      </header>
-
-      {/* TODO: implementar
-          - Form de alta (título, tipo, fecha, hora opcional, descripción, días antes para notificar)
-          - Lista agrupada por mes
-          - Filtros por tipo (médico, cumpleaños, otros)
-          - Recurrencia anual para cumpleaños
-          - Indicador de "ya pasó" / "próximo"
-      */}
-
-      <EmptyState
-        title="Próximamente: tus recordatorios"
-        description="Cargá citas médicas, cumpleaños y fechas importantes. Te avisamos por WhatsApp."
-        action={
-          <span className="inline-block text-xs px-3 py-1 rounded-full bg-lavender-100 text-lavender-500">
-            En construcción
-          </span>
-        }
-      />
-    </div>
+    <RemindersClient
+      initialReminders={reminders ?? []}
+      contacts={contacts ?? []}
+    />
   );
 }

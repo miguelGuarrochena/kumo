@@ -1,0 +1,861 @@
+'use client';
+
+import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
+import {
+  Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Check, Wallet, Search, SlidersHorizontal, X,
+} from 'lucide-react';
+import { upsertExpense, deleteExpense, togglePaid } from './actions';
+import { Sheet } from '@/components/Sheet';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { FiltersSheet, type Filters } from './FiltersSheet';
+import type { ExpensesView } from './page';
+import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
+
+type CategoryLite = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+};
+
+type ContactLite = {
+  id: string;
+  name: string;
+  relationship: string;
+  is_self: boolean;
+  phone: string | null;
+};
+
+type Expense = {
+  id: string;
+  category_id: string | null;
+  amount: number;
+  currency: string;
+  description: string | null;
+  expense_date: string;
+  due_date: string | null;
+  paid: boolean;
+  is_recurring: boolean;
+  recurrence_type: string | null;
+  notify_contact_ids: string[];
+  categories: CategoryLite | null;
+};
+
+type Props = {
+  view: ExpensesView;
+  monthStr: string;
+  expenses: Expense[];
+  categories: CategoryLite[];
+  contacts: ContactLite[];
+  defaultCurrency: Currency;   // moneda preferida del user (de settings)
+  displayCurrency: Currency;   // moneda en la que se muestra el TOTAL ahora
+  rates: Partial<Record<Currency, number>>;
+  filters: Filters;
+};
+
+const COLOR_DOT: Record<string, string> = {
+  sky: 'bg-sky-400',
+  lavender: 'bg-lavender-400',
+  peach: 'bg-peach-300',
+  mint: 'bg-mint-400',
+  rose: 'bg-rose-300',
+};
+
+export function ExpensesClient({
+  view,
+  monthStr,
+  expenses,
+  categories,
+  contacts,
+  defaultCurrency,
+  displayCurrency,
+  rates,
+  filters,
+}: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [editing, setEditing] = useState<Expense | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [toDelete, setToDelete] = useState<Expense | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(filters.q);
+
+  const convertToDisplay = (amount: number, currency: string): number => {
+    if (currency === displayCurrency) return amount;
+    const fromRate = rates[currency as Currency];
+    const toRate = rates[displayCurrency];
+    if (!fromRate || !toRate) return 0;
+    return (amount / fromRate) * toRate;
+  };
+
+  const totalInDisplay = expenses.reduce(
+    (sum, e) => sum + convertToDisplay(Number(e.amount), e.currency),
+    0,
+  );
+
+  const [year, month] = monthStr.split('-').map(Number) as [number, number];
+  const prevMonth = monthShift(year, month, -1);
+  const nextMonth = monthShift(year, month, 1);
+  const monthLabel = formatMonth(year, month);
+
+  const switchView = (next: ExpensesView) => {
+    const params = new URLSearchParams();
+    if (next === 'all') params.set('view', 'all');
+    router.push(`/expenses?${params.toString()}`);
+  };
+
+  const setUrlParam = (key: string, value: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) params.set(key, value);
+    else params.delete(key);
+    router.push(`/expenses?${params.toString()}`);
+  };
+
+  const onSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'all');
+    if (searchInput.trim()) params.set('q', searchInput.trim());
+    else params.delete('q');
+    router.push(`/expenses?${params.toString()}`);
+  };
+
+  // Cantidad de filtros activos
+  const activeFilterCount =
+    filters.cat.length +
+    (filters.from ? 1 : 0) +
+    (filters.to ? 1 : 0) +
+    (filters.min ? 1 : 0) +
+    (filters.max ? 1 : 0) +
+    (filters.paid ? 1 : 0) +
+    (filters.rec ? 1 : 0) +
+    (filters.cur ? 1 : 0);
+
+  const onDelete = async () => {
+    if (!toDelete) return;
+    const result = await deleteExpense(toDelete.id);
+    if (result.ok) {
+      toast.success('Gasto eliminado');
+      router.refresh();
+    } else {
+      toast.error(result.error ?? 'Error');
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* --- Header --- */}
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gastos</h1>
+          <p className="text-slate-500 mt-1 text-sm">
+            {view === 'month'
+              ? 'Cargá lo que gastás y mirá totales por mes.'
+              : 'Mirá todos tus gastos con filtros.'}
+          </p>
+        </div>
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl kumo-gradient text-white font-medium hover:opacity-90 active:scale-95 transition-all shadow-sm shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Nuevo gasto</span>
+          <span className="sm:hidden">Nuevo</span>
+        </button>
+      </header>
+
+      {/* --- Toggle de vista --- */}
+      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto sm:inline-flex">
+        <button
+          onClick={() => switchView('month')}
+          className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            view === 'month' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
+          }`}
+        >
+          Por mes
+        </button>
+        <button
+          onClick={() => switchView('all')}
+          className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            view === 'all' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
+          }`}
+        >
+          Todos
+        </button>
+      </div>
+
+      {view === 'month' ? (
+        // ============== VISTA MES ==============
+        <>
+          <div className="kumo-card p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => router.push(`/expenses?month=${prevMonth}`)}
+                className="p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500"
+                aria-label="Mes anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <h2 className="font-semibold capitalize">{monthLabel}</h2>
+              <button
+                onClick={() => router.push(`/expenses?month=${nextMonth}`)}
+                className="p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500"
+                aria-label="Mes siguiente"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Total del mes</p>
+              <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
+                {formatMoney(totalInDisplay, displayCurrency)}
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 inline-flex items-center gap-1">
+                {expenses.length} {expenses.length === 1 ? 'gasto' : 'gastos'} · en
+                <CurrencyInlineSelect
+                  value={displayCurrency}
+                  onChange={(v) => setUrlParam('asCurrency', v)}
+                />
+              </p>
+            </div>
+          </div>
+        </>
+      ) : (
+        // ============== VISTA TODOS ==============
+        <>
+          <form onSubmit={onSearchSubmit} className="flex gap-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Buscar por descripción..."
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm font-medium">Filtros</span>
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full kumo-gradient text-white text-[10px] font-bold grid place-items-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </form>
+
+          {/* Chips de filtros activos */}
+          {(filters.q || activeFilterCount > 0) && (
+            <div className="flex flex-wrap gap-1.5">
+              {filters.q && (
+                <FilterChip onRemove={() => { setSearchInput(''); setUrlParam('q', null); }}>
+                  &ldquo;{filters.q}&rdquo;
+                </FilterChip>
+              )}
+              {filters.cat.map((catId) => {
+                const cat = categories.find((c) => c.id === catId);
+                if (!cat) return null;
+                return (
+                  <FilterChip
+                    key={catId}
+                    onRemove={() => {
+                      const next = filters.cat.filter((c) => c !== catId);
+                      setUrlParam('cat', next.length > 0 ? next.join(',') : null);
+                    }}
+                  >
+                    {cat.name}
+                  </FilterChip>
+                );
+              })}
+              {filters.from && (
+                <FilterChip onRemove={() => setUrlParam('from', null)}>Desde {filters.from}</FilterChip>
+              )}
+              {filters.to && (
+                <FilterChip onRemove={() => setUrlParam('to', null)}>Hasta {filters.to}</FilterChip>
+              )}
+              {filters.min && (
+                <FilterChip onRemove={() => setUrlParam('min', null)}>≥ {filters.min}</FilterChip>
+              )}
+              {filters.max && (
+                <FilterChip onRemove={() => setUrlParam('max', null)}>≤ {filters.max}</FilterChip>
+              )}
+              {filters.paid && (
+                <FilterChip onRemove={() => setUrlParam('paid', null)}>
+                  {filters.paid === 'paid' ? 'Pagados' : 'Pendientes'}
+                </FilterChip>
+              )}
+              {filters.rec && (
+                <FilterChip onRemove={() => setUrlParam('rec', null)}>
+                  {filters.rec === 'recurring' ? 'Recurrentes' : 'Una vez'}
+                </FilterChip>
+              )}
+              {filters.cur && (
+                <FilterChip onRemove={() => setUrlParam('cur', null)}>{filters.cur}</FilterChip>
+              )}
+              <button
+                onClick={() => router.push('/expenses?view=all')}
+                className="text-xs text-slate-500 hover:text-rose-500 font-medium ml-1"
+              >
+                Limpiar todo
+              </button>
+            </div>
+          )}
+
+          {/* Resumen agregado */}
+          {expenses.length > 0 && (
+            <div className="kumo-card p-4 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+                  {expenses.length} {expenses.length === 1 ? 'gasto' : 'gastos'} · en
+                  <CurrencyInlineSelect
+                    value={displayCurrency}
+                    onChange={(v) => setUrlParam('asCurrency', v)}
+                  />
+                </p>
+                <p className="text-xl font-bold kumo-gradient-text">
+                  {formatMoney(totalInDisplay, displayCurrency)}
+                </p>
+              </div>
+              <select
+                value={filters.sort}
+                onChange={(e) => setUrlParam('sort', e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-slate-800"
+              >
+                <option value="date-desc">Más nuevos primero</option>
+                <option value="date-asc">Más viejos primero</option>
+                <option value="amount-desc">Monto mayor</option>
+                <option value="amount-asc">Monto menor</option>
+              </select>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* --- Lista --- */}
+      {expenses.length === 0 ? (
+        <div className="kumo-card p-10 text-center">
+          <Wallet className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+          <h3 className="font-semibold mb-1">
+            {view === 'month' ? 'Sin gastos este mes' : 'No hay gastos con esos filtros'}
+          </h3>
+          <p className="text-sm text-slate-500">
+            {view === 'month'
+              ? 'Cargá tu primer gasto con el botón de arriba.'
+              : 'Probá ajustar los filtros o cargar nuevos gastos.'}
+          </p>
+        </div>
+      ) : (
+        <div className="kumo-card divide-y divide-slate-100 overflow-hidden">
+          {expenses.map((exp) => (
+            <ExpenseRow
+              key={exp.id}
+              expense={exp}
+              displayCurrency={displayCurrency}
+              convertedAmount={convertToDisplay(Number(exp.amount), exp.currency)}
+              showFullDate={view === 'all'}
+              onEdit={() => setEditing(exp)}
+              onDelete={() => setToDelete(exp)}
+              onTogglePaid={async () => {
+                await togglePaid(exp.id, !exp.paid);
+                toast.success(exp.paid ? 'Marcado pendiente' : 'Marcado pagado');
+                router.refresh();
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <FiltersSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        filters={filters}
+        categories={categories}
+      />
+
+      {/* --- Modal de alta/edición --- */}
+      <ExpenseSheet
+        open={!!editing || creating}
+        expense={editing}
+        categories={categories}
+        contacts={contacts}
+        defaultCurrency={defaultCurrency}
+        rates={rates}
+        onClose={() => {
+          setEditing(null);
+          setCreating(false);
+        }}
+      />
+
+      {/* --- Confirmación de borrado --- */}
+      <ConfirmDialog
+        open={!!toDelete}
+        onClose={() => setToDelete(null)}
+        onConfirm={onDelete}
+        title="Borrar gasto"
+        description={`¿Borrar "${toDelete?.description ?? toDelete?.categories?.name ?? 'este gasto'}"? No se puede deshacer.`}
+      />
+    </div>
+  );
+}
+
+// ===================================================================
+function ExpenseRow({
+  expense,
+  displayCurrency,
+  convertedAmount,
+  onEdit,
+  onDelete,
+  onTogglePaid,
+  showFullDate = false,
+}: {
+  expense: Expense;
+  displayCurrency: Currency;
+  convertedAmount: number;
+  onEdit: () => void;
+  onDelete: () => void;
+  onTogglePaid: () => void;
+  showFullDate?: boolean;
+}) {
+  const cat = expense.categories;
+  const dotColor = cat ? COLOR_DOT[cat.color] ?? 'bg-slate-300' : 'bg-slate-300';
+  const isPending = expense.due_date && !expense.paid;
+  const isDifferentCurrency = expense.currency !== displayCurrency;
+
+  return (
+    <div className="p-3.5 flex items-center gap-3 group active:bg-slate-50/80">
+      <div className={`w-2.5 h-2.5 rounded-full ${dotColor} flex-shrink-0`} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="font-medium text-sm truncate">
+            {expense.description || cat?.name || 'Gasto'}
+          </p>
+          {isPending && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-peach-100 text-peach-400 font-medium">
+              Pendiente
+            </span>
+          )}
+          {expense.is_recurring && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-lavender-100 text-lavender-500 font-medium">
+              {expense.recurrence_type === 'monthly' ? 'Mensual' : expense.recurrence_type === 'weekly' ? 'Semanal' : 'Anual'}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mt-0.5 truncate">
+          {cat?.name ?? 'Sin categoría'} · {showFullDate ? formatFullDate(expense.expense_date) : formatDate(expense.expense_date)}
+          {expense.due_date && ` · vence ${formatDate(expense.due_date)}`}
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="font-semibold text-sm whitespace-nowrap">
+          {formatMoney(
+            isDifferentCurrency ? convertedAmount : Number(expense.amount),
+            displayCurrency,
+          )}
+        </p>
+        {isDifferentCurrency && (
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 whitespace-nowrap">
+            ≈ {formatMoney(Number(expense.amount), expense.currency as Currency)}
+          </p>
+        )}
+      </div>
+      <div className="flex gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+        {expense.due_date && (
+          <button
+            onClick={onTogglePaid}
+            className={`p-2 rounded-lg ${
+              expense.paid ? 'text-mint-500 hover:bg-mint-50' : 'text-slate-400 hover:bg-slate-100'
+            }`}
+            title={expense.paid ? 'Marcar pendiente' : 'Marcar pagado'}
+          >
+            <Check className="w-4 h-4" />
+          </button>
+        )}
+        <button onClick={onEdit} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
+          <Pencil className="w-4 h-4" />
+        </button>
+        <button onClick={onDelete} className="p-2 rounded-lg hover:bg-rose-100 text-rose-500">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ===================================================================
+function ExpenseSheet({
+  open,
+  expense,
+  categories,
+  contacts,
+  defaultCurrency,
+  rates,
+  onClose,
+}: {
+  open: boolean;
+  expense: Expense | null;
+  categories: CategoryLite[];
+  contacts: ContactLite[];
+  defaultCurrency: Currency;
+  rates: Partial<Record<Currency, number>>;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency);
+  const [categoryId, setCategoryId] = useState('');
+  const [description, setDescription] = useState('');
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10));
+  const [dueDate, setDueDate] = useState('');
+  const [hasDueDate, setHasDueDate] = useState(false);
+  const [paid, setPaid] = useState(true);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState<string>('monthly');
+  const [notifyContactIds, setNotifyContactIds] = useState<string[]>([]);
+
+  // Reset / hidrata el form cada vez que se abre (creación o edición).
+  useEffect(() => {
+    if (!open) return;
+    setAmount(expense?.amount?.toString() ?? '');
+    setCurrency((expense?.currency as Currency) ?? defaultCurrency);
+    setCategoryId(expense?.category_id ?? '');
+    setDescription(expense?.description ?? '');
+    setExpenseDate(expense?.expense_date ?? new Date().toISOString().slice(0, 10));
+    setDueDate(expense?.due_date ?? '');
+    setHasDueDate(!!expense?.due_date);
+    setPaid(expense?.paid ?? true);
+    setIsRecurring(expense?.is_recurring ?? false);
+    setRecurrenceType(expense?.recurrence_type ?? 'monthly');
+    // Por default, "Yo" tildado en creaciones nuevas
+    if (!expense) {
+      const selfId = contacts.find((c) => c.is_self)?.id;
+      setNotifyContactIds(selfId ? [selfId] : []);
+    } else {
+      setNotifyContactIds(expense.notify_contact_ids ?? []);
+    }
+  }, [open, expense?.id, defaultCurrency, contacts]);
+
+  const toggleContact = (id: string) => {
+    setNotifyContactIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+    );
+  };
+
+  const convertedAmount = useMemo(() => {
+    const amt = parseFloat(amount);
+    if (!amt || isNaN(amt) || currency === defaultCurrency) return null;
+    const fromRate = rates[currency];
+    const toRate = rates[defaultCurrency];
+    if (!fromRate || !toRate) return null;
+    return (amt / fromRate) * toRate;
+  }, [amount, currency, defaultCurrency, rates]);
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData();
+    if (expense?.id) fd.set('id', expense.id);
+    if (categoryId) fd.set('category_id', categoryId);
+    fd.set('amount', amount);
+    fd.set('currency', currency);
+    fd.set('description', description);
+    fd.set('expense_date', expenseDate);
+    if (hasDueDate && dueDate) fd.set('due_date', dueDate);
+    fd.set('paid', String(paid));
+    fd.set('is_recurring', String(isRecurring));
+    if (isRecurring) fd.set('recurrence_type', recurrenceType);
+    // Solo mandamos contactos si hay vencimiento (sino no tiene sentido notificar)
+    if (hasDueDate) {
+      notifyContactIds.forEach((id) => fd.append('notify_contact_ids', id));
+    }
+
+    startTransition(async () => {
+      const result = await upsertExpense({ ok: false }, fd);
+      if (result.ok) {
+        toast.success(expense ? 'Gasto actualizado' : 'Gasto creado');
+        router.refresh();
+        onClose();
+      } else {
+        toast.error(result.error ?? 'Error');
+      }
+    });
+  };
+
+  return (
+    <Sheet open={open} onClose={onClose} title={expense ? 'Editar gasto' : 'Nuevo gasto'}>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Monto</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+              autoFocus
+              required
+            />
+          </div>
+          <div className="w-28">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Moneda</label>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as Currency)}
+              className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.code}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {convertedAmount !== null && (
+          <div className="bg-sky-50 border border-sky-100 rounded-xl p-3 text-sm flex items-center justify-between">
+            <span className="text-sky-700">Equivalente:</span>
+            <span className="font-semibold text-sky-900">
+              {formatMoney(convertedAmount, defaultCurrency)}
+            </span>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Categoría</label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white"
+          >
+            <option value="">Sin categoría</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Descripción</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Ej: Suscripción Netflix"
+            className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            maxLength={200}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha</label>
+          <input
+            type="date"
+            value={expenseDate}
+            onChange={(e) => setExpenseDate(e.target.value)}
+            className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            required
+          />
+        </div>
+
+        <div className="border border-slate-200 rounded-xl p-3 space-y-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={hasDueDate}
+              onChange={(e) => setHasDueDate(e.target.checked)}
+              className="rounded text-sky-600 w-4 h-4"
+            />
+            <span className="font-medium">Tiene vencimiento</span>
+          </label>
+          {hasDueDate && (
+            <>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={paid}
+                  onChange={(e) => setPaid(e.target.checked)}
+                  className="rounded text-sky-600 w-4 h-4"
+                />
+                <span>Ya está pagado</span>
+              </label>
+            </>
+          )}
+        </div>
+
+        <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="rounded text-sky-600 w-4 h-4"
+            />
+            <span className="font-medium">Es recurrente</span>
+          </label>
+          {isRecurring && (
+            <select
+              value={recurrenceType}
+              onChange={(e) => setRecurrenceType(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-800"
+            >
+              <option value="weekly">Semanal</option>
+              <option value="monthly">Mensual</option>
+              <option value="yearly">Anual</option>
+            </select>
+          )}
+        </div>
+
+        {/* Selector "Avisar a" — solo aparece si hay vencimiento */}
+        {hasDueDate && contacts.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Avisar a</label>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+              A quién mandamos WhatsApp cuando se acerque el vencimiento.
+            </p>
+            <div className="space-y-1.5">
+              {contacts.map((c) => {
+                const selected = notifyContactIds.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggleContact(c.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-colors text-left ${
+                      selected
+                        ? 'border-sky-400 bg-sky-50 dark:bg-sky-900/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded border-2 grid place-items-center transition-all shrink-0 ${
+                        selected ? 'kumo-gradient border-transparent' : 'border-slate-300'
+                      }`}
+                    >
+                      {selected && (
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{c.name}</p>
+                      {c.phone ? (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">+{c.phone}</p>
+                      ) : (
+                        <p className="text-xs text-rose-400">Sin número — no recibirá WhatsApp</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2 sticky bottom-0 bg-white dark:bg-slate-800 pb-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={pending || !amount}
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {pending ? 'Guardando...' : expense ? 'Guardar' : 'Crear'}
+          </button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+function monthShift(year: number, month: number, delta: number): string {
+  const d = new Date(year, month - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMonth(year: number, month: number): string {
+  return new Date(year, month - 1, 1).toLocaleDateString('es-AR', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: 'short',
+  });
+}
+
+function formatFullDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function FilterChip({
+  children,
+  onRemove,
+}: {
+  children: React.ReactNode;
+  onRemove: () => void;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-sky-100 text-sky-700 text-xs font-medium">
+      {children}
+      <button
+        onClick={onRemove}
+        className="p-0.5 rounded-full hover:bg-sky-200"
+        aria-label="Quitar filtro"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </span>
+  );
+}
+
+// Select inline minimalista — se ve como texto subrayado punteado, no como caja.
+function CurrencyInlineSelect({
+  value,
+  onChange,
+}: {
+  value: Currency;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label="Moneda de visualización"
+      className="appearance-none bg-transparent border-0 px-0 py-0 font-medium text-slate-500 dark:text-slate-300 cursor-pointer underline decoration-dotted decoration-slate-300 dark:decoration-slate-600 underline-offset-2 hover:text-sky-600 hover:decoration-sky-400 focus:outline-none focus:text-sky-600 transition-colors"
+    >
+      {CURRENCIES.map((c) => (
+        <option key={c.code} value={c.code}>{c.code}</option>
+      ))}
+    </select>
+  );
+}

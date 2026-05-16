@@ -39,6 +39,7 @@ export type Database = {
           is_recurring: boolean;
           recurrence_type: 'weekly' | 'monthly' | 'yearly' | null;
           paid: boolean;
+          notify_contact_ids: string[];
           created_at: string;
         };
         Insert: Omit<
@@ -65,6 +66,7 @@ export type Database = {
           reminder_type: 'medical' | 'birthday' | 'generic';
           is_recurring: boolean;
           notify_days_before: number;
+          notify_contact_ids: string[];
           last_notified_at: string | null;
           created_at: string;
         };
@@ -103,6 +105,29 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['shopping_items']['Insert']>;
+      };
+      notification_contacts: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          phone: string | null;
+          relationship: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
+          is_self: boolean;
+          verified: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          phone?: string | null;
+          relationship?: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
+          is_self?: boolean;
+          verified?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['notification_contacts']['Insert']>;
       };
       user_settings: {
         Row: {

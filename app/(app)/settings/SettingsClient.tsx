@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, DollarSign, Clock, Bell } from 'lucide-react';
+import { toast } from 'sonner';
+import { MessageCircle, DollarSign, Clock, Bell, Palette } from 'lucide-react';
 import { saveSettings } from './actions';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { Database } from '@/lib/supabase/database.types';
 
 type Settings = Database['public']['Tables']['user_settings']['Row'];
@@ -35,31 +37,35 @@ export function SettingsClient({
     fd.set('timezone', timezone);
     fd.set('notify_expenses', String(notifyExpenses));
     fd.set('notify_reminders', String(notifyReminders));
-    await saveSettings(fd);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    router.refresh();
+    try {
+      await saveSettings(fd);
+      toast.success('Configuración guardada');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      router.refresh();
+    } catch (err) {
+      toast.error('No se pudo guardar');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <form onSubmit={onSave} className="space-y-4">
       <Section icon={<MessageCircle className="w-5 h-5" />} title="WhatsApp" tone="mint">
-        <p className="text-sm text-slate-500 mb-3">
-          Te avisamos por WhatsApp cuando se acerquen vencimientos, citas médicas o cumpleaños.
-          Para desarrollo usamos el sandbox de Twilio: tenés que mandar primero{' '}
-          <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">join &lt;código&gt;</code>{' '}
-          al número del sandbox para suscribirte.
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+          Tu número se mantiene acá por compatibilidad. Para administrar a quién avisar
+          (vos, familia, amistades), usá la sección <strong>Contactos</strong> arriba.
         </p>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">
-          Número de WhatsApp (formato internacional)
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          Tu WhatsApp principal
         </label>
         <input
           type="tel"
           value={whatsapp}
           onChange={(e) => setWhatsapp(e.target.value)}
           placeholder="+54911XXXXXXXX"
-          className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
+          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400"
         />
       </Section>
 
@@ -113,9 +119,16 @@ export function SettingsClient({
         </label>
       </Section>
 
+      <Section icon={<Palette className="w-5 h-5" />} title="Apariencia" tone="lavender">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+          Tema claro con nubecitas pastel o tema oscuro con cielo estrellado.
+        </p>
+        <ThemeToggle />
+      </Section>
+
       <div className="kumo-card p-5">
-        <p className="text-xs text-slate-500">
-          Cuenta: <span className="font-medium text-slate-700">{userEmail}</span>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Cuenta: <span className="font-medium text-slate-700 dark:text-slate-200">{userEmail}</span>
         </p>
       </div>
 

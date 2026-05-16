@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
+/* Variant para dark mode con class .dark en html */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ---------------------------------------------------------------- */
-/* Kumo Design System                                                */
-/* Paleta pastel inspirada en cielo: sky / lavender / peach / mint   */
+/* Kumo Design System                                                 */
+/* Paleta pastel para light + nocturno estrellado para dark           */
 /* ---------------------------------------------------------------- */
 
 @theme {
@@ -19,7 +22,7 @@
   --color-sky-600: #0284c7;
   --color-sky-700: #0369a1;
 
-  /* Lavender (violeta suave) — secundario */
+  /* Lavender (violeta suave) */
   --color-lavender-50: #faf5ff;
   --color-lavender-100: #f3e8ff;
   --color-lavender-200: #e9d5ff;
@@ -27,14 +30,14 @@
   --color-lavender-400: #c084fc;
   --color-lavender-500: #a855f7;
 
-  /* Peach (durazno) — para alertas suaves */
+  /* Peach (durazno) */
   --color-peach-50: #fff7ed;
   --color-peach-100: #ffedd5;
   --color-peach-200: #fed7aa;
   --color-peach-300: #fdba74;
   --color-peach-400: #fb923c;
 
-  /* Mint (verde menta) — para éxito */
+  /* Mint (verde menta) */
   --color-mint-50: #ecfdf5;
   --color-mint-100: #d1fae5;
   --color-mint-200: #a7f3d0;
@@ -42,7 +45,7 @@
   --color-mint-400: #34d399;
   --color-mint-500: #10b981;
 
-  /* Rose (rosa pastel) — para borrar / negativos */
+  /* Rose (rosa pastel) */
   --color-rose-50: #fff1f2;
   --color-rose-100: #ffe4e6;
   --color-rose-200: #fecdd3;
@@ -56,7 +59,7 @@
 }
 
 /* ---------------------------------------------------------------- */
-/* Base styles                                                        */
+/* Base styles (light)                                                */
 /* ---------------------------------------------------------------- */
 
 html {
@@ -68,9 +71,49 @@ body {
   background: linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
   color: #0f172a;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Scrollbar suave */
+/* Tailwind 4 preflight no setea cursor:pointer en buttons. Lo forzamos. */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+a:not([href=""]) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- */
+/* DARK MODE — cielo nocturno estrellado                              */
+/* ---------------------------------------------------------------- */
+.dark body {
+  background: linear-gradient(180deg, #0b1126 0%, #161e3d 50%, #0b1126 100%);
+  color: #e2e8f0;
+}
+
+/* Cards en dark */
+.dark .kumo-card {
+  background: rgb(30 41 59 / 0.6);
+  border-color: rgb(51 65 85 / 0.5);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2), 0 8px 24px -8px rgb(0 0 0 / 0.4);
+}
+
+/* Inputs */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+  background-color: rgb(30 41 59 / 0.5);
+  border-color: rgb(71 85 105 / 0.4);
+  color: #e2e8f0;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -81,6 +124,9 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #e0e7ff;
   border-radius: 999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #c7d2fe;
@@ -108,12 +154,11 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-/* Floating cloud animation */
+/* Cloud / star animations */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
-
 @utility cloud-float {
   animation: float 6s ease-in-out infinite;
 }
@@ -122,7 +167,56 @@ body {
   0% { transform: translateX(-20px); }
   100% { transform: translateX(20px); }
 }
-
 @utility cloud-drift {
   animation: drift 12s ease-in-out infinite alternate;
+}
+
+/* Balanceo sutil en el lugar. Pocas decenas de pixels para los dos lados, muy lento. */
+@keyframes cloud-sway-a {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(12px, -4px); }
+  50%  { transform: translate(-8px, 3px); }
+  75%  { transform: translate(6px, 5px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes cloud-sway-b {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-10px, 4px); }
+  45%  { transform: translate(7px, -3px); }
+  70%  { transform: translate(-5px, -5px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes cloud-sway-c {
+  0%   { transform: translate(0, 0); }
+  30%  { transform: translate(8px, 5px); }
+  55%  { transform: translate(-12px, -3px); }
+  80%  { transform: translate(4px, -4px); }
+  100% { transform: translate(0, 0); }
+}
+
+@utility cloud-sway-a {
+  animation: cloud-sway-a 90s ease-in-out infinite;
+}
+@utility cloud-sway-b {
+  animation: cloud-sway-b 110s ease-in-out infinite;
+}
+@utility cloud-sway-c {
+  animation: cloud-sway-c 130s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+@utility star-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+@keyframes shooting-star {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate(300px, 150px); opacity: 0; }
+}
+@utility shooting-star {
+  animation: shooting-star 6s linear infinite;
 }

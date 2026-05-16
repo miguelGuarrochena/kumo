@@ -30,21 +30,18 @@ export default function LoginPage() {
       <CloudDecorations />
 
       <div className="kumo-card relative w-full max-w-md p-8 space-y-6">
-        <div className="flex flex-col items-center gap-3">
-          <CloudLogo className="w-16 h-16 cloud-float" />
-          <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight kumo-gradient-text">Kumo</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Tus gastos, organizados como una nube perfecta
-            </p>
-          </div>
+        <div className="flex flex-col items-center gap-2">
+          <CloudLogo className="w-40 cloud-float" withWordmark />
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
+            Tus gastos, organizados como una nube perfecta
+          </p>
         </div>
 
-        <div className="border-t border-slate-100 pt-6">
+        <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
           <button
             onClick={onGoogle}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white border-2 border-slate-200 hover:border-sky-300 hover:bg-sky-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-slate-700"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-slate-700 dark:text-slate-200"
           >
             <GoogleIcon />
             {loading ? 'Conectando...' : 'Continuar con Google'}
@@ -54,8 +51,8 @@ export default function LoginPage() {
             <p className="mt-3 text-sm text-rose-500 text-center">{error}</p>
           )}
 
-          <p className="mt-6 text-xs text-slate-400 text-center">
-            Tus datos quedan en Supabase y son solo tuyos. Nada se comparte.
+          <p className="mt-6 text-xs text-slate-400 dark:text-slate-500 text-center">
+            Tus datos son privados. Sólo vos los ves.
           </p>
         </div>
       </div>

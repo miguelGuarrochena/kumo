@@ -9,6 +9,7 @@ import {
   Bell,
   ShoppingCart,
   CalendarDays,
+  BarChart3,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -19,6 +20,7 @@ import { useRouter } from 'next/navigation';
 const NAV = [
   { href: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
   { href: '/expenses',      label: 'Gastos',         icon: Wallet },
+  { href: '/metrics',       label: 'Métricas',      icon: BarChart3 },
   { href: '/categories',    label: 'Categorías',    icon: Tags },
   { href: '/reminders',     label: 'Recordatorios', icon: Bell },
   { href: '/shopping',      label: 'Compras',       icon: ShoppingCart },
@@ -37,12 +39,12 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
   };
 
   return (
-    <aside className="w-64 bg-white/70 backdrop-blur border-r border-slate-200 flex flex-col">
-      <div className="px-5 py-5 flex items-center gap-2 border-b border-slate-100">
+    <aside className="hidden lg:flex w-64 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 flex-col">
+      <div className="px-5 py-5 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
         <CloudLogo className="w-8 h-8" />
         <div>
           <h1 className="font-bold text-lg tracking-tight kumo-gradient-text">Kumo</h1>
-          <p className="text-[10px] text-slate-400 -mt-0.5">tus gastos en orden</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 -mt-0.5">tus gastos en orden</p>
         </div>
       </div>
 
@@ -55,8 +57,8 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
               href={href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 active
-                  ? 'bg-sky-100 text-sky-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -66,13 +68,13 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
         })}
       </nav>
 
-      <div className="p-3 border-t border-slate-100">
-        <div className="px-3 py-2 text-xs text-slate-500 truncate" title={userEmail}>
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800">
+        <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 truncate" title={userEmail}>
           {userEmail}
         </div>
         <button
           onClick={onSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
         >
           <LogOut className="w-4 h-4" />
           Cerrar sesión

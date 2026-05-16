@@ -1,0 +1,91 @@
+'use client';
+
+// Modal responsive: bottom-sheet en mobile, centered modal en desktop.
+// Usado por todos los forms de la app.
+
+import { useEffect } from 'react';
+import { X } from 'lucide-react';
+
+export function Sheet({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  /**
+   * Opcional: si lo pasás, queda fijo en el bottom del modal (sticky).
+   * Útil para botones de acción que tienen que ser siempre accesibles.
+   */
+  footer?: React.ReactNode;
+}) {
+  // Lock scroll del body cuando está abierto
+  useEffect(() => {
+    if (!open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [open]);
+
+  // Cerrar con ESC
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="
+          w-full sm:max-w-md
+          bg-white dark:bg-slate-800 dark:border dark:border-slate-700
+          text-slate-900 dark:text-slate-100
+          rounded-t-3xl sm:rounded-2xl
+          shadow-2xl
+          max-h-[92vh] sm:max-h-[85vh]
+          flex flex-col
+          animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 fade-in
+        "
+      >
+        {/* Drag handle visual en mobile */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-600" />
+        </div>
+
+        <div className="flex items-center justify-between px-6 pt-3 pb-3 sm:pt-5 shrink-0 border-b border-slate-100 dark:border-slate-700/50">
+          <h2 className="font-semibold text-lg">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 -mr-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500"
+            aria-label="Cerrar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+
+        {footer && (
+          <div className="shrink-0 px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-white dark:bg-slate-800">
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
