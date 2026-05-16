@@ -21,13 +21,13 @@ export function CloudDecorations() {
 function FluffyClouds() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
-      <FluffyCloud className="absolute top-[5%]  left-[8%]   w-72 cloud-sway-a" opacity={0.95} delay="-10s"  />
-      <FluffyCloud className="absolute top-[14%] left-[58%]  w-56 cloud-sway-b" opacity={0.85} delay="-40s"  />
-      <FluffyCloud className="absolute top-[32%] left-[28%]  w-64 cloud-sway-c" opacity={0.9}  delay="-20s"  />
-      <FluffyCloud className="absolute top-[48%] left-[72%]  w-72 cloud-sway-a" opacity={0.8}  delay="-70s"  />
-      <FluffyCloud className="absolute top-[65%] left-[10%]  w-60 cloud-sway-b" opacity={0.9}  delay="-50s"  />
-      <FluffyCloud className="absolute top-[78%] left-[48%]  w-72 cloud-sway-c" opacity={0.85} delay="-90s"  />
-      <FluffyCloud className="absolute top-[88%] left-[82%]  w-52 cloud-sway-a" opacity={0.75} delay="-30s"  />
+      <FluffyCloud className="absolute top-[5%]  left-[8%]   w-72" opacity={0.95} />
+      <FluffyCloud className="absolute top-[14%] left-[58%]  w-56" opacity={0.85} />
+      <FluffyCloud className="absolute top-[32%] left-[28%]  w-64" opacity={0.9}  />
+      <FluffyCloud className="absolute top-[48%] left-[72%]  w-72" opacity={0.8}  />
+      <FluffyCloud className="absolute top-[65%] left-[10%]  w-60" opacity={0.9}  />
+      <FluffyCloud className="absolute top-[78%] left-[48%]  w-72" opacity={0.85} />
+      <FluffyCloud className="absolute top-[88%] left-[82%]  w-52" opacity={0.75} />
     </div>
   );
 }
@@ -35,17 +35,15 @@ function FluffyClouds() {
 function FluffyCloud({
   className,
   opacity = 0.9,
-  delay = '0s',
 }: {
   className?: string;
   opacity?: number;
-  delay?: string;
 }) {
   return (
     <svg
       viewBox="0 0 240 110"
       className={className}
-      style={{ animationDelay: delay, opacity }}
+      style={{ opacity }}
       fill="white"
     >
       <ellipse cx="120" cy="88" rx="105" ry="20" />
