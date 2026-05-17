@@ -1,10 +1,3 @@
-// Ambient declarations para módulos opcionales que pueden no estar instalados
-// localmente. En Vercel se instalan desde package.json y los types reales
-// toman precedencia sobre estos fallbacks.
-//
-// Si querés type-safety completo localmente, instalá los paquetes con pnpm install
-// y podés borrar este archivo.
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 declare module 'posthog-js' {
@@ -17,8 +10,19 @@ declare module 'posthog-js/react' {
 }
 
 declare module '@sentry/nextjs' {
-  export function init(opts: any): void;
+  export const withSentryConfig: any;
+  export const init: any;
   export const onRequestError: any;
+  export const captureException: any;
+  export const captureMessage: any;
+  export const startSpan: any;
+  export const logger: any;
+  export const replayIntegration: any;
+  export const captureRouterTransitionStart: any;
+  export const diagnoseSdkConnectivity: any;
+  export const getClient: any;
+  export const browserTracingIntegration: any;
+  export const consoleLoggingIntegration: any;
   const Sentry: any;
   export default Sentry;
 }

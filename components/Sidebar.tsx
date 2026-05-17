@@ -43,7 +43,7 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
   };
 
   return (
-    <aside className="hidden lg:flex w-64 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 flex-col">
+    <aside className="hidden lg:flex w-64 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 flex-col sticky top-0 h-screen">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
         <CloudLogo className="w-8 h-8" />
         <div>
