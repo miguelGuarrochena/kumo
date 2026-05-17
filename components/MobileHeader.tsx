@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { createClient } from '@/lib/supabase/client';
@@ -15,6 +16,7 @@ type Props = {
 
 export const MobileHeader = ({ userEmail }: Props) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useT();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -25,14 +27,34 @@ export const MobileHeader = ({ userEmail }: Props) => {
     router.replace('/auth/login');
   };
 
+  const onBack = () => {
+    if (window.history.length > 1) router.back();
+    else router.push('/dashboard');
+  };
+
+  const isDashboard = pathname === '/dashboard';
+
   return (
     <header className="lg:hidden sticky top-0 z-20 bg-white/90 dark:bg-slate-900/80 backdrop-blur border-b border-slate-100 dark:border-slate-800 pt-[env(safe-area-inset-top)]">
-      <div className="flex items-center justify-between px-4 h-14">
-        <div className="flex items-center gap-2">
-          <CloudLogo className="w-7" />
-          <h1 className="font-bold tracking-tight kumo-gradient-text">Kumo</h1>
+      <div className="grid grid-cols-3 items-center px-4 h-14">
+        <div className="flex justify-start">
+          {!isDashboard && (
+            <button
+              onClick={onBack}
+              className="w-9 h-9 rounded-full grid place-items-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Volver"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+
+        <Link href="/dashboard" className="flex items-center justify-center gap-1.5">
+          <CloudLogo className="w-6" />
+          <span className="font-bold text-base tracking-tight kumo-gradient-text">Kumo</span>
+        </Link>
+
+        <div className="flex justify-end items-center gap-2">
           <ThemeToggle compact />
           <button
             onClick={() => setMenuOpen((v) => !v)}
@@ -51,10 +73,32 @@ export const MobileHeader = ({ userEmail }: Props) => {
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute right-3 top-12 z-20 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 min-w-56 overflow-hidden">
+          <div className="absolute right-3 top-12 z-20 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 min-w-64 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-              <p className="text-xs text-slate-500 dark:text-slate-400">{userEmail}</p>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {t.menu.connectedAs}
+              </p>
+              <p className="text-sm font-medium truncate dark:text-slate-100 mt-0.5">{userEmail}</p>
             </div>
+
+            <MenuItem href="/settings" icon={Settings} onClick={() => setMenuOpen(false)}>
+              {t.menu.settings}
+            </MenuItem>
+            <MenuItem href="/categories" icon={Tags} onClick={() => setMenuOpen(false)}>
+              {t.menu.categories}
+            </MenuItem>
+
+            <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
+
+            <MenuItem href="/legal/privacy" icon={Shield} onClick={() => setMenuOpen(false)}>
+              {t.menu.privacy}
+            </MenuItem>
+            <MenuItem href="/legal/terms" icon={FileText} onClick={() => setMenuOpen(false)}>
+              {t.menu.terms}
+            </MenuItem>
+
+            <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
+
             <button
               onClick={onSignOut}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20"
@@ -68,3 +112,21 @@ export const MobileHeader = ({ userEmail }: Props) => {
     </header>
   );
 };
+
+type MenuItemProps = {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  onClick?: () => void;
+  children: React.ReactNode;
+};
+
+const MenuItem = ({ href, icon: Icon, onClick, children }: MenuItemProps) => (
+  <Link
+    href={href as never}
+    onClick={onClick}
+    className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+  >
+    <Icon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+    {children}
+  </Link>
+);

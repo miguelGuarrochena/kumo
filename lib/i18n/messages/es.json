@@ -27,11 +27,18 @@
     "signOut": "Cerrar sesión"
   },
   "mobileNav": {
-    "home": "Inicio",
     "expenses": "Gastos",
+    "metrics": "Métricas",
     "shopping": "Compras",
-    "reminders": "Avisos",
-    "settings": "Ajustes"
+    "calendar": "Calendario",
+    "reminders": "Avisos"
+  },
+  "menu": {
+    "settings": "Configuración",
+    "categories": "Categorías",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "connectedAs": "Conectado como"
   },
   "landing": {
     "tagline_pre": "Tus gastos,",

@@ -27,11 +27,18 @@
     "signOut": "Sign out"
   },
   "mobileNav": {
-    "home": "Home",
     "expenses": "Expenses",
+    "metrics": "Metrics",
     "shopping": "Shopping",
-    "reminders": "Alerts",
-    "settings": "Settings"
+    "calendar": "Calendar",
+    "reminders": "Alerts"
+  },
+  "menu": {
+    "settings": "Settings",
+    "categories": "Categories",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "connectedAs": "Signed in as"
   },
   "landing": {
     "tagline_pre": "Your expenses,",
