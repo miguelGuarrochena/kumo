@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { CloudLogo } from '@/components/CloudLogo';
 import { CloudDecorations } from '@/components/CloudDecorations';
+import { Footer } from '@/components/Footer';
 import {
-  Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight, Check,
+  Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight,
 } from 'lucide-react';
 
 // Landing page pública. Si el user ya está logueado, lo manda al dashboard.
@@ -147,29 +148,6 @@ export default async function HomePage() {
         </ol>
       </section>
 
-      {/* Privacy */}
-      <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-        <div className="kumo-card p-6 sm:p-10">
-          <h2 className="text-xl sm:text-2xl font-bold mb-3">Privacidad por diseño</h2>
-          <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base mb-4">
-            Tu data financiera es tuya. Punto.
-          </p>
-          <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-            <li className="flex items-start gap-2"><Check className="w-4 h-4 text-mint-500 mt-0.5 shrink-0" /> Cada usuario solo ve sus propios datos (RLS a nivel base de datos).</li>
-            <li className="flex items-start gap-2"><Check className="w-4 h-4 text-mint-500 mt-0.5 shrink-0" /> No vendemos data a nadie. Ni la usamos para entrenar modelos.</li>
-            <li className="flex items-start gap-2"><Check className="w-4 h-4 text-mint-500 mt-0.5 shrink-0" /> Podés exportar todo o eliminar tu cuenta cuando quieras.</li>
-          </ul>
-          <div className="mt-5 flex gap-4 text-xs">
-            <Link href="/legal/privacy" className="text-sky-600 dark:text-sky-400 hover:underline">
-              Política de privacidad
-            </Link>
-            <Link href="/legal/terms" className="text-sky-600 dark:text-sky-400 hover:underline">
-              Términos
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* Final CTA */}
       <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-20 text-center">
         <CloudLogo className="w-16 h-16 mx-auto mb-4" />
@@ -186,20 +164,7 @@ export default async function HomePage() {
         </Link>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 border-t border-slate-200/60 dark:border-slate-800/60">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-500">
-          <div className="flex items-center gap-2">
-            <CloudLogo className="w-5 h-5" />
-            <span>© {new Date().getFullYear()} Kumo</span>
-          </div>
-          <div className="flex gap-5">
-            <Link href="/legal/privacy" className="hover:text-slate-700 dark:hover:text-slate-300">Privacidad</Link>
-            <Link href="/legal/terms" className="hover:text-slate-700 dark:hover:text-slate-300">Términos</Link>
-            <a href="mailto:hola@kumoapply.com" className="hover:text-slate-700 dark:hover:text-slate-300">Contacto</a>
-          </div>
-        </div>
-      </footer>
+      <Footer variant="public" />
     </main>
   );
 }

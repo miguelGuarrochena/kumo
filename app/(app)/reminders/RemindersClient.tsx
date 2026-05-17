@@ -9,6 +9,7 @@ import {
 import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { upsertReminder, deleteReminder } from './actions';
+import { track } from '@/lib/analytics';
 
 type Reminder = {
   id: string;
@@ -346,6 +347,9 @@ function ReminderSheet({
       const result = await upsertReminder({ ok: false }, fd);
       if (result.ok) {
         toast.success(reminder ? 'Recordatorio actualizado' : 'Recordatorio creado');
+        if (!reminder) {
+          track('reminder_created', { type, contacts_count: notifyContactIds.length });
+        }
         router.refresh();
         onClose();
       } else {

@@ -161,6 +161,7 @@ type UserSettingsRow = {
   notify_reminders: boolean;
   default_currency: string;
   timezone: string;
+  onboarded: boolean;
   updated_at: string;
 };
 type UserSettingsInsert = {
@@ -171,6 +172,7 @@ type UserSettingsInsert = {
   notify_reminders?: boolean;
   default_currency?: string;
   timezone?: string;
+  onboarded?: boolean;
   updated_at?: string;
 };
 type UserSettingsUpdate = {
@@ -181,6 +183,7 @@ type UserSettingsUpdate = {
   notify_reminders?: boolean;
   default_currency?: string;
   timezone?: string;
+  onboarded?: boolean;
   updated_at?: string;
 };
 

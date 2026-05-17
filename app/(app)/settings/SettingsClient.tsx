@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { MessageCircle, DollarSign, Clock, Bell, Palette } from 'lucide-react';
+import { MessageCircle, DollarSign, Clock, Bell, Palette, Globe } from 'lucide-react';
 import { saveSettings } from './actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useT } from '@/lib/i18n/client';
 import type { Database } from '@/lib/supabase/database.types';
+import { track } from '@/lib/analytics';
 
 type Settings = Database['public']['Tables']['user_settings']['Row'];
 
@@ -31,6 +34,8 @@ export function SettingsClient({
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const prevCurrency = initialSettings?.default_currency ?? 'ARS';
+    const prevWhatsapp = initialSettings?.whatsapp_number ?? '';
     const fd = new FormData();
     fd.set('whatsapp_number', whatsapp);
     fd.set('default_currency', currency);
@@ -40,6 +45,12 @@ export function SettingsClient({
     try {
       await saveSettings(fd);
       toast.success('Configuración guardada');
+      if (currency !== prevCurrency) {
+        track('currency_changed', { from: prevCurrency, to: currency });
+      }
+      if (whatsapp && whatsapp !== prevWhatsapp) {
+        track('whatsapp_configured');
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       router.refresh();
@@ -126,6 +137,8 @@ export function SettingsClient({
         <ThemeToggle />
       </Section>
 
+      <LanguageSection />
+
       <div className="kumo-card p-5">
         <p className="text-xs text-slate-500 dark:text-slate-400">
           Cuenta: <span className="font-medium text-slate-700 dark:text-slate-200">{userEmail}</span>
@@ -143,6 +156,24 @@ export function SettingsClient({
         {saved && <span className="text-sm text-mint-500 font-medium">Guardado ✓</span>}
       </div>
     </form>
+  );
+}
+
+function LanguageSection() {
+  const { t } = useT();
+  return (
+    <div className="kumo-card p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 rounded-lg bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 grid place-items-center">
+          <Globe className="w-5 h-5" />
+        </div>
+        <div>
+          <h3 className="font-semibold">{t.settings.language}</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t.settings.language_desc}</p>
+        </div>
+      </div>
+      <LanguageSwitcher />
+    </div>
   );
 }
 

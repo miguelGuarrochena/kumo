@@ -3,6 +3,7 @@
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { Moon, Sun, Monitor } from 'lucide-react';
+import { track } from '@/lib/analytics';
 
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { theme, setTheme } = useTheme();
@@ -26,7 +27,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
           return (
             <button
               key={value}
-              onClick={() => setTheme(value)}
+              onClick={() => { setTheme(value); track('theme_changed', { theme: value }); }}
               className={`w-7 h-7 rounded-full grid place-items-center transition-colors ${
                 active
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'

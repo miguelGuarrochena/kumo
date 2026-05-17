@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <p>
         Al usar Kumo aceptás estos términos. Si no estás de acuerdo, no uses la aplicación. Si tenés dudas:{' '}
-        <a href="mailto:hola@kumoapply.com">hola@kumoapply.com</a>.
+        <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>.
       </p>
 
       <h2 className="text-xl font-bold mt-8 mb-3">1. Qué es Kumo</h2>
@@ -92,7 +92,7 @@ export default function TermsPage() {
       <h2 className="text-xl font-bold mt-8 mb-3">11. Contacto</h2>
       <p>
         Para cualquier consulta sobre estos términos:{' '}
-        <a href="mailto:hola@kumoapply.com">hola@kumoapply.com</a>.
+        <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>.
       </p>
     </div>
   );

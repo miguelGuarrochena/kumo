@@ -6,12 +6,14 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { resetAnalytics } from '@/lib/analytics';
 
 export function MobileHeader({ userEmail }: { userEmail: string }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const onSignOut = async () => {
+    resetAnalytics();
     const supabase = createClient();
     await supabase.auth.signOut();
     router.replace('/auth/login');

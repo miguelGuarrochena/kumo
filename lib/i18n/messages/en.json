@@ -1,0 +1,82 @@
+{
+  "locale": "en",
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "new": "New",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "search": "Search",
+    "filters": "Filters",
+    "all": "All",
+    "back": "Back",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "expenses": "Expenses",
+    "metrics": "Metrics",
+    "categories": "Categories",
+    "reminders": "Reminders",
+    "shopping": "Shopping",
+    "calendar": "Calendar",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "mobileNav": {
+    "home": "Home",
+    "expenses": "Expenses",
+    "shopping": "Shopping",
+    "reminders": "Alerts",
+    "settings": "Settings"
+  },
+  "landing": {
+    "tagline_pre": "Your expenses,",
+    "tagline_highlight": "like a perfect cloud",
+    "hero_desc": "Log expenses in seconds, schedule due dates, get WhatsApp alerts, and never forget a birthday or rent payment again.",
+    "cta_primary": "Get started free",
+    "cta_secondary": "See how it works ↓",
+    "hero_fineprint": "No credit card. No install. Privacy by design.",
+    "beta_badge": "Public beta · free",
+    "login": "Sign in",
+    "features_title": "Everything you need to stay in control",
+    "features_subtitle": "No spreadsheets, no forgotten reminders.",
+    "feature_expenses_title": "Categorized expenses",
+    "feature_expenses_desc": "Log an expense in 5 seconds. Filter by month, year, category or amount. 8 currencies with live conversion.",
+    "feature_ocr_title": "Receipt photo",
+    "feature_ocr_desc": "Snap a photo of your receipt and AI extracts amount, merchant, date and category. You just confirm.",
+    "feature_wa_title": "WhatsApp",
+    "feature_wa_desc": "Automatic alerts before every due date, medical appointment or birthday. For you or your family.",
+    "feature_reminders_title": "Reminders",
+    "feature_reminders_desc": "Medical appointments, birthdays, whatever you need. With configurable lead time.",
+    "feature_metrics_title": "Clear metrics",
+    "feature_metrics_desc": "How much, on what, when. Charts by category, time evolution and month-over-month comparisons.",
+    "feature_shopping_title": "Shopping list",
+    "feature_shopping_desc": "Multiple lists (grocery, pharmacy). Tick items while you shop. Clear with one click.",
+    "how_title": "Getting started is dead simple",
+    "step1_title": "Sign in with Google",
+    "step1_desc": "No passwords, no forms. One click and you're in.",
+    "step2_title": "Log your first expenses",
+    "step2_desc": "With the camera, by typing, or from a past receipt. Default categories included.",
+    "step3_title": "Connect WhatsApp (optional)",
+    "step3_desc": "Add your number and the ones you want. We'll alert you before every due date.",
+    "final_cta_title": "Start today. It's free.",
+    "final_cta_desc": "Takes less time to start than to set up a spreadsheet.",
+    "final_cta_button": "Create my account"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Contacts, currency, timezone, theme and notification preferences.",
+    "language": "Language",
+    "language_desc": "Interface language."
+  },
+  "footer": {
+    "createdBy": "made by",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact"
+  }
+}

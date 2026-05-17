@@ -5,20 +5,21 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Wallet, ShoppingCart, Bell, Settings,
 } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 
-// Bottom navigation para mobile. Solo las 5 secciones principales — el resto
-// (categorías, calendario) van adentro de Configuración o como sub-rutas.
-
-const NAV = [
-  { href: '/dashboard',  label: 'Inicio',   icon: LayoutDashboard },
-  { href: '/expenses',   label: 'Gastos',   icon: Wallet },
-  { href: '/shopping',   label: 'Compras',  icon: ShoppingCart },
-  { href: '/reminders',  label: 'Avisos',   icon: Bell },
-  { href: '/settings',   label: 'Ajustes',  icon: Settings },
-] as const;
+// Bottom navigation para mobile. Solo las 5 secciones principales.
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { t } = useT();
+
+  const NAV = [
+    { href: '/dashboard', label: t.mobileNav.home,      icon: LayoutDashboard },
+    { href: '/expenses',  label: t.mobileNav.expenses,  icon: Wallet },
+    { href: '/shopping',  label: t.mobileNav.shopping,  icon: ShoppingCart },
+    { href: '/reminders', label: t.mobileNav.reminders, icon: Bell },
+    { href: '/settings',  label: t.mobileNav.settings,  icon: Settings },
+  ] as const;
 
   return (
     <nav

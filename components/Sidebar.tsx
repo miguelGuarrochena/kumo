@@ -16,23 +16,27 @@ import {
 import { CloudLogo } from './CloudLogo';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-
-const NAV = [
-  { href: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/expenses',      label: 'Gastos',         icon: Wallet },
-  { href: '/metrics',       label: 'Métricas',      icon: BarChart3 },
-  { href: '/categories',    label: 'Categorías',    icon: Tags },
-  { href: '/reminders',     label: 'Recordatorios', icon: Bell },
-  { href: '/shopping',      label: 'Compras',       icon: ShoppingCart },
-  { href: '/calendar',      label: 'Calendario',    icon: CalendarDays },
-  { href: '/settings',      label: 'Configuración', icon: Settings },
-] as const;
+import { useT } from '@/lib/i18n/client';
+import { resetAnalytics } from '@/lib/analytics';
 
 export function Sidebar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useT();
+
+  const NAV = [
+    { href: '/dashboard',  label: t.nav.dashboard,    icon: LayoutDashboard },
+    { href: '/expenses',   label: t.nav.expenses,     icon: Wallet },
+    { href: '/metrics',    label: t.nav.metrics,      icon: BarChart3 },
+    { href: '/categories', label: t.nav.categories,   icon: Tags },
+    { href: '/reminders',  label: t.nav.reminders,    icon: Bell },
+    { href: '/shopping',   label: t.nav.shopping,     icon: ShoppingCart },
+    { href: '/calendar',   label: t.nav.calendar,     icon: CalendarDays },
+    { href: '/settings',   label: t.nav.settings,     icon: Settings },
+  ] as const;
 
   const onSignOut = async () => {
+    resetAnalytics();
     const supabase = createClient();
     await supabase.auth.signOut();
     router.replace('/auth/login');
@@ -44,7 +48,6 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
         <CloudLogo className="w-8 h-8" />
         <div>
           <h1 className="font-bold text-lg tracking-tight kumo-gradient-text">Kumo</h1>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 -mt-0.5">tus gastos en orden</p>
         </div>
       </div>
 
@@ -77,7 +80,7 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
         >
           <LogOut className="w-4 h-4" />
-          Cerrar sesión
+          {t.nav.signOut}
         </button>
       </div>
     </aside>

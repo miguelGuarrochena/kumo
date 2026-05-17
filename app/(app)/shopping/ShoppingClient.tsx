@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2, ShoppingCart, Sparkles, X } from 'lucide-react';
 import { addItem, toggleBought, removeItem, clearBought } from './actions';
 import type { Database } from '@/lib/supabase/database.types';
+import { track } from '@/lib/analytics';
 
 type Item = Database['public']['Tables']['shopping_items']['Row'];
 
@@ -50,6 +51,7 @@ export function ShoppingClient({ initialItems }: { initialItems: Item[] }) {
         toast.error(result.error ?? 'Error');
         return;
       }
+      track('shopping_item_added');
       router.refresh();
     });
   };

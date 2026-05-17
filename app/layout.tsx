@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { PostHogProvider } from '@/components/PostHogProvider';
+import { I18nProvider } from '@/lib/i18n/client';
+import { getLocale } from '@/lib/i18n/server';
 import './globals.css';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -86,24 +89,29 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
-        <ThemeProvider>
-          {children}
-          <Toaster
-            position="top-center"
-            richColors
-            closeButton
-            theme="system"
-            toastOptions={{
-              classNames: {
-                toast: 'rounded-xl border shadow-lg',
-              },
-            }}
-          />
-        </ThemeProvider>
+        <PostHogProvider>
+          <ThemeProvider>
+            <I18nProvider locale={locale}>
+              {children}
+              <Toaster
+                position="top-center"
+                richColors
+                closeButton
+                theme="system"
+                toastOptions={{
+                  classNames: {
+                    toast: 'rounded-xl border shadow-lg',
+                  },
+                }}
+              />
+            </I18nProvider>
+          </ThemeProvider>
+        </PostHogProvider>
         <Analytics />
       </body>
     </html>

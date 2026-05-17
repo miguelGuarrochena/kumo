@@ -11,6 +11,7 @@ import { upsertCategory, deleteCategory } from './actions';
 import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Database } from '@/lib/supabase/database.types';
+import { track } from '@/lib/analytics';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 
@@ -179,6 +180,9 @@ function CategorySheet({
       const result = await upsertCategory({ ok: false }, fd);
       if (result.ok) {
         toast.success(category ? 'Categoría actualizada' : 'Categoría creada');
+        if (!category) {
+          track('category_created', { color });
+        }
         router.refresh();
         reset();
         onClose();

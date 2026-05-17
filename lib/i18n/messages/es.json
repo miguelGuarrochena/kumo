@@ -1,0 +1,82 @@
+{
+  "locale": "es",
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Borrar",
+    "edit": "Editar",
+    "new": "Nuevo",
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "search": "Buscar",
+    "filters": "Filtros",
+    "all": "Todos",
+    "back": "Volver",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "expenses": "Gastos",
+    "metrics": "Métricas",
+    "categories": "Categorías",
+    "reminders": "Recordatorios",
+    "shopping": "Compras",
+    "calendar": "Calendario",
+    "settings": "Configuración",
+    "signOut": "Cerrar sesión"
+  },
+  "mobileNav": {
+    "home": "Inicio",
+    "expenses": "Gastos",
+    "shopping": "Compras",
+    "reminders": "Avisos",
+    "settings": "Ajustes"
+  },
+  "landing": {
+    "tagline_pre": "Tus gastos,",
+    "tagline_highlight": "como una nube perfecta",
+    "hero_desc": "Cargá gastos en segundos, programá vencimientos, recibí avisos por WhatsApp y nunca te olvides de un cumpleaños ni de pagar el alquiler.",
+    "cta_primary": "Empezar gratis",
+    "cta_secondary": "Ver cómo funciona ↓",
+    "hero_fineprint": "Sin tarjeta. Sin instalación. Privacidad por diseño.",
+    "beta_badge": "Beta pública · gratis",
+    "login": "Iniciar sesión",
+    "features_title": "Todo lo que necesitás para no perder el control",
+    "features_subtitle": "Sin hojas de Excel, sin recordatorios olvidados.",
+    "feature_expenses_title": "Gastos con categorías",
+    "feature_expenses_desc": "Cargá un gasto en 5 segundos. Filtrá por mes, año, categoría o monto. 8 monedas con conversión en vivo.",
+    "feature_ocr_title": "Foto del ticket",
+    "feature_ocr_desc": "Sacá una foto del ticket y la IA extrae monto, comercio, fecha y categoría. Vos solo confirmás.",
+    "feature_wa_title": "WhatsApp",
+    "feature_wa_desc": "Avisos automáticos antes de cada vencimiento, cita médica o cumpleaños. A vos o a la familia.",
+    "feature_reminders_title": "Recordatorios",
+    "feature_reminders_desc": "Citas médicas, cumpleaños, lo que necesites. Con anticipación configurable.",
+    "feature_metrics_title": "Métricas claras",
+    "feature_metrics_desc": "Cuánto, en qué y cuándo. Gráficos por categoría, evolución temporal y comparativas mes a mes.",
+    "feature_shopping_title": "Lista de compras",
+    "feature_shopping_desc": "Múltiples listas (supermercado, farmacia). Tickeá mientras comprás. Limpiá con un click.",
+    "how_title": "Empezar es facilísimo",
+    "step1_title": "Entrá con Google",
+    "step1_desc": "Sin contraseñas, sin formularios. Un click y estás adentro.",
+    "step2_title": "Cargá tus primeros gastos",
+    "step2_desc": "Con la cámara, escribiéndolos o desde un ticket pasado. Vienen categorías por default.",
+    "step3_title": "Conectá WhatsApp (opcional)",
+    "step3_desc": "Agregá tu número y los de quien quieras. Te avisamos antes de cada vencimiento.",
+    "final_cta_title": "Empezá hoy. Es gratis.",
+    "final_cta_desc": "Tardás menos en empezar que en armar un Excel.",
+    "final_cta_button": "Crear mi cuenta"
+  },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Contactos, moneda, zona horaria, tema y preferencias de notificación.",
+    "language": "Idioma",
+    "language_desc": "Idioma de la interfaz."
+  },
+  "footer": {
+    "createdBy": "creado por",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "contact": "Contacto"
+  }
+}

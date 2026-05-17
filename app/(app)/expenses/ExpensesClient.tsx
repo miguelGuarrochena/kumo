@@ -15,6 +15,7 @@ import type { ExpensesView, ArchiveYear } from './page';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
 import { Archive } from 'lucide-react';
+import { track } from '@/lib/analytics';
 
 type CategoryLite = {
   id: string;
@@ -104,13 +105,16 @@ export function ExpensesClient({
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? 'No se pudo procesar la imagen');
+        track('photo_ocr_used', { success: false });
         return;
       }
       setAiSuggestion(data as ExtractedExpense);
       setCreating(true);
       toast.success('Ticket procesado — revisá los datos');
+      track('photo_ocr_used', { success: true });
     } catch {
       toast.error('Error de red al procesar la imagen');
+      track('photo_ocr_used', { success: false });
     } finally {
       setOcrLoading(false);
     }
@@ -172,6 +176,7 @@ export function ExpensesClient({
     const result = await deleteExpense(toDelete.id);
     if (result.ok) {
       toast.success('Gasto eliminado');
+      track('expense_deleted');
       router.refresh();
     } else {
       toast.error(result.error ?? 'Error');
@@ -715,6 +720,9 @@ function ExpenseSheet({
       const result = await upsertExpense({ ok: false }, fd);
       if (result.ok) {
         toast.success(expense ? 'Gasto actualizado' : 'Gasto creado');
+        if (!expense) {
+          track('expense_created', { currency, has_due_date: hasDueDate, via: aiSuggestion ? 'ocr' : 'manual' });
+        }
         router.refresh();
         onClose();
       } else {

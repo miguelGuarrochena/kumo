@@ -16,7 +16,7 @@ export default function PrivacyPage() {
       <p>
         En Kumo (&ldquo;nosotros&rdquo;, &ldquo;la aplicación&rdquo;) tu privacidad es una prioridad. Esta política
         explica qué datos recopilamos, cómo los usamos y qué derechos tenés sobre ellos. Si tenés dudas, escribinos
-        a <a href="mailto:hola@kumoapply.com">hola@kumoapply.com</a>.
+        a <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>.
       </p>
 
       <h2 className="text-xl font-bold mt-8 mb-3">1. Qué datos recopilamos</h2>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
         <li>Editar o eliminar gastos, recordatorios, contactos y categorías.</li>
         <li>
           Solicitar la eliminación completa de tu cuenta escribiendo a{' '}
-          <a href="mailto:hola@kumoapply.com">hola@kumoapply.com</a>. Procesamos la baja en hasta 30 días.
+          <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>. Procesamos la baja en hasta 30 días.
         </li>
         <li>Exportar tus datos en formato JSON o CSV (próximamente desde Configuración).</li>
       </ul>
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
 
       <h2 className="text-xl font-bold mt-8 mb-3">9. Contacto</h2>
       <p>
-        Cualquier consulta sobre privacidad: <a href="mailto:hola@kumoapply.com">hola@kumoapply.com</a>.
+        Cualquier consulta sobre privacidad: <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>.
       </p>
     </div>
   );
