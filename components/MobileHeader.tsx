@@ -1,15 +1,21 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { LogOut } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-import { LogOut } from 'lucide-react';
-import { useState } from 'react';
 import { resetAnalytics } from '@/lib/analytics';
+import { useT } from '@/lib/i18n/client';
 
-export function MobileHeader({ userEmail }: { userEmail: string }) {
+type Props = {
+  userEmail: string;
+};
+
+export const MobileHeader = ({ userEmail }: Props) => {
   const router = useRouter();
+  const { t } = useT();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const onSignOut = async () => {
@@ -47,19 +53,18 @@ export function MobileHeader({ userEmail }: { userEmail: string }) {
           />
           <div className="absolute right-3 top-12 z-20 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 min-w-56 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-              <p className="text-xs text-slate-500 dark:text-slate-400">Conectado como</p>
-              <p className="text-sm font-medium truncate dark:text-slate-100">{userEmail}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{userEmail}</p>
             </div>
             <button
               onClick={onSignOut}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20"
             >
               <LogOut className="w-4 h-4" />
-              Cerrar sesión
+              {t.nav.signOut}
             </button>
           </div>
         </>
       )}
     </header>
   );
-}
+};

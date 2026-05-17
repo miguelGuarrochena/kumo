@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Wallet,
@@ -15,16 +15,19 @@ import {
 } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n/client';
 import { resetAnalytics } from '@/lib/analytics';
 
-export function Sidebar({ userEmail }: { userEmail: string }) {
+type Props = {
+  userEmail: string;
+};
+
+export const Sidebar = ({ userEmail }: Props) => {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useT();
 
-  const NAV = [
+  const nav = [
     { href: '/dashboard',  label: t.nav.dashboard,    icon: LayoutDashboard },
     { href: '/expenses',   label: t.nav.expenses,     icon: Wallet },
     { href: '/metrics',    label: t.nav.metrics,      icon: BarChart3 },
@@ -46,13 +49,11 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
     <aside className="hidden lg:flex w-64 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 flex-col sticky top-0 h-screen">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
         <CloudLogo className="w-8 h-8" />
-        <div>
-          <h1 className="font-bold text-lg tracking-tight kumo-gradient-text">Kumo</h1>
-        </div>
+        <h1 className="font-bold text-lg tracking-tight kumo-gradient-text">Kumo</h1>
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
@@ -85,4 +86,4 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
       </div>
     </aside>
   );
-}
+};

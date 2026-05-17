@@ -1,13 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { Globe, Check } from 'lucide-react';
 import { setLocale, useT } from '@/lib/i18n/client';
 import { LOCALES, LOCALE_LABELS, type Locale } from '@/lib/i18n/types';
-import { Globe, Check } from 'lucide-react';
 
-// Switcher de idioma — usar en Settings.
-
-export function LanguageSwitcher() {
+export const LanguageSwitcher = () => {
   const { locale } = useT();
   const [pending, setPending] = useState<Locale | null>(null);
 
@@ -15,7 +13,6 @@ export function LanguageSwitcher() {
     if (next === locale) return;
     setPending(next);
     await setLocale(next);
-    // window.location.reload() se ejecuta dentro de setLocale
   };
 
   return (
@@ -44,4 +41,4 @@ export function LanguageSwitcher() {
       })}
     </div>
   );
-}
+};

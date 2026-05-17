@@ -15,15 +15,13 @@ type Step = {
   href: string;
 };
 
-export function OnboardingChecklist({
-  hasExpense,
-  hasContact,
-  hasReminder,
-}: {
+type Props = {
   hasExpense: boolean;
   hasContact: boolean;
   hasReminder: boolean;
-}) {
+};
+
+export const OnboardingChecklist = ({ hasExpense, hasContact, hasReminder }: Props) => {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -56,8 +54,8 @@ export function OnboardingChecklist({
   const pct = (completed / total) * 100;
 
   const onSkip = () => {
-    track('onboarding_skipped');
     startTransition(async () => {
+      track('onboarding_skipped');
       await skipOnboarding();
       router.refresh();
     });
@@ -87,7 +85,6 @@ export function OnboardingChecklist({
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="mb-5">
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
           <span>{completed} de {total}</span>
@@ -156,10 +153,10 @@ export function OnboardingChecklist({
             disabled={pending}
             className="mt-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           >
-            Cerrar este recuadro
+            Cerrar
           </button>
         </div>
       )}
     </section>
   );
-}
+};

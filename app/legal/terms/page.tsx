@@ -92,7 +92,7 @@ export default function TermsPage() {
       <h2 className="text-xl font-bold mt-8 mb-3">11. Contacto</h2>
       <p>
         Para cualquier consulta sobre estos términos:{' '}
-        <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>.
+        <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>
       </p>
     </div>
   );

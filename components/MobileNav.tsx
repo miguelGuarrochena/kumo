@@ -7,13 +7,11 @@ import {
 } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 
-// Bottom navigation para mobile. Solo las 5 secciones principales.
-
-export function MobileNav() {
+export const MobileNav = () => {
   const pathname = usePathname();
   const { t } = useT();
 
-  const NAV = [
+  const nav = [
     { href: '/dashboard', label: t.mobileNav.home,      icon: LayoutDashboard },
     { href: '/expenses',  label: t.mobileNav.expenses,  icon: Wallet },
     { href: '/shopping',  label: t.mobileNav.shopping,  icon: ShoppingCart },
@@ -22,11 +20,9 @@ export function MobileNav() {
   ] as const;
 
   return (
-    <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-slate-900/90 backdrop-blur border-t border-slate-200 dark:border-slate-800 pb-[env(safe-area-inset-bottom)]"
-    >
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-slate-900/90 backdrop-blur border-t border-slate-200 dark:border-slate-800 pb-[env(safe-area-inset-bottom)]">
       <ul className="grid grid-cols-5 h-16">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <li key={href}>
@@ -45,4 +41,4 @@ export function MobileNav() {
       </ul>
     </nav>
   );
-}
+};

@@ -3,122 +3,21 @@
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
-// Decoraciones de fondo: nubes blancas espumosas (light) o cielo nocturno con sparkles (dark).
-
-export function CloudDecorations() {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
-  return resolvedTheme === 'dark' ? <StarrySky /> : <FluffyClouds />;
-}
-
-// =====================================================================
-// LIGHT: nubes blancas espumosas en posiciones fijas con sway sutil
-// =====================================================================
-function FluffyClouds() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
-      <FluffyCloud className="absolute top-[5%]  left-[8%]   w-72" opacity={0.95} />
-      <FluffyCloud className="absolute top-[14%] left-[58%]  w-56" opacity={0.85} />
-      <FluffyCloud className="absolute top-[32%] left-[28%]  w-64" opacity={0.9}  />
-      <FluffyCloud className="absolute top-[48%] left-[72%]  w-72" opacity={0.8}  />
-      <FluffyCloud className="absolute top-[65%] left-[10%]  w-60" opacity={0.9}  />
-      <FluffyCloud className="absolute top-[78%] left-[48%]  w-72" opacity={0.85} />
-      <FluffyCloud className="absolute top-[88%] left-[82%]  w-52" opacity={0.75} />
-    </div>
-  );
-}
-
-function FluffyCloud({
-  className,
-  opacity = 0.9,
-}: {
+type CloudProps = {
   className?: string;
   opacity?: number;
-}) {
-  return (
-    <svg
-      viewBox="0 0 240 110"
-      className={className}
-      style={{ opacity }}
-      fill="white"
-    >
-      <ellipse cx="120" cy="88" rx="105" ry="20" />
-      <ellipse cx="55"  cy="72" rx="32" ry="26" />
-      <ellipse cx="88"  cy="55" rx="34" ry="32" />
-      <ellipse cx="125" cy="48" rx="38" ry="35" />
-      <ellipse cx="165" cy="55" rx="32" ry="30" />
-      <ellipse cx="195" cy="72" rx="28" ry="24" />
-      <ellipse cx="100" cy="38" rx="18" ry="14" />
-      <ellipse cx="145" cy="35" rx="20" ry="15" />
-    </svg>
-  );
-}
+};
 
-// =====================================================================
-// DARK: cielo estrellado con sparkles estilo Claude
-// =====================================================================
-function StarrySky() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `
-            radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15), transparent 40%),
-            radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.12), transparent 45%),
-            radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08), transparent 60%)
-          `,
-        }}
-      />
-
-      {SPARKLE_POSITIONS.map((s, i) => (
-        <Sparkle key={i} {...s} />
-      ))}
-    </div>
-  );
-}
-
-function Sparkle({
-  top,
-  left,
-  size,
-  delay,
-  duration,
-  opacity,
-}: {
+type SparkleProps = {
   top: number;
   left: number;
   size: number;
   delay: number;
   duration: number;
   opacity: number;
-}) {
-  return (
-    <svg
-      className="absolute star-twinkle"
-      style={{
-        top: `${top}%`,
-        left: `${left}%`,
-        width: `${size}px`,
-        height: `${size}px`,
-        opacity,
-        animationDelay: `${delay}s`,
-        animationDuration: `${duration}s`,
-        filter: size > 12 ? 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' : undefined,
-      }}
-      viewBox="0 0 24 24"
-      fill="white"
-    >
-      <path d="M12 0 C12.5 7.5, 16.5 11.5, 24 12 C16.5 12.5, 12.5 16.5, 12 24 C11.5 16.5, 7.5 12.5, 0 12 C7.5 11.5, 11.5 7.5, 12 0 Z" />
-    </svg>
-  );
-}
+};
 
-const SPARKLE_POSITIONS = [
+const SPARKLE_POSITIONS: SparkleProps[] = [
   { top: 6, left: 12, size: 14, delay: 0, duration: 4, opacity: 0.85 },
   { top: 9, left: 32, size: 8, delay: 0.6, duration: 3, opacity: 0.6 },
   { top: 14, left: 52, size: 18, delay: 1.2, duration: 5, opacity: 0.9 },
@@ -145,3 +44,76 @@ const SPARKLE_POSITIONS = [
   { top: 90, left: 24, size: 11, delay: 1.3, duration: 3.5, opacity: 0.7 },
   { top: 94, left: 48, size: 13, delay: 0.6, duration: 4, opacity: 0.8 },
 ];
+
+const FluffyCloud = ({ className, opacity = 0.9 }: CloudProps) => (
+  <svg viewBox="0 0 240 110" className={className} style={{ opacity }} fill="white">
+    <ellipse cx="120" cy="88" rx="105" ry="20" />
+    <ellipse cx="55"  cy="72" rx="32" ry="26" />
+    <ellipse cx="88"  cy="55" rx="34" ry="32" />
+    <ellipse cx="125" cy="48" rx="38" ry="35" />
+    <ellipse cx="165" cy="55" rx="32" ry="30" />
+    <ellipse cx="195" cy="72" rx="28" ry="24" />
+    <ellipse cx="100" cy="38" rx="18" ry="14" />
+    <ellipse cx="145" cy="35" rx="20" ry="15" />
+  </svg>
+);
+
+const FluffyClouds = () => (
+  <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+    <FluffyCloud className="absolute top-[5%]  left-[8%]   w-72" opacity={0.95} />
+    <FluffyCloud className="absolute top-[14%] left-[58%]  w-56" opacity={0.85} />
+    <FluffyCloud className="absolute top-[32%] left-[28%]  w-64" opacity={0.9}  />
+    <FluffyCloud className="absolute top-[48%] left-[72%]  w-72" opacity={0.8}  />
+    <FluffyCloud className="absolute top-[65%] left-[10%]  w-60" opacity={0.9}  />
+    <FluffyCloud className="absolute top-[78%] left-[48%]  w-72" opacity={0.85} />
+    <FluffyCloud className="absolute top-[88%] left-[82%]  w-52" opacity={0.75} />
+  </div>
+);
+
+const Sparkle = ({ top, left, size, delay, duration, opacity }: SparkleProps) => (
+  <svg
+    className="absolute star-twinkle"
+    style={{
+      top: `${top}%`,
+      left: `${left}%`,
+      width: `${size}px`,
+      height: `${size}px`,
+      opacity,
+      animationDelay: `${delay}s`,
+      animationDuration: `${duration}s`,
+      filter: size > 12 ? 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' : undefined,
+    }}
+    viewBox="0 0 24 24"
+    fill="white"
+  >
+    <path d="M12 0 C12.5 7.5, 16.5 11.5, 24 12 C16.5 12.5, 12.5 16.5, 12 24 C11.5 16.5, 7.5 12.5, 0 12 C7.5 11.5, 11.5 7.5, 12 0 Z" />
+  </svg>
+);
+
+const StarrySky = () => (
+  <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+    <div
+      className="absolute inset-0"
+      style={{
+        background: `
+          radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15), transparent 40%),
+          radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.12), transparent 45%),
+          radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08), transparent 60%)
+        `,
+      }}
+    />
+    {SPARKLE_POSITIONS.map((s, i) => (
+      <Sparkle key={i} {...s} />
+    ))}
+  </div>
+);
+
+export const CloudDecorations = () => {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return resolvedTheme === 'dark' ? <StarrySky /> : <FluffyClouds />;
+};

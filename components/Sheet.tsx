@@ -1,29 +1,17 @@
 'use client';
 
-// Modal responsive: bottom-sheet en mobile, centered modal en desktop.
-// Usado por todos los forms de la app.
-
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export function Sheet({
-  open,
-  onClose,
-  title,
-  children,
-  footer,
-}: {
+type Props = {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  /**
-   * Opcional: si lo pasás, queda fijo en el bottom del modal (sticky).
-   * Útil para botones de acción que tienen que ser siempre accesibles.
-   */
   footer?: React.ReactNode;
-}) {
-  // Lock scroll del body cuando está abierto
+};
+
+export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
   useEffect(() => {
     if (!open) return;
     const original = document.body.style.overflow;
@@ -33,7 +21,6 @@ export function Sheet({
     };
   }, [open]);
 
-  // Cerrar con ESC
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -61,7 +48,6 @@ export function Sheet({
           animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 fade-in
         "
       >
-        {/* Drag handle visual en mobile */}
         <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-600" />
         </div>
@@ -88,4 +74,4 @@ export function Sheet({
       </div>
     </div>
   );
-}
+};

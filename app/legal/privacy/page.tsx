@@ -109,7 +109,7 @@ export default function PrivacyPage() {
 
       <h2 className="text-xl font-bold mt-8 mb-3">9. Contacto</h2>
       <p>
-        Cualquier consulta sobre privacidad: <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>.
+        Cualquier consulta sobre privacidad: <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>
       </p>
     </div>
   );

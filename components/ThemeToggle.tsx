@@ -5,21 +5,29 @@ import { useEffect, useState } from 'react';
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { track } from '@/lib/analytics';
 
-export function ThemeToggle({ compact = false }: { compact?: boolean }) {
+type Props = {
+  compact?: boolean;
+};
+
+const options = [
+  { value: 'light',  label: 'Claro',  icon: Sun },
+  { value: 'dark',   label: 'Oscuro', icon: Moon },
+  { value: 'system', label: 'Auto',   icon: Monitor },
+] as const;
+
+export const ThemeToggle = ({ compact = false }: Props) => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
   if (!mounted) return <div className="w-9 h-9" aria-hidden="true" />;
 
-  const options = [
-    { value: 'light',  label: 'Claro',  icon: Sun },
-    { value: 'dark',   label: 'Oscuro', icon: Moon },
-    { value: 'system', label: 'Auto',   icon: Monitor },
-  ] as const;
+  const handleChange = (value: 'light' | 'dark' | 'system') => {
+    setTheme(value);
+    track('theme_changed', { theme: value });
+  };
 
   if (compact) {
-    // Tres botones de ícono solo, sin texto (caben en espacios chicos)
     return (
       <div className="flex gap-0.5 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-full">
         {options.map(({ value, label, icon: Icon }) => {
@@ -27,7 +35,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
           return (
             <button
               key={value}
-              onClick={() => { setTheme(value); track('theme_changed', { theme: value }); }}
+              onClick={() => handleChange(value)}
               className={`w-7 h-7 rounded-full grid place-items-center transition-colors ${
                 active
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
@@ -44,7 +52,6 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
     );
   }
 
-  // Versión completa con texto (para Settings)
   return (
     <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
       {options.map(({ value, label, icon: Icon }) => {
@@ -52,7 +59,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         return (
           <button
             key={value}
-            onClick={() => setTheme(value)}
+            onClick={() => handleChange(value)}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               active
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
@@ -66,4 +73,4 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       })}
     </div>
   );
-}
+};
