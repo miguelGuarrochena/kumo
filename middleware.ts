@@ -1,13 +1,5 @@
-import { type NextRequest } from 'next/server';
-import { updateSession } from '@/lib/supabase/middleware';
+// DEPRECADO en Next.js 16 — la lógica vive en proxy.ts (en la raíz).
+// Este archivo se deja vacío para que Next no encuentre dos convenciones activas.
+// Borrar a futuro cuando Next.js 17+ deje de soportar el convention legacy.
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request);
-}
-
-export const config = {
-  matcher: [
-    // Todas las rutas excepto archivos estáticos y rutas de API
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-};
+export {};

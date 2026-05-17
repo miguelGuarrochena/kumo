@@ -34,9 +34,10 @@ export async function addItem(formData: FormData) {
     .limit(1)
     .maybeSingle();
 
-  const position = (last?.position ?? -1) + 1;
+  const position = ((last as { position?: number } | null)?.position ?? -1) + 1;
 
-  const { error } = await supabase.from('shopping_items').insert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('shopping_items') as any).insert({
     user_id: user.id,
     list_name: parsed.data.list_name,
     name: parsed.data.name,
@@ -44,14 +45,15 @@ export async function addItem(formData: FormData) {
     position,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
   revalidatePath('/shopping');
   return { ok: true };
 }
 
 export async function toggleBought(id: string, bought: boolean) {
   const supabase = await createClient();
-  await supabase.from('shopping_items').update({ bought }).eq('id', id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('shopping_items') as any).update({ bought }).eq('id', id);
   revalidatePath('/shopping');
 }
 

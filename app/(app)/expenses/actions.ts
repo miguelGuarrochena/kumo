@@ -58,10 +58,12 @@ export async function upsertExpense(
   const payload = { ...parsed.data, user_id: user.id };
 
   const { error } = parsed.data.id
-    ? await supabase.from('expenses').update(payload).eq('id', parsed.data.id)
-    : await supabase.from('expenses').insert(payload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? await (supabase.from('expenses') as any).update(payload).eq('id', parsed.data.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : await (supabase.from('expenses') as any).insert(payload);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
 
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
@@ -79,6 +81,7 @@ export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: 
 
 export async function togglePaid(id: string, paid: boolean) {
   const supabase = await createClient();
-  await supabase.from('expenses').update({ paid }).eq('id', id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('expenses') as any).update({ paid }).eq('id', id);
   revalidatePath('/expenses');
 }

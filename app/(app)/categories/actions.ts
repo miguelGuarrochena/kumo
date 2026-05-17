@@ -42,11 +42,13 @@ export async function upsertCategory(
   const payload = { ...parsed.data, user_id: user.id };
 
   const { error } = parsed.data.id
-    ? await supabase.from('categories').update(payload).eq('id', parsed.data.id)
-    : await supabase.from('categories').insert(payload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? await (supabase.from('categories') as any).update(payload).eq('id', parsed.data.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : await (supabase.from('categories') as any).insert(payload);
 
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
   }
 
   revalidatePath('/categories');

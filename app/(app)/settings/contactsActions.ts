@@ -49,10 +49,12 @@ export async function upsertContact(
   const payload = { ...parsed.data, user_id: user.id };
 
   const { error } = parsed.data.id
-    ? await supabase.from('notification_contacts').update(payload).eq('id', parsed.data.id)
-    : await supabase.from('notification_contacts').insert(payload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? await (supabase.from('notification_contacts') as any).update(payload).eq('id', parsed.data.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : await (supabase.from('notification_contacts') as any).insert(payload);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
 
   revalidatePath('/settings');
   return { ok: true };
@@ -68,7 +70,7 @@ export async function deleteContact(id: string): Promise<ContactFormState> {
     .eq('id', id)
     .single();
 
-  if (contact?.is_self) {
+  if ((contact as { is_self?: boolean } | null)?.is_self) {
     return { ok: false, error: 'No se puede borrar tu propio contacto.' };
   }
 

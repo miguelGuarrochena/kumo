@@ -115,7 +115,7 @@ function StatCard({
   } as const;
 
   return (
-    <Link href={href} className="kumo-card p-5 hover:scale-[1.02] transition-transform block">
+    <Link href={href as never} className="kumo-card p-5 hover:scale-[1.02] transition-transform block">
       <div className={`w-10 h-10 rounded-lg ${toneStyles[tone]} grid place-items-center mb-3`}>
         {icon}
       </div>

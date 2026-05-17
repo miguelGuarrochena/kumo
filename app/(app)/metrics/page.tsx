@@ -56,7 +56,7 @@ export default async function MetricsPage({
     getRates(),
   ]);
 
-  const userCurrency = (settings?.default_currency ?? 'ARS') as Currency;
+  const userCurrency = ((settings as { default_currency?: string } | null)?.default_currency ?? 'ARS') as Currency;
   const displayCurrency = (params.asCurrency ?? userCurrency) as Currency;
 
   return (
@@ -64,9 +64,9 @@ export default async function MetricsPage({
       period={period}
       refDate={refDate}
       range={{ start, end, prevStart, prevEnd }}
-      currentExpenses={currentExpenses ?? []}
-      previousExpenses={previousExpenses ?? []}
-      trailExpenses={trailExpenses ?? []}
+      currentExpenses={(currentExpenses ?? []) as never}
+      previousExpenses={(previousExpenses ?? []) as never}
+      trailExpenses={(trailExpenses ?? []) as never}
       categories={categories ?? []}
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}

@@ -1,15 +1,6 @@
 // Endpoint que corre el "loop de notificaciones".
 // Llamado por un cron (Supabase pg_cron, Vercel Cron, o uptime monitor).
 // Auth: header Authorization: Bearer <CRON_SECRET>
-//
-// Flujo:
-//  1. Buscar gastos con due_date próxima, no pagados.
-//  2. Buscar recordatorios con fecha cercana según notify_days_before.
-//  3. Para cada item, determinar a quién avisar:
-//     - Si notify_contact_ids está poblado → mandar a cada contacto de la lista.
-//     - Si está vacío → fallback al whatsapp_number del user (compatibilidad).
-//  4. Mandar WhatsApp a cada destinatario.
-//  5. Marcar recordatorios como notificados (last_notified_at) para no spammear.
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -18,6 +9,8 @@ import type { Database } from '@/lib/supabase/database.types';
 
 type Contact = Database['public']['Tables']['notification_contacts']['Row'];
 type Settings = Database['public']['Tables']['user_settings']['Row'];
+type Expense = Database['public']['Tables']['expenses']['Row'];
+type Reminder = Database['public']['Tables']['reminders']['Row'];
 
 export async function POST(request: Request) {
   const auth = request.headers.get('authorization');
@@ -34,30 +27,29 @@ export async function POST(request: Request) {
   let failed = 0;
   let skipped = 0;
 
-  // --- Ventana temporal: gastos en los próximos 3 días, no pagados -----
   const today = new Date().toISOString().slice(0, 10);
   const in3Days = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
 
-  const { data: dueExpenses } = await supabase
+  const { data: dueExpensesRaw } = await supabase
     .from('expenses')
-    .select('id, user_id, amount, currency, description, due_date, notify_contact_ids, categories(name)')
+    .select('id, user_id, amount, currency, description, due_date, notify_contact_ids')
     .eq('paid', false)
     .gte('due_date', today)
     .lte('due_date', in3Days);
+  const dueExpenses = (dueExpensesRaw ?? []) as Expense[];
 
-  // --- Recordatorios futuros -------------------------------------------
-  const { data: reminders } = await supabase
+  const { data: remindersRaw } = await supabase
     .from('reminders')
     .select('id, user_id, title, reminder_date, reminder_type, notify_days_before, last_notified_at, notify_contact_ids')
     .gte('reminder_date', today);
+  const reminders = (remindersRaw ?? []) as Reminder[];
 
-  // --- Cargar contactos + settings por user_id -------------------------
   const allUserIds = new Set<string>([
-    ...(dueExpenses?.map((e) => e.user_id) ?? []),
-    ...(reminders?.map((r) => r.user_id) ?? []),
+    ...dueExpenses.map((e) => e.user_id),
+    ...reminders.map((r) => r.user_id),
   ]);
 
-  const [{ data: contacts }, { data: settings }] = await Promise.all([
+  const [{ data: contactsRaw }, { data: settingsRaw }] = await Promise.all([
     supabase
       .from('notification_contacts')
       .select('*')
@@ -65,32 +57,30 @@ export async function POST(request: Request) {
     supabase.from('user_settings').select('*').in('user_id', [...allUserIds]),
   ]);
 
-  const contactsById = new Map<string, Contact>((contacts ?? []).map((c) => [c.id, c]));
-  const settingsByUser = new Map<string, Settings>((settings ?? []).map((s) => [s.user_id, s]));
+  const contacts = (contactsRaw ?? []) as Contact[];
+  const settings = (settingsRaw ?? []) as Settings[];
+
+  const contactsById = new Map<string, Contact>(contacts.map((c) => [c.id, c]));
+  const settingsByUser = new Map<string, Settings>(settings.map((s) => [s.user_id, s]));
   const selfContactByUser = new Map<string, Contact>(
-    (contacts ?? []).filter((c) => c.is_self).map((c) => [c.user_id, c]),
+    contacts.filter((c) => c.is_self).map((c) => [c.user_id, c]),
   );
 
   const wa = getWhatsAppAdapter();
 
-  /**
-   * Resuelve los destinatarios para un item.
-   * - Si tiene notify_contact_ids: usa esos contactos.
-   * - Si está vacío y el user tiene whatsapp_number en settings: usa ese (legacy).
-   * - Si está vacío y el user tiene contacto "Yo" con phone: usa ese.
-   * - Filtra contactos sin número.
-   */
   function resolveRecipients(userId: string, contactIds: string[]): { id: string; name: string; phone: string }[] {
     let pool: Contact[] = [];
 
     if (contactIds.length > 0) {
-      pool = contactIds.map((id) => contactsById.get(id)).filter((c): c is Contact => !!c);
+      pool = contactIds
+        .map((id) => contactsById.get(id))
+        .filter((c): c is Contact => !!c);
     } else {
-      // Legacy fallback: usar el contacto "Yo" o el whatsapp_number de settings
       const self = selfContactByUser.get(userId);
       const settingsRow = settingsByUser.get(userId);
-      if (self?.phone) pool = [self];
-      else if (settingsRow?.whatsapp_number) {
+      if (self?.phone) {
+        pool = [self];
+      } else if (settingsRow?.whatsapp_number) {
         pool = [{
           id: 'legacy',
           user_id: userId,
@@ -109,8 +99,7 @@ export async function POST(request: Request) {
       .map((c) => ({ id: c.id, name: c.name, phone: c.phone! }));
   }
 
-  // --- Enviar vencimientos de gastos -----------------------------------
-  for (const exp of dueExpenses ?? []) {
+  for (const exp of dueExpenses) {
     const userSettings = settingsByUser.get(exp.user_id);
     if (userSettings && !userSettings.notify_expenses) {
       skipped++;
@@ -134,8 +123,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // --- Enviar recordatorios --------------------------------------------
-  for (const rem of reminders ?? []) {
+  for (const rem of reminders) {
     const userSettings = settingsByUser.get(rem.user_id);
     if (userSettings && !userSettings.notify_reminders) {
       skipped++;
@@ -149,7 +137,6 @@ export async function POST(request: Request) {
       continue;
     }
 
-    // Evitar duplicados: si ya notificamos hoy, saltar.
     if (rem.last_notified_at) {
       const lastNotif = new Date(rem.last_notified_at);
       const sameDay = lastNotif.toDateString() === new Date().toDateString();
@@ -172,7 +159,6 @@ export async function POST(request: Request) {
 
     let anyOk = false;
     for (const r of recipients) {
-      // Personalizar saludo si el destinatario no es el dueño del recordatorio
       const selfPhone = selfContactByUser.get(rem.user_id)?.phone;
       const isOwner = r.phone === selfPhone;
       const greeting = isOwner ? '' : `Hola ${r.name}, te aviso de parte de Kumo: `;
@@ -192,8 +178,8 @@ export async function POST(request: Request) {
     }
 
     if (anyOk) {
-      await supabase
-        .from('reminders')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('reminders') as any)
         .update({ last_notified_at: new Date().toISOString() })
         .eq('id', rem.id);
     }

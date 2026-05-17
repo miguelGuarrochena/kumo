@@ -54,10 +54,12 @@ export async function upsertReminder(
   const payload = { ...parsed.data, user_id: user.id };
 
   const { error } = parsed.data.id
-    ? await supabase.from('reminders').update(payload).eq('id', parsed.data.id)
-    : await supabase.from('reminders').insert(payload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? await (supabase.from('reminders') as any).update(payload).eq('id', parsed.data.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : await (supabase.from('reminders') as any).insert(payload);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
 
   revalidatePath('/reminders');
   revalidatePath('/dashboard');

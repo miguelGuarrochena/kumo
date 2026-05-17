@@ -19,10 +19,8 @@ export default async function CalendarPage({
   const year = Number(yearStr);
   const month = Number(mStr); // 1-12
 
-  // Rango ampliado: para mostrar también los días del mes vecino que entran en el grid 6x7
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0);
-  // Para incluir días del grid (semana anterior y siguiente), tomamos un buffer de 7 días
   const queryStart = new Date(year, month - 1, -6).toISOString().slice(0, 10);
   const queryEnd = new Date(year, month, 7).toISOString().slice(0, 10);
 
@@ -37,10 +35,10 @@ export default async function CalendarPage({
       .select('id, title, reminder_date, reminder_time, reminder_type')
       .gte('reminder_date', queryStart)
       .lte('reminder_date', queryEnd),
-    supabase.from('user_settings').select('default_currency').single(),
+    supabase.from('user_settings').select('default_currency').eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '').maybeSingle(),
   ]);
 
-  const defaultCurrency = (settings?.default_currency ?? 'ARS') as Currency;
+  const defaultCurrency = ((settings as { default_currency?: string } | null)?.default_currency ?? 'ARS') as Currency;
 
   return (
     <CalendarClient
@@ -48,8 +46,8 @@ export default async function CalendarPage({
       month={month}
       startDate={startDate.toISOString().slice(0, 10)}
       endDate={endDate.toISOString().slice(0, 10)}
-      expenses={expenses ?? []}
-      reminders={reminders ?? []}
+      expenses={(expenses ?? []) as never}
+      reminders={(reminders ?? []) as never}
       defaultCurrency={defaultCurrency}
     />
   );

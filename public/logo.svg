@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="kumoStroke" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a5b4fc"/>
+      <stop offset="50%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#fbcfe8"/>
+    </linearGradient>
+  </defs>
+  <path
+    d="M50 130
+       a26 26 0 0 1 -2 -52
+       a18 18 0 0 1 6 -14
+       a30 30 0 0 1 54 4
+       a22 22 0 0 1 36 18
+       a22 22 0 0 1 6 44
+       z"
+    stroke="url(#kumoStroke)"
+    stroke-width="7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+    transform="translate(0, -10)"/>
+</svg>

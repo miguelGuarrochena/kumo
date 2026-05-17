@@ -54,7 +54,7 @@ export default async function ExpensesPage({
     getRates(),
   ]);
 
-  const userCurrency = (settings?.default_currency ?? 'ARS') as Currency;
+  const userCurrency = ((settings as { default_currency?: string } | null)?.default_currency ?? 'ARS') as Currency;
   const displayCurrency = (params.asCurrency ?? userCurrency) as Currency;
 
   // --- Vista archive: agregamos por año --------------------------------
@@ -64,8 +64,9 @@ export default async function ExpensesPage({
       .select('id, amount, currency, expense_date')
       .order('expense_date', { ascending: false });
 
+    type Mini = { id: string; amount: number; currency: string; expense_date: string };
     const byYear = new Map<number, { total: number; count: number }>();
-    for (const e of all ?? []) {
+    for (const e of (all ?? []) as Mini[]) {
       const year = Number(e.expense_date.slice(0, 4));
       const amount = Number(e.amount);
       const converted = convertCurrency(amount, e.currency as Currency, displayCurrency, rates.rates);
