@@ -3,21 +3,27 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut } from 'lucide-react';
+import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { createClient } from '@/lib/supabase/client';
 import { resetAnalytics } from '@/lib/analytics';
-import { useT } from '@/lib/i18n/client';
+import { useT, setLocale } from '@/lib/i18n/client';
+import type { Locale } from '@/lib/i18n/types';
 
 type Props = {
   userEmail: string;
 };
 
+const LANGS: { value: Locale; label: string; flag: string }[] = [
+  { value: 'es', label: 'Español', flag: 'ES' },
+  { value: 'en', label: 'English', flag: 'EN' },
+];
+
 export const MobileHeader = ({ userEmail }: Props) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useT();
+  const { t, locale } = useT();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const onSignOut = async () => {
@@ -87,6 +93,40 @@ export const MobileHeader = ({ userEmail }: Props) => {
             <MenuItem href="/categories" icon={Tags} onClick={() => setMenuOpen(false)}>
               {t.menu.categories}
             </MenuItem>
+
+            <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
+
+            <div className="px-4 pt-2 pb-1">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold">
+                Idioma
+              </p>
+            </div>
+            {LANGS.map((l) => {
+              const active = l.value === locale;
+              return (
+                <button
+                  key={l.value}
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    if (l.value !== locale) setLocale(l.value);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${
+                    active
+                      ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 font-medium'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                      {l.flag}
+                    </span>
+                    {l.label}
+                  </span>
+                  {active && <Check className="w-4 h-4 text-sky-500" />}
+                </button>
+              );
+            })}
 
             <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
 

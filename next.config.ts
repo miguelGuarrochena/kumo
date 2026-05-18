@@ -12,6 +12,6 @@ export default withSentryConfig(nextConfig, {
   silent: !process.env.CI,
   widenClientFileUpload: true,
   tunnelRoute: '/monitoring',
-  disableLogger: true,
-  automaticVercelMonitors: true,
+  // disableLogger y automaticVercelMonitors fueron deprecados — quedaron en webpack.*
+  // y no funcionan con Turbopack. Los sacamos para evitar warnings.
 });

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Trash2, ShoppingCart, Sparkles, X, Check, Pencil } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Sparkles, X, Check, Pencil, ChevronDown } from 'lucide-react';
 import { addItem, toggleBought, removeItem, clearBought, updateItem } from './actions';
 import type { Database } from '@/lib/supabase/database.types';
 import { track } from '@/lib/analytics';
@@ -13,14 +13,85 @@ type Item = Database['public']['Tables']['shopping_items']['Row'];
 const DEFAULT_LISTS = ['Supermercado', 'Farmacia', 'Ferretería'];
 
 const UNITS = [
-  { value: '',       label: 'un.' },
-  { value: 'kg',     label: 'kg' },
-  { value: 'g',      label: 'g' },
-  { value: 'L',      label: 'L' },
-  { value: 'ml',     label: 'ml' },
-  { value: 'paq.',   label: 'paq.' },
-  { value: 'docena', label: 'doc.' },
+  { value: '',       label: 'un.',  full: 'Unidad' },
+  { value: 'kg',     label: 'kg',   full: 'Kilos' },
+  { value: 'g',      label: 'g',    full: 'Gramos' },
+  { value: 'L',      label: 'L',    full: 'Litros' },
+  { value: 'ml',     label: 'ml',   full: 'Mililitros' },
+  { value: 'paq.',   label: 'paq.', full: 'Paquete' },
+  { value: 'docena', label: 'doc.', full: 'Docena' },
 ] as const;
+
+type UnitPickerProps = {
+  value: string;
+  onChange: (v: string) => void;
+  align?: 'left' | 'right';
+};
+
+const UnitPicker = ({ value, onChange, align = 'left' }: UnitPickerProps) => {
+  const [open, setOpen] = useState(false);
+  const current = UNITS.find((u) => u.value === value) ?? UNITS[0];
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors min-w-[5rem] justify-between ${
+          open
+            ? 'border-sky-400 bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300'
+            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-slate-300'
+        }`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{current.label}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            role="listbox"
+            className={`absolute z-50 top-full mt-1 ${align === 'right' ? 'right-0' : 'left-0'} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 min-w-[10rem] overflow-hidden`}
+          >
+            {UNITS.map((u) => {
+              const active = u.value === value;
+              return (
+                <button
+                  key={u.value || 'default'}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => {
+                    onChange(u.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 text-sm transition-colors ${
+                    active
+                      ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 font-medium'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-8 text-center font-medium">{u.label}</span>
+                    <span className="text-slate-400 dark:text-slate-500 text-xs">{u.full}</span>
+                  </span>
+                  {active && <Check className="w-4 h-4 text-sky-500" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const formatQuantity = (qty: string | null, unit: string | null): string => {
   const q = (qty ?? '').trim();
@@ -186,32 +257,21 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
       )}
 
       {/* --- Quick add ---
-          Fila 1: nombre + botón +.
-          Fila 2: cantidad numérica + chips de unidad (un. seleccionada por default). */}
+          Mobile: 2 filas. Arriba: nombre + botón. Abajo: cantidad + UnitPicker.
+          Desktop: 1 fila inline. */}
       <form
         onSubmit={onQuickAdd}
-        className="kumo-card p-3 space-y-2.5 sticky top-14 lg:top-0 z-10 bg-white dark:bg-slate-800"
+        className="kumo-card p-3 space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:gap-2 sticky top-14 lg:top-0 z-10 bg-white dark:bg-slate-800"
       >
-        <div className="flex gap-2">
-          <input
-            ref={nameRef}
-            type="text"
-            value={quickName}
-            onChange={(e) => setQuickName(e.target.value)}
-            placeholder="Qué necesitás..."
-            className="flex-1 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-900"
-            maxLength={100}
-          />
-          <button
-            type="submit"
-            disabled={!quickName.trim()}
-            className="w-11 p-2.5 rounded-lg kumo-gradient text-white hover:opacity-90 disabled:opacity-50 grid place-items-center shrink-0"
-            aria-label="Agregar"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-        </div>
-
+        <input
+          ref={nameRef}
+          type="text"
+          value={quickName}
+          onChange={(e) => setQuickName(e.target.value)}
+          placeholder="Qué necesitás..."
+          className="w-full sm:flex-1 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-900"
+          maxLength={100}
+        />
         <div className="flex items-center gap-2">
           <input
             type="number"
@@ -221,28 +281,18 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
             placeholder="1"
             min="0"
             step="any"
-            className="w-14 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm bg-slate-50 dark:bg-slate-900 text-center placeholder:text-slate-300 dark:placeholder:text-slate-600 shrink-0"
+            className="w-16 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-900 text-center placeholder:text-slate-300 dark:placeholder:text-slate-600 shrink-0"
             aria-label="Cantidad"
           />
-          <div className="flex-1 flex gap-1 overflow-x-auto -mx-1 px-1 scrollbar-none">
-            {UNITS.map((u) => {
-              const active = quickUnit === u.value;
-              return (
-                <button
-                  key={u.value || 'default'}
-                  type="button"
-                  onClick={() => setQuickUnit(u.value)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 ring-1 ring-sky-300 dark:ring-sky-500/40'
-                      : 'bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {u.label}
-                </button>
-              );
-            })}
-          </div>
+          <UnitPicker value={quickUnit} onChange={setQuickUnit} align="left" />
+          <button
+            type="submit"
+            disabled={!quickName.trim()}
+            className="flex-1 sm:flex-initial sm:w-11 h-11 p-2.5 rounded-lg kumo-gradient text-white hover:opacity-90 disabled:opacity-50 grid place-items-center shrink-0 ml-auto"
+            aria-label="Agregar"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
         </div>
       </form>
 
@@ -356,28 +406,10 @@ const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
             placeholder="1"
             min="0"
             step="any"
-            className="w-14 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm bg-white dark:bg-slate-900 text-center placeholder:text-slate-300 dark:placeholder:text-slate-600 shrink-0"
+            className="w-16 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-900 text-center placeholder:text-slate-300 dark:placeholder:text-slate-600 shrink-0"
             aria-label="Cantidad"
           />
-          <div className="flex-1 flex gap-1 overflow-x-auto -mx-1 px-1 scrollbar-none">
-            {UNITS.map((u) => {
-              const active = unit === u.value;
-              return (
-                <button
-                  key={u.value || 'default'}
-                  type="button"
-                  onClick={() => setUnit(u.value)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 ring-1 ring-sky-300 dark:ring-sky-500/40'
-                      : 'bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  {u.label}
-                </button>
-              );
-            })}
-          </div>
+          <UnitPicker value={unit} onChange={setUnit} align="left" />
         </div>
         <div className="flex gap-2">
           <button
@@ -404,38 +436,42 @@ const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
 
   return (
     <div className="flex items-center gap-3 p-3 group">
+      {/* Toda la fila (checkbox + nombre + cant) tachea / destachea al tocar */}
       <button
+        type="button"
         onClick={onToggle}
-        className={`w-6 h-6 rounded-full border-2 grid place-items-center transition-all shrink-0 ${
-          item.bought
-            ? 'kumo-gradient border-transparent'
-            : 'border-slate-300 dark:border-slate-600 hover:border-sky-400 active:scale-90'
-        }`}
+        className="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70 transition-opacity"
         aria-label={item.bought ? 'Marcar como pendiente' : 'Marcar como comprado'}
       >
-        {item.bought && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+        <span
+          className={`w-6 h-6 rounded-full border-2 grid place-items-center shrink-0 transition-all ${
+            item.bought
+              ? 'kumo-gradient border-transparent'
+              : 'border-slate-300 dark:border-slate-600'
+          }`}
+        >
+          {item.bought && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className={`block text-sm ${item.bought ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
+            {item.name}
+          </span>
+          {display && (
+            <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">{display}</span>
+          )}
+        </span>
       </button>
-      <button
-        onClick={() => setEditing(true)}
-        className="flex-1 min-w-0 text-left"
-        aria-label="Editar item"
-      >
-        <p className={`text-sm ${item.bought ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
-          {item.name}
-        </p>
-        {display && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{display}</p>
-        )}
-      </button>
-      <div className="flex gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+      <div className="flex gap-0.5 shrink-0">
         <button
+          type="button"
           onClick={() => setEditing(true)}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
+          className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300"
           aria-label="Editar"
         >
           <Pencil className="w-4 h-4" />
         </button>
         <button
+          type="button"
           onClick={onRemove}
           className="p-2 rounded-lg text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-900/20 hover:text-rose-500"
           aria-label="Borrar"

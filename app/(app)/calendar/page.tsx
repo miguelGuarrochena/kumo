@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { CalendarClient } from './CalendarClient';
 import { type Currency } from '@/lib/currency';
+import { countryFromTimezone } from '@/lib/holidays';
 
 type SearchParams = {
   month?: string;
@@ -71,15 +72,16 @@ const CalendarPage = async ({
       .from('reminders')
       .select('id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
       .order('reminder_date', { ascending: true }),
-    supabase.from('user_settings').select('default_currency').eq('user_id', userId).maybeSingle(),
+    supabase.from('user_settings').select('default_currency, timezone').eq('user_id', userId).maybeSingle(),
     supabase
       .from('notification_contacts')
       .select('id, name, relationship, is_self, phone')
       .order('created_at'),
   ]);
 
-  const defaultCurrency =
-    ((settings as { default_currency?: string } | null)?.default_currency ?? 'ARS') as Currency;
+  const settingsTyped = settings as { default_currency?: string; timezone?: string } | null;
+  const defaultCurrency = (settingsTyped?.default_currency ?? 'ARS') as Currency;
+  const country = countryFromTimezone(settingsTyped?.timezone);
 
   const initialView = params.view ?? 'month';
 
@@ -95,6 +97,7 @@ const CalendarPage = async ({
       contacts={(contacts ?? []) as never}
       defaultCurrency={defaultCurrency}
       initialView={initialView}
+      country={country}
     />
   );
 };

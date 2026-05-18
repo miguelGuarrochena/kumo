@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { MessageCircle, DollarSign, Clock, Bell, Palette, Globe } from 'lucide-react';
+import { MessageCircle, DollarSign, Clock, Bell, Palette, Globe, Check, Loader2 } from 'lucide-react';
 import { saveSettings } from './actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -13,14 +13,17 @@ import { track } from '@/lib/analytics';
 
 type Settings = Database['public']['Tables']['user_settings']['Row'];
 
-export function SettingsClient({
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+export const SettingsClient = ({
   initialSettings,
   userEmail,
 }: {
   initialSettings: Settings | null;
   userEmail: string;
-}) {
+}) => {
   const router = useRouter();
+  const { t } = useT();
   const [whatsapp, setWhatsapp] = useState(initialSettings?.whatsapp_number ?? '');
   const [currency, setCurrency] = useState(initialSettings?.default_currency ?? 'ARS');
   const [timezone, setTimezone] = useState(
@@ -28,41 +31,77 @@ export function SettingsClient({
   );
   const [notifyExpenses, setNotifyExpenses] = useState(initialSettings?.notify_expenses ?? true);
   const [notifyReminders, setNotifyReminders] = useState(initialSettings?.notify_reminders ?? true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<SaveStatus>('idle');
 
-  const onSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    const prevCurrency = initialSettings?.default_currency ?? 'ARS';
-    const prevWhatsapp = initialSettings?.whatsapp_number ?? '';
-    const fd = new FormData();
-    fd.set('whatsapp_number', whatsapp);
-    fd.set('default_currency', currency);
-    fd.set('timezone', timezone);
-    fd.set('notify_expenses', String(notifyExpenses));
-    fd.set('notify_reminders', String(notifyReminders));
-    try {
-      await saveSettings(fd);
-      toast.success('Configuración guardada');
-      if (currency !== prevCurrency) {
-        track('currency_changed', { from: prevCurrency, to: currency });
-      }
-      if (whatsapp && whatsapp !== prevWhatsapp) {
-        track('whatsapp_configured');
-      }
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-      router.refresh();
-    } catch (err) {
-      toast.error('No se pudo guardar');
-    } finally {
-      setSaving(false);
+  // Evita ejecutar el auto-save en el primer render (mount).
+  const firstRenderRef = useRef(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return;
     }
-  };
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      setStatus('saving');
+      const prevCurrency = initialSettings?.default_currency ?? 'ARS';
+      const prevWhatsapp = initialSettings?.whatsapp_number ?? '';
+      const fd = new FormData();
+      fd.set('whatsapp_number', whatsapp);
+      fd.set('default_currency', currency);
+      fd.set('timezone', timezone);
+      fd.set('notify_expenses', String(notifyExpenses));
+      fd.set('notify_reminders', String(notifyReminders));
+      try {
+        await saveSettings(fd);
+        if (currency !== prevCurrency) {
+          track('currency_changed', { from: prevCurrency, to: currency });
+        }
+        if (whatsapp && whatsapp !== prevWhatsapp) {
+          track('whatsapp_configured');
+        }
+        setStatus('saved');
+        savedTimerRef.current = setTimeout(() => setStatus('idle'), 1800);
+        router.refresh();
+      } catch {
+        setStatus('error');
+        toast.error('No se pudo guardar');
+      }
+    }, 600);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [whatsapp, currency, timezone, notifyExpenses, notifyReminders]);
 
   return (
-    <form onSubmit={onSave} className="space-y-4">
+    <div className="space-y-4">
+      {/* Indicador sticky de auto-save */}
+      <div className="sticky top-0 z-10 -mx-1 px-1 pb-1">
+        <div className="flex items-center justify-end gap-2 text-xs text-slate-500 dark:text-slate-400 min-h-[1.5rem]">
+          {status === 'saving' && (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Guardando…</span>
+            </>
+          )}
+          {status === 'saved' && (
+            <>
+              <Check className="w-3.5 h-3.5 text-mint-500" />
+              <span className="text-mint-500 font-medium">Guardado</span>
+            </>
+          )}
+          {status === 'error' && (
+            <span className="text-rose-500 font-medium">Error al guardar</span>
+          )}
+        </div>
+      </div>
       <Section icon={<MessageCircle className="w-5 h-5" />} title="WhatsApp" tone="mint">
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
           Tu número se mantiene acá por compatibilidad. Para administrar a quién avisar
@@ -99,13 +138,59 @@ export function SettingsClient({
         <select
           value={timezone}
           onChange={(e) => setTimezone(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
+          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-400"
         >
-          <option value="America/Argentina/Buenos_Aires">Buenos Aires (GMT-3)</option>
-          <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
-          <option value="America/Bogota">Bogotá (GMT-5)</option>
-          <option value="America/Santiago">Santiago (GMT-4)</option>
-          <option value="Europe/Madrid">Madrid (GMT+1)</option>
+          <optgroup label="América del Sur">
+            <option value="America/Argentina/Buenos_Aires">Buenos Aires (GMT-3)</option>
+            <option value="America/Argentina/Cordoba">Córdoba (GMT-3)</option>
+            <option value="America/Argentina/Mendoza">Mendoza (GMT-3)</option>
+            <option value="America/Argentina/Ushuaia">Ushuaia (GMT-3)</option>
+            <option value="America/Montevideo">Montevideo (GMT-3)</option>
+            <option value="America/Asuncion">Asunción (GMT-3 / GMT-4)</option>
+            <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
+            <option value="America/La_Paz">La Paz (GMT-4)</option>
+            <option value="America/Santiago">Santiago (GMT-4 / GMT-3)</option>
+            <option value="America/Caracas">Caracas (GMT-4)</option>
+            <option value="America/Bogota">Bogotá (GMT-5)</option>
+            <option value="America/Lima">Lima (GMT-5)</option>
+            <option value="America/Guayaquil">Quito (GMT-5)</option>
+          </optgroup>
+          <optgroup label="América del Norte y Central">
+            <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
+            <option value="America/Guatemala">Guatemala (GMT-6)</option>
+            <option value="America/San_Salvador">San Salvador (GMT-6)</option>
+            <option value="America/Tegucigalpa">Tegucigalpa (GMT-6)</option>
+            <option value="America/Managua">Managua (GMT-6)</option>
+            <option value="America/Costa_Rica">San José (GMT-6)</option>
+            <option value="America/Panama">Panamá (GMT-5)</option>
+            <option value="America/Havana">La Habana (GMT-5)</option>
+            <option value="America/Santo_Domingo">Santo Domingo (GMT-4)</option>
+            <option value="America/Puerto_Rico">San Juan (GMT-4)</option>
+            <option value="America/New_York">Nueva York (GMT-5)</option>
+            <option value="America/Chicago">Chicago (GMT-6)</option>
+            <option value="America/Denver">Denver (GMT-7)</option>
+            <option value="America/Los_Angeles">Los Ángeles (GMT-8)</option>
+          </optgroup>
+          <optgroup label="Europa">
+            <option value="Europe/London">Londres (GMT+0 / GMT+1)</option>
+            <option value="Europe/Madrid">Madrid (GMT+1)</option>
+            <option value="Europe/Paris">París (GMT+1)</option>
+            <option value="Europe/Berlin">Berlín (GMT+1)</option>
+            <option value="Europe/Rome">Roma (GMT+1)</option>
+            <option value="Europe/Lisbon">Lisboa (GMT+0)</option>
+            <option value="Europe/Amsterdam">Ámsterdam (GMT+1)</option>
+            <option value="Europe/Brussels">Bruselas (GMT+1)</option>
+            <option value="Europe/Zurich">Zúrich (GMT+1)</option>
+            <option value="Europe/Athens">Atenas (GMT+2)</option>
+          </optgroup>
+          <optgroup label="Resto del mundo">
+            <option value="UTC">UTC (GMT+0)</option>
+            <option value="Asia/Tokyo">Tokio (GMT+9)</option>
+            <option value="Asia/Shanghai">Shanghai (GMT+8)</option>
+            <option value="Asia/Singapore">Singapur (GMT+8)</option>
+            <option value="Asia/Dubai">Dubái (GMT+4)</option>
+            <option value="Australia/Sydney">Sídney (GMT+10 / GMT+11)</option>
+          </optgroup>
         </select>
       </Section>
 
@@ -145,21 +230,14 @@ export function SettingsClient({
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-5 py-2.5 rounded-lg kumo-gradient text-white font-medium hover:opacity-90 disabled:opacity-50"
-        >
-          {saving ? 'Guardando...' : 'Guardar cambios'}
-        </button>
-        {saved && <span className="text-sm text-mint-500 font-medium">Guardado ✓</span>}
-      </div>
-    </form>
+      <p className="text-xs text-slate-400 dark:text-slate-500 text-center italic pt-2">
+        {t.settings.autosave_hint}
+      </p>
+    </div>
   );
-}
+};
 
-function LanguageSection() {
+const LanguageSection = () => {
   const { t } = useT();
   return (
     <div className="kumo-card p-5">
@@ -175,9 +253,9 @@ function LanguageSection() {
       <LanguageSwitcher />
     </div>
   );
-}
+};
 
-function Section({
+const Section = ({
   icon,
   title,
   tone,
@@ -187,7 +265,7 @@ function Section({
   title: string;
   tone: 'sky' | 'lavender' | 'mint' | 'peach';
   children: React.ReactNode;
-}) {
+}) => {
   const toneStyles = {
     sky: 'bg-sky-100 text-sky-700',
     lavender: 'bg-lavender-100 text-lavender-500',
@@ -205,4 +283,4 @@ function Section({
       {children}
     </div>
   );
-}
+};

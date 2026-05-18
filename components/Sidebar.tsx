@@ -13,6 +13,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
+import { LangSwitcher } from './LangSwitcher';
 import { createClient } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n/client';
 import { resetAnalytics } from '@/lib/analytics';
@@ -70,7 +71,8 @@ export const Sidebar = ({ userEmail }: Props) => {
         })}
       </nav>
 
-      <div className="p-3 border-t border-slate-100 dark:border-slate-800">
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1">
+        <LangSwitcher />
         <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 truncate" title={userEmail}>
           {userEmail}
         </div>

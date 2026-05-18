@@ -12,6 +12,8 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { formatMoney, type Currency } from '@/lib/currency';
 import { upsertReminder, deleteReminder } from '@/app/(app)/reminders/actions';
 import { track } from '@/lib/analytics';
+import { buildHolidayIndex, COUNTRY_LABEL, type Country, type Holiday } from '@/lib/holidays';
+import { useT } from '@/lib/i18n/client';
 
 type ReminderType = 'medical' | 'birthday' | 'generic';
 
@@ -57,9 +59,10 @@ type Props = {
   contacts: ContactLite[];
   defaultCurrency: Currency;
   initialView?: ViewMode;
+  country?: Country;
 };
 
-type ViewMode = 'month' | 'upcoming' | 'past';
+type ViewMode = 'month' | 'year' | 'upcoming' | 'past';
 
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
@@ -100,9 +103,14 @@ export const CalendarClient = ({
   contacts,
   defaultCurrency,
   initialView = 'month',
+  country = 'AR',
 }: Props) => {
   const router = useRouter();
+  const { t } = useT();
   const [view, setView] = useState<ViewMode>(initialView);
+
+  const holidayIndex = useMemo(() => buildHolidayIndex(country), [country]);
+  const getHolidayForDate = (dateStr: string): Holiday | null => holidayIndex.get(dateStr) ?? null;
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [editingReminder, setEditingReminder] = useState<ReminderCal | null>(null);
   const [toDelete, setToDelete] = useState<ReminderCal | null>(null);
@@ -172,9 +180,9 @@ export const CalendarClient = ({
     <div className="space-y-5">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Calendario</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.calendar.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-            Todas tus fechas: vencimientos, citas y cumpleaños.
+            {t.calendar.subtitle}
           </p>
         </div>
         <button
@@ -182,18 +190,23 @@ export const CalendarClient = ({
           className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl kumo-gradient text-white font-medium hover:opacity-90 active:scale-95 transition-all shadow-sm shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Nuevo</span>
+          <span className="hidden sm:inline">{t.calendar.new}</span>
         </button>
       </header>
 
-      {/* Tabs Mes / Próximos / Pasados */}
-      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-        <TabButton active={view === 'month'}    onClick={() => setView('month')}>Mes</TabButton>
+      {/* Tabs Mes / Año / Próximos / Pasados */}
+      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-x-auto">
+        <TabButton active={view === 'month'}    onClick={() => setView('month')}>{t.calendar.tab_month}</TabButton>
+        <TabButton active={view === 'year'}     onClick={() => setView('year')}>{t.calendar.tab_year}</TabButton>
         <TabButton active={view === 'upcoming'} onClick={() => setView('upcoming')}>
-          Próximos · {upcoming.length}
+          <span className="hidden sm:inline">{t.calendar.tab_upcoming}</span>
+          <span className="sm:hidden">{t.calendar.tab_upcoming_short}</span>
+          {' · '}{upcoming.length}
         </TabButton>
         <TabButton active={view === 'past'}     onClick={() => setView('past')}>
-          Pasados · {past.length}
+          <span className="hidden sm:inline">{t.calendar.tab_past}</span>
+          <span className="sm:hidden">{t.calendar.tab_past_short}</span>
+          {' · '}{past.length}
         </TabButton>
       </div>
 
@@ -243,6 +256,7 @@ export const CalendarClient = ({
               const isToday = cell.dateStr === today;
               const totalEvents = (events?.expenses.length ?? 0) + (events?.reminders.length ?? 0);
               const hasEvents = totalEvents > 0;
+              const holiday = getHolidayForDate(cell.dateStr);
 
               return (
                 <button
@@ -253,14 +267,31 @@ export const CalendarClient = ({
                       ? 'text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                       : isToday
                         ? 'bg-sky-50 dark:bg-sky-900/30 ring-2 ring-sky-400 dark:ring-sky-500'
-                        : hasEvents
-                          ? 'bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                        : holiday && isCurrentMonth
+                          ? 'bg-amber-50 dark:bg-amber-900/15 hover:bg-amber-100 dark:hover:bg-amber-900/25'
+                          : hasEvents
+                            ? 'bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   }`}
+                  title={holiday ? holiday.name : undefined}
                 >
-                  <span className={`text-xs sm:text-sm font-semibold ${isToday ? 'text-sky-700 dark:text-sky-300' : ''}`}>
+                  <span className={`text-xs sm:text-sm font-semibold flex items-center gap-1 ${
+                    isToday
+                      ? 'text-sky-700 dark:text-sky-300'
+                      : holiday && isCurrentMonth
+                        ? 'text-amber-700 dark:text-amber-400'
+                        : ''
+                  }`}>
                     {cell.day}
+                    {holiday && isCurrentMonth && (
+                      <span className="w-1 h-1 rounded-full bg-amber-500" aria-label="Feriado" />
+                    )}
                   </span>
+                  {holiday && isCurrentMonth && (
+                    <span className="hidden sm:block text-[9px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold leading-tight truncate">
+                      {holiday.name}
+                    </span>
+                  )}
 
                   {events && (
                     <>
@@ -328,11 +359,26 @@ export const CalendarClient = ({
             <LegendDot color="bg-rose-500"  label="Médico" />
             <LegendDot color="bg-lavender-500" label="Cumpleaños" />
             <LegendDot color="bg-sky-500"   label="Otro" />
+            <LegendDot color="bg-amber-500" label={`Feriado ${COUNTRY_LABEL[country]}`} />
           </div>
         </div>
       )}
 
-      {view !== 'month' && (
+      {view === 'year' && (
+        <YearView
+          year={year}
+          eventsByDate={eventsByDate}
+          holidayIndex={holidayIndex}
+          today={today}
+          onMonthClick={(m) => {
+            setView('month');
+            router.push(`/calendar?month=${year}-${String(m).padStart(2, '0')}`);
+          }}
+          onDayClick={setSelectedDay}
+        />
+      )}
+
+      {(view === 'upcoming' || view === 'past') && (
         <AgendaList
           items={view === 'upcoming' ? upcoming : past}
           contactsById={contactsById}
@@ -341,8 +387,8 @@ export const CalendarClient = ({
           onDelete={setToDelete}
           emptyMessage={
             view === 'upcoming'
-              ? 'Sin recordatorios próximos. Tocá "Nuevo" para crear uno.'
-              : 'Sin recordatorios pasados.'
+              ? 'Sin eventos próximos. Tocá "Nuevo" para crear uno.'
+              : 'Sin eventos pasados.'
           }
         />
       )}
@@ -353,6 +399,7 @@ export const CalendarClient = ({
         contacts={contacts}
         contactsById={contactsById}
         defaultCurrency={defaultCurrency}
+        holidayIndex={holidayIndex}
         onClose={() => setSelectedDay(null)}
         onEdit={(r) => {
           setSelectedDay(null);
@@ -539,6 +586,7 @@ type DayDetailSheetProps = {
   contacts: ContactLite[];
   contactsById: Record<string, ContactLite>;
   defaultCurrency: Currency;
+  holidayIndex: Map<string, Holiday>;
   onClose: () => void;
   onEdit: (r: ReminderCal) => void;
   onDelete: (r: ReminderCal) => void;
@@ -549,6 +597,7 @@ const DayDetailSheet = ({
   events,
   contacts,
   defaultCurrency: _defaultCurrency,
+  holidayIndex,
   onClose,
   onEdit,
   onDelete,
@@ -563,6 +612,9 @@ const DayDetailSheet = ({
 
   const title = formatDateFull(dateStr);
   const totalEvents = (events?.expenses.length ?? 0) + (events?.reminders.length ?? 0);
+  const holiday = holidayIndex.get(dateStr) ?? null;
+  const todayStr = todayKey();
+  const isPast = dateStr < todayStr;
 
   if (creating) {
     return (
@@ -583,13 +635,27 @@ const DayDetailSheet = ({
   return (
     <Sheet open={!!dateStr} onClose={onClose} title={title.charAt(0).toUpperCase() + title.slice(1)}>
       <div className="space-y-4">
-        <button
-          onClick={() => setCreating(true)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-sky-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="text-sm font-medium">Nuevo recordatorio en este día</span>
-        </button>
+        {holiday && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span className="font-medium">Feriado</span>
+            <span className="text-amber-600 dark:text-amber-300">— {holiday.name}</span>
+          </div>
+        )}
+
+        {!isPast ? (
+          <button
+            onClick={() => setCreating(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-sky-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="text-sm font-medium">Nuevo recordatorio en este día</span>
+          </button>
+        ) : (
+          <div className="text-xs text-slate-500 dark:text-slate-400 text-center py-2 italic">
+            No se pueden crear eventos en fechas pasadas. Podés editar o borrar los existentes.
+          </div>
+        )}
 
         {totalEvents === 0 ? (
           <div className="text-center py-6">
@@ -900,6 +966,13 @@ const FullReminderSheet = ({ open, reminder, contacts, onClose }: FullReminderSh
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Solo al CREAR uno nuevo bloqueamos fechas pasadas. Editar uno existente con fecha pasada está bien.
+    if (!reminder && date < todayKey()) {
+      toast.error('No se pueden crear eventos en fechas pasadas.');
+      return;
+    }
+
     const fd = new FormData();
     if (reminder?.id) fd.set('id', reminder.id);
     fd.set('title', title);
@@ -1003,6 +1076,7 @@ const FullReminderSheet = ({ open, reminder, contacts, onClose }: FullReminderSh
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              min={!reminder ? todayKey() : undefined}
               className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               required
             />
@@ -1125,6 +1199,115 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
     <div className="divide-y divide-slate-100 dark:divide-slate-700/50">{children}</div>
   </div>
 );
+
+type YearViewProps = {
+  year: number;
+  eventsByDate: Map<string, { expenses: ExpenseCal[]; reminders: ReminderCal[] }>;
+  holidayIndex: Map<string, Holiday>;
+  today: string;
+  onMonthClick: (month: number) => void;
+  onDayClick: (dateStr: string) => void;
+};
+
+const YearView = ({ year, eventsByDate, holidayIndex, today, onMonthClick, onDayClick }: YearViewProps) => {
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4 px-1">
+        <h2 className="text-xl font-bold">{year}</h2>
+        <div className="text-xs text-slate-500 dark:text-slate-400">
+          Tocá un mes para ver el detalle
+        </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {months.map((m) => (
+          <MiniMonth
+            key={m}
+            year={year}
+            month={m}
+            eventsByDate={eventsByDate}
+            holidayIndex={holidayIndex}
+            today={today}
+            onMonthClick={() => onMonthClick(m)}
+            onDayClick={onDayClick}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+type MiniMonthProps = {
+  year: number;
+  month: number;
+  eventsByDate: Map<string, { expenses: ExpenseCal[]; reminders: ReminderCal[] }>;
+  holidayIndex: Map<string, Holiday>;
+  today: string;
+  onMonthClick: () => void;
+  onDayClick: (dateStr: string) => void;
+};
+
+const MiniMonth = ({ year, month, eventsByDate, holidayIndex, today, onMonthClick, onDayClick }: MiniMonthProps) => {
+  const grid = useMemo(() => buildGrid(year, month), [year, month]);
+  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('es-AR', { month: 'long' });
+
+  return (
+    <div className="kumo-card p-3">
+      <button
+        type="button"
+        onClick={onMonthClick}
+        className="text-sm font-semibold capitalize mb-2 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+      >
+        {monthLabel}
+      </button>
+      <div className="grid grid-cols-7 gap-0.5 text-[8px] text-slate-400 dark:text-slate-500 uppercase mb-1">
+        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
+          <div key={i} className="text-center font-semibold">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {grid.map((cell) => {
+          const isCurrentMonth = cell.month === month;
+          const isToday = cell.dateStr === today;
+          const events = eventsByDate.get(cell.dateStr);
+          const totalEvents = (events?.expenses.length ?? 0) + (events?.reminders.length ?? 0);
+          const hasEvents = totalEvents > 0;
+          const holiday = holidayIndex.get(cell.dateStr) ?? null;
+
+          return (
+            <button
+              key={cell.dateStr}
+              type="button"
+              onClick={() => onDayClick(cell.dateStr)}
+              className={`relative aspect-square text-[9px] grid place-items-center rounded transition-colors ${
+                !isCurrentMonth
+                  ? 'text-slate-300 dark:text-slate-700'
+                  : isToday
+                    ? 'bg-sky-500 text-white font-bold'
+                    : hasEvents
+                      ? 'text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-100 dark:hover:bg-slate-700'
+                      : holiday
+                        ? 'text-amber-700 dark:text-amber-400 font-medium hover:bg-slate-100 dark:hover:bg-slate-700'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+              title={holiday ? holiday.name : undefined}
+            >
+              {cell.day}
+              {hasEvents && isCurrentMonth && !isToday && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sky-500" />
+              )}
+              {holiday && isCurrentMonth && !isToday && !hasEvents && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-amber-500" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 
 const buildGrid = (year: number, month: number) => {
   const firstOfMonth = new Date(year, month - 1, 1);
