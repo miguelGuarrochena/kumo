@@ -45,7 +45,7 @@ export const OnboardingChecklist = ({ hasExpense, hasContact, hasReminder }: Pro
       title: 'Creá un recordatorio',
       description: 'Citas médicas, cumpleaños o lo que sea. Te avisamos cuando se acerquen.',
       cta: 'Crear recordatorio',
-      href: '/reminders',
+      href: '/calendar?view=upcoming',
     },
   ];
 

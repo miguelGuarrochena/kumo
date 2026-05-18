@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Wallet,
   Tags,
-  Bell,
   ShoppingCart,
   CalendarDays,
   BarChart3,
@@ -31,10 +30,9 @@ export const Sidebar = ({ userEmail }: Props) => {
     { href: '/dashboard',  label: t.nav.dashboard,    icon: LayoutDashboard },
     { href: '/expenses',   label: t.nav.expenses,     icon: Wallet },
     { href: '/metrics',    label: t.nav.metrics,      icon: BarChart3 },
-    { href: '/categories', label: t.nav.categories,   icon: Tags },
-    { href: '/reminders',  label: t.nav.reminders,    icon: Bell },
-    { href: '/shopping',   label: t.nav.shopping,     icon: ShoppingCart },
     { href: '/calendar',   label: t.nav.calendar,     icon: CalendarDays },
+    { href: '/shopping',   label: t.nav.shopping,     icon: ShoppingCart },
+    { href: '/categories', label: t.nav.categories,   icon: Tags },
     { href: '/settings',   label: t.nav.settings,     icon: Settings },
   ] as const;
 

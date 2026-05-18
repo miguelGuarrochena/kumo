@@ -8,6 +8,7 @@ const itemSchema = z.object({
   list_name: z.string().min(1).max(40),
   name: z.string().min(1, 'Nombre requerido').max(100),
   quantity: z.string().max(40).nullable().optional(),
+  unit: z.string().max(20).nullable().optional(),
 });
 
 export async function addItem(formData: FormData) {
@@ -15,6 +16,7 @@ export async function addItem(formData: FormData) {
     list_name: formData.get('list_name') || 'Supermercado',
     name: formData.get('name'),
     quantity: (formData.get('quantity') as string) || null,
+    unit: (formData.get('unit') as string) || null,
   });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message };
 
@@ -42,10 +44,23 @@ export async function addItem(formData: FormData) {
     list_name: parsed.data.list_name,
     name: parsed.data.name,
     quantity: parsed.data.quantity,
+    unit: parsed.data.unit,
     position,
   });
 
   if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+  revalidatePath('/shopping');
+  return { ok: true };
+}
+
+export async function updateItem(
+  id: string,
+  patch: { name?: string; quantity?: string | null; unit?: string | null },
+) {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('shopping_items') as any).update(patch).eq('id', id);
+  if (error) return { ok: false, error: error.message };
   revalidatePath('/shopping');
   return { ok: true };
 }

@@ -70,7 +70,7 @@ export default async function DashboardPage() {
           icon={<Bell className="w-5 h-5" />}
           label="Recordatorios"
           value={reminderCount ?? 0}
-          href="/reminders"
+          href="/calendar?view=upcoming"
           tone="lavender"
         />
         <StatCard

@@ -69,11 +69,11 @@ export const MobileHeader = ({ userEmail }: Props) => {
       {menuOpen && (
         <>
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-40"
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute right-3 top-12 z-20 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 min-w-64 overflow-hidden">
+          <div className="fixed right-3 top-14 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 min-w-64 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
               <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 {t.menu.connectedAs}

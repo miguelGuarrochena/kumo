@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Wallet, BarChart3, ShoppingCart, CalendarDays, Bell,
+  Home, Wallet, BarChart3, ShoppingCart, CalendarDays,
 } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 
@@ -12,11 +12,11 @@ export const MobileNav = () => {
   const { t } = useT();
 
   const nav = [
+    { href: '/dashboard', label: t.nav.dashboard,       icon: Home },
     { href: '/expenses',  label: t.mobileNav.expenses,  icon: Wallet },
-    { href: '/metrics',   label: t.mobileNav.metrics,   icon: BarChart3 },
-    { href: '/shopping',  label: t.mobileNav.shopping,  icon: ShoppingCart },
     { href: '/calendar',  label: t.mobileNav.calendar,  icon: CalendarDays },
-    { href: '/reminders', label: t.mobileNav.reminders, icon: Bell },
+    { href: '/shopping',  label: t.mobileNav.shopping,  icon: ShoppingCart },
+    { href: '/metrics',   label: t.mobileNav.metrics,   icon: BarChart3 },
   ] as const;
 
   return (

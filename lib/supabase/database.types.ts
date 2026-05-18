@@ -127,6 +127,7 @@ type ShoppingItemsRow = {
   list_name: string;
   name: string;
   quantity: string | null;
+  unit: string | null;
   bought: boolean;
   position: number;
   created_at: string;
@@ -137,6 +138,7 @@ type ShoppingItemsInsert = {
   list_name?: string;
   name: string;
   quantity?: string | null;
+  unit?: string | null;
   bought?: boolean;
   position?: number;
   created_at?: string;
@@ -147,6 +149,7 @@ type ShoppingItemsUpdate = {
   list_name?: string;
   name?: string;
   quantity?: string | null;
+  unit?: string | null;
   bought?: boolean;
   position?: number;
   created_at?: string;

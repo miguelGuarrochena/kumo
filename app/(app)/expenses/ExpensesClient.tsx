@@ -828,34 +828,57 @@ function ExpenseSheet({
           />
         </div>
 
-        <div className="border border-slate-200 rounded-xl p-3 space-y-2">
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Estado</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setPaid(true)}
+              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 transition-colors text-sm font-medium ${
+                paid
+                  ? 'border-mint-400 bg-mint-50 dark:bg-mint-500/10 text-mint-600 dark:text-mint-400'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+              }`}
+            >
+              <Check className="w-4 h-4" />
+              Pagado
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaid(false)}
+              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 transition-colors text-sm font-medium ${
+                !paid
+                  ? 'border-peach-400 bg-peach-50 dark:bg-peach-500/10 text-peach-500'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-peach-400" />
+              Pendiente
+            </button>
+          </div>
+        </div>
+
+        <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={hasDueDate}
-              onChange={(e) => setHasDueDate(e.target.checked)}
+              onChange={(e) => {
+                setHasDueDate(e.target.checked);
+                if (e.target.checked && paid) setPaid(false);
+              }}
               className="rounded text-sky-600 w-4 h-4"
             />
             <span className="font-medium">Tiene vencimiento</span>
+            <span className="ml-auto text-[11px] text-slate-400">para alertas</span>
           </label>
           {hasDueDate && (
-            <>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
-              />
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={paid}
-                  onChange={(e) => setPaid(e.target.checked)}
-                  className="rounded text-sky-600 w-4 h-4"
-                />
-                <span>Ya está pagado</span>
-              </label>
-            </>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            />
           )}
         </div>
 

@@ -62,6 +62,7 @@ export async function upsertReminder(
   if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
 
   revalidatePath('/reminders');
+  revalidatePath('/calendar');
   revalidatePath('/dashboard');
   return { ok: true };
 }
@@ -71,6 +72,7 @@ export async function deleteReminder(id: string): Promise<ReminderFormState> {
   const { error } = await supabase.from('reminders').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
   revalidatePath('/reminders');
+  revalidatePath('/calendar');
   revalidatePath('/dashboard');
   return { ok: true };
 }
