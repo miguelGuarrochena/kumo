@@ -2,9 +2,11 @@ import { createClient } from '@/lib/supabase/server';
 import { Wallet, Bell, ShoppingCart, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
+import { getMessages } from '@/lib/i18n/server';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const t = await getMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -26,7 +28,7 @@ export default async function DashboardPage() {
     supabase.from('notification_contacts').select('phone').eq('user_id', user?.id ?? '').eq('is_self', true).maybeSingle(),
   ]);
 
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? 'Hola';
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? t.dashboard.title;
   const settingsTyped = settings as { onboarded?: boolean; whatsapp_number?: string | null } | null;
   const selfContactTyped = selfContact as { phone?: string | null } | null;
 
@@ -46,7 +48,7 @@ export default async function DashboardPage() {
           {firstName} <span className="text-2xl">👋</span>
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          Bienvenido a tu nube. Esto es lo que tenés hoy.
+          {t.dashboard.subtitle}
         </p>
       </header>
 
@@ -61,29 +63,29 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           icon={<Wallet className="w-5 h-5" />}
-          label="Gastos"
+          label={t.dashboard.stat_expenses}
           value={expenseCount ?? 0}
           href="/expenses"
           tone="sky"
         />
         <StatCard
           icon={<Bell className="w-5 h-5" />}
-          label="Recordatorios"
+          label={t.dashboard.stat_reminders}
           value={reminderCount ?? 0}
           href="/calendar?view=upcoming"
           tone="lavender"
         />
         <StatCard
           icon={<ShoppingCart className="w-5 h-5" />}
-          label="Por comprar"
+          label={t.dashboard.stat_shopping}
           value={shoppingCount ?? 0}
           href="/shopping"
           tone="mint"
         />
         <StatCard
           icon={<CalendarDays className="w-5 h-5" />}
-          label="Calendario"
-          value="Ver"
+          label={t.nav.calendar}
+          value={t.dashboard.see_all}
           href="/calendar"
           tone="peach"
         />

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileNav } from '@/components/MobileNav';
@@ -7,6 +8,7 @@ import { DesktopTopBar } from '@/components/DesktopTopBar';
 import { CloudDecorations } from '@/components/CloudDecorations';
 import { Footer } from '@/components/Footer';
 import { UserIdentifier } from '@/components/UserIdentifier';
+import { NavigationProgress } from '@/components/NavigationProgress';
 
 const AppLayout = async ({ children }: { children: React.ReactNode }) => {
   const supabase = await createClient();
@@ -16,6 +18,9 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="flex min-h-screen">
+      <Suspense fallback={null}>
+        <NavigationProgress />
+      </Suspense>
       <UserIdentifier
         userId={user.id}
         email={user.email ?? undefined}

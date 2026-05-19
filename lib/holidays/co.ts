@@ -1,0 +1,66 @@
+// Feriados nacionales de Colombia.
+// Fuente: Ley Emiliani — varios feriados se trasladan al lunes siguiente.
+
+import type { Holiday } from './types';
+
+export const HOLIDAYS_CO: Holiday[] = [
+  // 2025
+  { date: '2025-01-01', name: 'Año Nuevo',                                  type: 'inamovible' },
+  { date: '2025-01-06', name: 'Día de los Reyes Magos',                     type: 'trasladable' },
+  { date: '2025-03-24', name: 'Día de San José',                            type: 'trasladable' },
+  { date: '2025-04-17', name: 'Jueves Santo',                               type: 'inamovible' },
+  { date: '2025-04-18', name: 'Viernes Santo',                              type: 'inamovible' },
+  { date: '2025-05-01', name: 'Día del Trabajo',                            type: 'inamovible' },
+  { date: '2025-06-02', name: 'Ascensión del Señor',                        type: 'trasladable' },
+  { date: '2025-06-23', name: 'Corpus Christi',                             type: 'trasladable' },
+  { date: '2025-06-30', name: 'Sagrado Corazón de Jesús',                   type: 'trasladable' },
+  { date: '2025-06-30', name: 'San Pedro y San Pablo',                      type: 'trasladable' },
+  { date: '2025-07-20', name: 'Día de la Independencia',                    type: 'inamovible' },
+  { date: '2025-08-07', name: 'Batalla de Boyacá',                          type: 'inamovible' },
+  { date: '2025-08-18', name: 'Asunción de la Virgen',                      type: 'trasladable' },
+  { date: '2025-10-13', name: 'Día de la Raza',                             type: 'trasladable' },
+  { date: '2025-11-03', name: 'Todos los Santos',                           type: 'trasladable' },
+  { date: '2025-11-17', name: 'Independencia de Cartagena',                 type: 'trasladable' },
+  { date: '2025-12-08', name: 'Inmaculada Concepción',                      type: 'inamovible' },
+  { date: '2025-12-25', name: 'Navidad',                                    type: 'inamovible' },
+
+  // 2026
+  { date: '2026-01-01', name: 'Año Nuevo',                                  type: 'inamovible' },
+  { date: '2026-01-12', name: 'Día de los Reyes Magos',                     type: 'trasladable' },
+  { date: '2026-03-23', name: 'Día de San José',                            type: 'trasladable' },
+  { date: '2026-04-02', name: 'Jueves Santo',                               type: 'inamovible' },
+  { date: '2026-04-03', name: 'Viernes Santo',                              type: 'inamovible' },
+  { date: '2026-05-01', name: 'Día del Trabajo',                            type: 'inamovible' },
+  { date: '2026-05-18', name: 'Ascensión del Señor',                        type: 'trasladable' },
+  { date: '2026-06-08', name: 'Corpus Christi',                             type: 'trasladable' },
+  { date: '2026-06-15', name: 'Sagrado Corazón de Jesús',                   type: 'trasladable' },
+  { date: '2026-06-29', name: 'San Pedro y San Pablo',                      type: 'trasladable' },
+  { date: '2026-07-20', name: 'Día de la Independencia',                    type: 'inamovible' },
+  { date: '2026-08-07', name: 'Batalla de Boyacá',                          type: 'inamovible' },
+  { date: '2026-08-17', name: 'Asunción de la Virgen',                      type: 'trasladable' },
+  { date: '2026-10-12', name: 'Día de la Raza',                             type: 'inamovible' },
+  { date: '2026-11-02', name: 'Todos los Santos',                           type: 'trasladable' },
+  { date: '2026-11-16', name: 'Independencia de Cartagena',                 type: 'trasladable' },
+  { date: '2026-12-08', name: 'Inmaculada Concepción',                      type: 'inamovible' },
+  { date: '2026-12-25', name: 'Navidad',                                    type: 'inamovible' },
+
+  // 2027
+  { date: '2027-01-01', name: 'Año Nuevo',                                  type: 'inamovible' },
+  { date: '2027-01-11', name: 'Día de los Reyes Magos',                     type: 'trasladable' },
+  { date: '2027-03-22', name: 'Día de San José',                            type: 'trasladable' },
+  { date: '2027-03-25', name: 'Jueves Santo',                               type: 'inamovible' },
+  { date: '2027-03-26', name: 'Viernes Santo',                              type: 'inamovible' },
+  { date: '2027-05-01', name: 'Día del Trabajo',                            type: 'inamovible' },
+  { date: '2027-05-10', name: 'Ascensión del Señor',                        type: 'trasladable' },
+  { date: '2027-05-31', name: 'Corpus Christi',                             type: 'trasladable' },
+  { date: '2027-06-07', name: 'Sagrado Corazón de Jesús',                   type: 'trasladable' },
+  { date: '2027-07-05', name: 'San Pedro y San Pablo',                      type: 'trasladable' },
+  { date: '2027-07-20', name: 'Día de la Independencia',                    type: 'inamovible' },
+  { date: '2027-08-07', name: 'Batalla de Boyacá',                          type: 'inamovible' },
+  { date: '2027-08-16', name: 'Asunción de la Virgen',                      type: 'trasladable' },
+  { date: '2027-10-18', name: 'Día de la Raza',                             type: 'trasladable' },
+  { date: '2027-11-01', name: 'Todos los Santos',                           type: 'inamovible' },
+  { date: '2027-11-15', name: 'Independencia de Cartagena',                 type: 'trasladable' },
+  { date: '2027-12-08', name: 'Inmaculada Concepción',                      type: 'inamovible' },
+  { date: '2027-12-25', name: 'Navidad',                                    type: 'inamovible' },
+];

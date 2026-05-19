@@ -237,52 +237,81 @@ export function MetricsClient({
         </div>
       ) : (
         <>
-          {/* Gráfico de torta */}
-          <div className="kumo-card p-5">
-            <h3 className="font-semibold mb-3">Por categoría</h3>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="w-full sm:w-48 h-48">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={byCategory}
-                      dataKey="total"
-                      nameKey="name"
-                      innerRadius={45}
-                      outerRadius={75}
-                      paddingAngle={2}
-                    >
-                      {byCategory.map((c, i) => (
-                        <Cell
-                          key={c.id}
-                          fill={COLOR_HEX[c.color] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number) => formatMoney(value, displayCurrency)}
-                      contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="flex-1 w-full space-y-1.5">
-                {byCategory.slice(0, 6).map((c, i) => {
-                  const pct = total > 0 ? (c.total / total) * 100 : 0;
-                  return (
-                    <div key={c.id} className="flex items-center gap-2 text-sm">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ background: COLOR_HEX[c.color] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length] }}
+          {/* Fila combinada: Pie chart + Top 5 lado a lado en desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="kumo-card p-5">
+              <h3 className="font-semibold mb-3">Por categoría</h3>
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-full sm:w-44 h-44 shrink-0">
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={byCategory}
+                        dataKey="total"
+                        nameKey="name"
+                        innerRadius={45}
+                        outerRadius={72}
+                        paddingAngle={2}
+                      >
+                        {byCategory.map((c, i) => (
+                          <Cell
+                            key={c.id}
+                            fill={COLOR_HEX[c.color] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => formatMoney(value, displayCurrency)}
+                        contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                       />
-                      <span className="flex-1 truncate">{c.name}</span>
-                      <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
-                        {pct.toFixed(0)}%
-                      </span>
-                      <span className="font-medium tabular-nums whitespace-nowrap">
-                        {formatMoney(c.total, displayCurrency)}
-                      </span>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="flex-1 w-full min-w-0 space-y-1.5">
+                  {byCategory.slice(0, 6).map((c, i) => {
+                    const pct = total > 0 ? (c.total / total) * 100 : 0;
+                    return (
+                      <div key={c.id} className="flex items-center gap-2 text-sm">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ background: COLOR_HEX[c.color] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length] }}
+                        />
+                        <span className="flex-1 truncate">{c.name}</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                          {pct.toFixed(0)}%
+                        </span>
+                        <span className="font-medium tabular-nums whitespace-nowrap text-xs sm:text-sm">
+                          {formatMoney(c.total, displayCurrency)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="kumo-card p-5">
+              <h3 className="font-semibold mb-3">Top 5 gastos del período</h3>
+              <div className="space-y-2">
+                {topExpenses.map((e, i) => {
+                  const cat = e.categories;
+                  const color = cat ? COLOR_HEX[cat.color] ?? FALLBACK_COLORS[0] : '#cbd5e1';
+                  return (
+                    <div key={e.id} className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-slate-400 w-4">{i + 1}</span>
+                      <span className="w-2 h-8 rounded-full shrink-0" style={{ background: color }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {e.description || cat?.name || 'Gasto'}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {cat?.name ?? 'Sin categoría'} · {formatDate(e.expense_date)}
+                        </p>
+                      </div>
+                      <p className="font-semibold text-sm tabular-nums whitespace-nowrap">
+                        {formatMoney(e.normalized, displayCurrency)}
+                      </p>
                     </div>
                   );
                 })}
@@ -320,34 +349,6 @@ export function MetricsClient({
                   </defs>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Top 5 gastos individuales */}
-          <div className="kumo-card p-5">
-            <h3 className="font-semibold mb-3">Top 5 gastos del período</h3>
-            <div className="space-y-2">
-              {topExpenses.map((e, i) => {
-                const cat = e.categories;
-                const color = cat ? COLOR_HEX[cat.color] ?? FALLBACK_COLORS[0] : '#cbd5e1';
-                return (
-                  <div key={e.id} className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-slate-400 w-4">{i + 1}</span>
-                    <span className="w-2 h-8 rounded-full shrink-0" style={{ background: color }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {e.description || cat?.name || 'Gasto'}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {cat?.name ?? 'Sin categoría'} · {formatDate(e.expense_date)}
-                      </p>
-                    </div>
-                    <p className="font-semibold text-sm tabular-nums whitespace-nowrap">
-                      {formatMoney(e.normalized, displayCurrency)}
-                    </p>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </>

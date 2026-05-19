@@ -10,6 +10,7 @@ import {
 import { upsertExpense, deleteExpense, togglePaid } from './actions';
 import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Select, type SelectOption } from '@/components/Select';
 import { FiltersSheet, type Filters } from './FiltersSheet';
 import type { ExpensesView, ArchiveYear } from './page';
 import type { ExtractedExpense } from '@/lib/ocr/types';
@@ -422,16 +423,19 @@ export function ExpensesClient({
                   {formatMoney(totalInDisplay, displayCurrency)}
                 </p>
               </div>
-              <select
+              <Select
                 value={filters.sort}
-                onChange={(e) => setUrlParam('sort', e.target.value)}
-                className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-slate-800"
-              >
-                <option value="date-desc">Más nuevos primero</option>
-                <option value="date-asc">Más viejos primero</option>
-                <option value="amount-desc">Monto mayor</option>
-                <option value="amount-asc">Monto menor</option>
-              </select>
+                onChange={(v) => setUrlParam('sort', v)}
+                options={[
+                  { value: 'date-desc',   label: 'Más nuevos primero' },
+                  { value: 'date-asc',    label: 'Más viejos primero' },
+                  { value: 'amount-desc', label: 'Monto mayor' },
+                  { value: 'amount-asc',  label: 'Monto menor' },
+                ]}
+                ariaLabel="Ordenar"
+                className="w-48"
+                buttonClassName="py-2"
+              />
             </div>
           )}
         </>
@@ -769,16 +773,14 @@ function ExpenseSheet({
             />
           </div>
           <div className="w-28">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Moneda</label>
-            <select
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Moneda</label>
+            <Select
               value={currency}
-              onChange={(e) => setCurrency(e.target.value as Currency)}
-              className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white"
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.code}</option>
-              ))}
-            </select>
+              onChange={(v) => setCurrency(v as Currency)}
+              options={CURRENCIES.map((c) => ({ value: c.code, label: c.code, hint: c.symbol }))}
+              ariaLabel="Moneda"
+              buttonClassName="py-3 rounded-xl"
+            />
           </div>
         </div>
 
@@ -792,17 +794,17 @@ function ExpenseSheet({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Categoría</label>
-          <select
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Categoría</label>
+          <Select
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white"
-          >
-            <option value="">Sin categoría</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+            onChange={setCategoryId}
+            options={[
+              { value: '', label: 'Sin categoría' } as SelectOption,
+              ...categories.map((c) => ({ value: c.id, label: c.name })),
+            ]}
+            ariaLabel="Categoría"
+            buttonClassName="py-3 rounded-xl"
+          />
         </div>
 
         <div>
@@ -893,15 +895,16 @@ function ExpenseSheet({
             <span className="font-medium">Es recurrente</span>
           </label>
           {isRecurring && (
-            <select
+            <Select
               value={recurrenceType}
-              onChange={(e) => setRecurrenceType(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-800"
-            >
-              <option value="weekly">Semanal</option>
-              <option value="monthly">Mensual</option>
-              <option value="yearly">Anual</option>
-            </select>
+              onChange={setRecurrenceType}
+              options={[
+                { value: 'weekly',  label: 'Semanal' },
+                { value: 'monthly', label: 'Mensual' },
+                { value: 'yearly',  label: 'Anual' },
+              ]}
+              ariaLabel="Recurrencia"
+            />
           )}
         </div>
 
@@ -1116,15 +1119,23 @@ function CurrencyInlineSelect({
   onChange: (v: string) => void;
 }) {
   return (
-    <select
+    <Select
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label="Moneda de visualización"
-      className="appearance-none bg-transparent border-0 px-0 py-0 font-medium text-slate-500 dark:text-slate-300 cursor-pointer underline decoration-dotted decoration-slate-300 dark:decoration-slate-600 underline-offset-2 hover:text-sky-600 hover:decoration-sky-400 focus:outline-none focus:text-sky-600 transition-colors"
-    >
-      {CURRENCIES.map((c) => (
-        <option key={c.code} value={c.code}>{c.code}</option>
-      ))}
-    </select>
+      onChange={onChange}
+      options={CURRENCIES.map((c) => ({ value: c.code, label: c.code, hint: c.symbol }))}
+      ariaLabel="Moneda de visualización"
+      className="inline-block"
+      renderTrigger={(_current, open) => (
+        <span
+          className={`font-medium cursor-pointer underline decoration-dotted underline-offset-2 transition-colors ${
+            open
+              ? 'text-sky-600 decoration-sky-400'
+              : 'text-slate-500 dark:text-slate-300 decoration-slate-300 dark:decoration-slate-600 hover:text-sky-600 hover:decoration-sky-400'
+          }`}
+        >
+          {value}
+        </span>
+      )}
+    />
   );
 }

@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, Trash2, ShoppingCart, Sparkles, X, Check, Pencil, ChevronDown } from 'lucide-react';
 import { addItem, toggleBought, removeItem, clearBought, updateItem } from './actions';
 import type { Database } from '@/lib/supabase/database.types';
 import { track } from '@/lib/analytics';
+import { useT } from '@/lib/i18n/client';
 
 type Item = Database['public']['Tables']['shopping_items']['Row'];
 
@@ -104,19 +105,26 @@ const formatQuantity = (qty: string | null, unit: string | null): string => {
 
 export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
   const router = useRouter();
+  const { t } = useT();
   const [, startTransition] = useTransition();
   const [creatingList, setCreatingList] = useState(false);
   const [newListName, setNewListName] = useState('');
 
+  // Optimistic state: tilde se ve al instante mientras la mutación viaja al server.
+  const [optimisticItems, setOptimisticItems] = useOptimistic<Item[], { id: string; bought: boolean }>(
+    initialItems,
+    (state, { id, bought }) => state.map((it) => (it.id === id ? { ...it, bought } : it)),
+  );
+
   const lists = useMemo(() => {
-    const existing = new Set(initialItems.map((i) => i.list_name));
+    const existing = new Set(optimisticItems.map((i) => i.list_name));
     DEFAULT_LISTS.forEach((l) => existing.add(l));
     return Array.from(existing);
-  }, [initialItems]);
+  }, [optimisticItems]);
 
   const [activeList, setActiveList] = useState<string>(lists[0] ?? 'Supermercado');
 
-  const itemsInList = initialItems.filter((i) => i.list_name === activeList);
+  const itemsInList = optimisticItems.filter((i) => i.list_name === activeList);
   const pendingItems = itemsInList.filter((i) => !i.bought);
   const boughtItems = itemsInList.filter((i) => i.bought);
 
@@ -149,21 +157,25 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
     });
   };
 
-  const onToggle = async (item: Item) => {
-    await toggleBought(item.id, !item.bought);
-    router.refresh();
+  const onToggle = (item: Item) => {
+    // useOptimistic requiere estar dentro de una transition
+    startTransition(async () => {
+      setOptimisticItems({ id: item.id, bought: !item.bought });
+      await toggleBought(item.id, !item.bought);
+      router.refresh();
+    });
   };
 
   const onRemove = async (item: Item) => {
     await removeItem(item.id);
-    toast.success('Eliminado');
+    toast.success(t.shopping.removed);
     router.refresh();
   };
 
   const onClearBought = async () => {
     const result = await clearBought(activeList);
     if (result.ok) {
-      toast.success('Comprados limpiados');
+      toast.success(t.shopping.cleared);
       router.refresh();
     } else {
       toast.error(result.error ?? 'Error');
@@ -176,15 +188,15 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
     setActiveList(newListName.trim());
     setNewListName('');
     setCreatingList(false);
-    toast.success(`Lista "${newListName.trim()}" creada — agregá items`);
+    toast.success(`${newListName.trim()} ✓`);
   };
 
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Lista de compras</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.shopping.title}</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          Anotá lo que falta. Tickeá mientras estás comprando.
+          {t.shopping.subtitle}
         </p>
       </header>
 
@@ -192,7 +204,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
       <div className="flex gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
         {lists.map((list) => {
           const active = list === activeList;
-          const count = initialItems.filter((i) => i.list_name === list && !i.bought).length;
+          const count = optimisticItems.filter((i) => i.list_name === list && !i.bought).length;
           return (
             <button
               key={list}
@@ -235,7 +247,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
             type="text"
             value={newListName}
             onChange={(e) => setNewListName(e.target.value)}
-            placeholder="Ej: Verdulería"
+            placeholder={t.shopping.list_placeholder}
             className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-800"
             maxLength={40}
           />
@@ -243,7 +255,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
             type="button"
             onClick={() => setCreatingList(false)}
             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400"
-            aria-label="Cancelar"
+            aria-label={t.common.cancel}
           >
             <X className="w-4 h-4" />
           </button>
@@ -251,7 +263,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
             type="submit"
             className="px-4 py-2 rounded-lg text-sm font-medium kumo-gradient text-white hover:opacity-90"
           >
-            Crear
+            {t.shopping.create_list}
           </button>
         </form>
       )}
@@ -268,7 +280,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
           type="text"
           value={quickName}
           onChange={(e) => setQuickName(e.target.value)}
-          placeholder="Qué necesitás..."
+          placeholder={t.shopping.placeholder}
           className="w-full sm:flex-1 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-900"
           maxLength={100}
         />
@@ -282,14 +294,14 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
             min="0"
             step="any"
             className="w-16 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-900 text-center placeholder:text-slate-300 dark:placeholder:text-slate-600 shrink-0"
-            aria-label="Cantidad"
+            aria-label={t.shopping.quantity}
           />
           <UnitPicker value={quickUnit} onChange={setQuickUnit} align="left" />
           <button
             type="submit"
             disabled={!quickName.trim()}
             className="flex-1 sm:flex-initial sm:w-11 h-11 p-2.5 rounded-lg kumo-gradient text-white hover:opacity-90 disabled:opacity-50 grid place-items-center shrink-0 ml-auto"
-            aria-label="Agregar"
+            aria-label={t.common.new}
           >
             <Plus className="w-5 h-5" />
           </button>
@@ -299,8 +311,8 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
       {pendingItems.length === 0 && boughtItems.length === 0 ? (
         <div className="kumo-card p-10 text-center">
           <ShoppingCart className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-          <h3 className="font-semibold mb-1">Lista vacía</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Agregá tu primer item arriba.</p>
+          <h3 className="font-semibold mb-1">{t.shopping.empty_title}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t.shopping.empty_desc}</p>
         </div>
       ) : (
         <>
@@ -322,13 +334,13 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
               <div className="flex items-center justify-between mb-2 px-1">
                 <h3 className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3" />
-                  Ya comprado · {boughtItems.length}
+                  {t.shopping.already_bought} · {boughtItems.length}
                 </h3>
                 <button
                   onClick={onClearBought}
                   className="text-xs text-slate-500 hover:text-rose-500 font-medium"
                 >
-                  Limpiar
+                  {t.shopping.clear}
                 </button>
               </div>
               <div className="kumo-card divide-y divide-slate-100 dark:divide-slate-700/50 overflow-hidden opacity-60">

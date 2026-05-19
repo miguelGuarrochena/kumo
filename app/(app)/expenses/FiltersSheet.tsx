@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sheet } from '@/components/Sheet';
+import { Select } from '@/components/Select';
 import { CURRENCIES, type Currency } from '@/lib/currency';
 
 type CategoryLite = {
@@ -195,18 +196,15 @@ export function FiltersSheet({
 
         {/* Moneda */}
         <Section title="Moneda">
-          <select
+          <Select
             value={cur}
-            onChange={(e) => setCur(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white"
-          >
-            <option value="">Todas</option>
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.code} · {c.label}
-              </option>
-            ))}
-          </select>
+            onChange={setCur}
+            options={[
+              { value: '', label: 'Todas' },
+              ...CURRENCIES.map((c) => ({ value: c.code, label: c.label, hint: c.code })),
+            ]}
+            ariaLabel="Moneda"
+          />
         </Section>
 
         <div className="flex gap-2 pt-3 sticky bottom-0 bg-white pb-1">
