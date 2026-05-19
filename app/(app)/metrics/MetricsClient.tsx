@@ -148,7 +148,7 @@ export function MetricsClient({
       <header>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Métricas</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          A dónde se va tu plata, mes a mes.
+          Seguí tus gastos en tiempo real.
         </p>
       </header>
 
