@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { requireAdmin } from '@/lib/workspace';
 
 const REMINDER_TYPES = ['medical', 'birthday', 'generic'] as const;
 
@@ -45,13 +46,15 @@ export async function upsertReminder(
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'No autenticado' };
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 
-  const payload = { ...parsed.data, user_id: user.id };
+  const supabase = await createClient();
+  const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
   const { error } = parsed.data.id
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,6 +71,11 @@ export async function upsertReminder(
 }
 
 export async function deleteReminder(id: string): Promise<ReminderFormState> {
+  try {
+    await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
   const supabase = await createClient();
   const { error } = await supabase.from('reminders').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };

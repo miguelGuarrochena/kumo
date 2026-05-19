@@ -84,6 +84,7 @@ export async function POST(request: Request) {
         pool = [{
           id: 'legacy',
           user_id: userId,
+          workspace_id: '',
           name: 'Yo',
           phone: settingsRow.whatsapp_number,
           relationship: 'self',

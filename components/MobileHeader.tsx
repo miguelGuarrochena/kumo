@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { ThemeToggle } from './ThemeToggle';
+import { WorkspaceSwitcher, type WorkspaceOption } from './WorkspaceSwitcher';
 import { createClient } from '@/lib/supabase/client';
 import { resetAnalytics } from '@/lib/analytics';
 import { useT, setLocale } from '@/lib/i18n/client';
@@ -13,6 +14,8 @@ import type { Locale } from '@/lib/i18n/types';
 
 type Props = {
   userEmail: string;
+  workspaces: WorkspaceOption[];
+  activeWorkspaceId: string;
 };
 
 const LANGS: { value: Locale; label: string; flag: string }[] = [
@@ -20,7 +23,7 @@ const LANGS: { value: Locale; label: string; flag: string }[] = [
   { value: 'en', label: 'English', flag: 'EN' },
 ];
 
-export const MobileHeader = ({ userEmail }: Props) => {
+export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props) => {
   const router = useRouter();
   const pathname = usePathname();
   const { t, locale } = useT();
@@ -79,12 +82,13 @@ export const MobileHeader = ({ userEmail }: Props) => {
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="fixed right-3 top-14 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 min-w-64 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <div className="fixed right-3 top-14 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 min-w-72 overflow-hidden">
+            <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-700">
+              <WorkspaceSwitcher workspaces={workspaces} activeId={activeWorkspaceId} />
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2.5 px-1">
                 {t.menu.connectedAs}
               </p>
-              <p className="text-sm font-medium truncate dark:text-slate-100 mt-0.5">{userEmail}</p>
+              <p className="text-sm font-medium truncate dark:text-slate-100 px-1">{userEmail}</p>
             </div>
 
             <MenuItem href="/settings" icon={Settings} onClick={() => setMenuOpen(false)}>

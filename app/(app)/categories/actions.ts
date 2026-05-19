@@ -3,8 +3,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { requireAdmin } from '@/lib/workspace';
 
-const COLORS = ['sky', 'lavender', 'peach', 'mint', 'rose'] as const;
+const COLORS = ['sky', 'lavender', 'peach', 'mint', 'rose', 'amber', 'fuchsia', 'emerald', 'indigo', 'slate'] as const;
 
 const categorySchema = z.object({
   id: z.string().uuid().optional(),
@@ -33,13 +34,15 @@ export async function upsertCategory(
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'No autenticado' };
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 
-  const payload = { ...parsed.data, user_id: user.id };
+  const supabase = await createClient();
+  const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
   const { error } = parsed.data.id
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,6 +59,11 @@ export async function upsertCategory(
 }
 
 export async function deleteCategory(id: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
   const supabase = await createClient();
   const { error } = await supabase.from('categories').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };

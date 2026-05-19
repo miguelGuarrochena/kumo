@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { requireAdmin } from '@/lib/workspace';
 
 const RELATIONSHIPS = ['self', 'partner', 'child', 'parent', 'sibling', 'friend', 'other'] as const;
 
@@ -40,13 +41,15 @@ export async function upsertContact(
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'No autenticado' };
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 
-  const payload = { ...parsed.data, user_id: user.id };
+  const supabase = await createClient();
+  const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
   const { error } = parsed.data.id
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,6 +64,11 @@ export async function upsertContact(
 }
 
 export async function deleteContact(id: string): Promise<ContactFormState> {
+  try {
+    await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
   const supabase = await createClient();
 
   // No permitir borrar el contacto propio (is_self)

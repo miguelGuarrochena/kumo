@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { requireAdmin } from '@/lib/workspace';
 
 const itemSchema = z.object({
   list_name: z.string().min(1).max(40),
@@ -20,17 +21,20 @@ export async function addItem(formData: FormData) {
   });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'No autenticado' };
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 
-  // Posición = última + 1 dentro de la lista
+  const supabase = await createClient();
+
+  // Posición = última + 1 dentro de la lista del workspace
   const { data: last } = await supabase
     .from('shopping_items')
     .select('position')
-    .eq('user_id', user.id)
+    .eq('workspace_id', ctx.workspaceId)
     .eq('list_name', parsed.data.list_name)
     .order('position', { ascending: false })
     .limit(1)
@@ -40,7 +44,8 @@ export async function addItem(formData: FormData) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('shopping_items') as any).insert({
-    user_id: user.id,
+    user_id: ctx.userId,
+    workspace_id: ctx.workspaceId,
     list_name: parsed.data.list_name,
     name: parsed.data.name,
     quantity: parsed.data.quantity,

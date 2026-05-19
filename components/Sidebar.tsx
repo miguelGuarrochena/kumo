@@ -14,15 +14,18 @@ import {
 } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { LangSwitcher } from './LangSwitcher';
+import { WorkspaceSwitcher, type WorkspaceOption } from './WorkspaceSwitcher';
 import { createClient } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n/client';
 import { resetAnalytics } from '@/lib/analytics';
 
 type Props = {
   userEmail: string;
+  workspaces: WorkspaceOption[];
+  activeWorkspaceId: string;
 };
 
-export const Sidebar = ({ userEmail }: Props) => {
+export const Sidebar = ({ userEmail, workspaces, activeWorkspaceId }: Props) => {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useT();
@@ -46,9 +49,13 @@ export const Sidebar = ({ userEmail }: Props) => {
 
   return (
     <aside className="hidden lg:flex w-64 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 flex-col sticky top-0 h-screen">
-      <div className="px-5 py-5 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
+      <div className="px-5 pt-5 pb-3 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
         <CloudLogo className="w-8 h-8" />
         <h1 className="font-bold text-lg tracking-tight kumo-gradient-text">Kumo</h1>
+      </div>
+
+      <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800">
+        <WorkspaceSwitcher workspaces={workspaces} activeId={activeWorkspaceId} />
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5">

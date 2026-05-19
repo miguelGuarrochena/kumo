@@ -122,7 +122,6 @@ export const Select = ({
           aria-label={ariaLabel}
           aria-haspopup="listbox"
           aria-expanded={open}
-          className="w-full"
         >
           {renderTrigger(current, open)}
         </button>
@@ -166,7 +165,11 @@ export const Select = ({
           />
           <div
             role="listbox"
-            className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-[18rem] flex flex-col"
+            className={`absolute z-50 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-[18rem] flex flex-col ${
+              renderTrigger
+                ? 'left-0 min-w-[12rem]' // trigger custom: ancla a la izquierda con min-width
+                : 'left-0 right-0'        // trigger default: estira al ancho del botón
+            }`}
           >
             {searchable && (
               <div className="p-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0">
