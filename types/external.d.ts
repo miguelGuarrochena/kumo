@@ -26,3 +26,15 @@ declare module '@sentry/nextjs' {
   const Sentry: any;
   export default Sentry;
 }
+
+declare module 'xlsx' {
+  export const utils: {
+    aoa_to_sheet: (data: any[][]) => any;
+    book_new: () => any;
+    book_append_sheet: (wb: any, ws: any, name: string) => void;
+    decode_range: (ref: string) => { s: { c: number; r: number }; e: { c: number; r: number } };
+    encode_cell: (cell: { r: number; c: number }) => string;
+  };
+  export function write(wb: any, opts: { type: 'buffer' | 'array' | 'binary' | 'base64'; bookType: 'xlsx' }): any;
+  export function read(data: any, opts?: any): any;
+}

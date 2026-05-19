@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { getCurrentWorkspace, requireAdmin } from '@/lib/workspace';
 
 const CURRENCIES = ['ARS', 'USD', 'EUR', 'MXN', 'CLP', 'COP', 'BRL', 'GBP'] as const;
 const RECURRENCE = ['weekly', 'monthly', 'yearly'] as const;
@@ -49,13 +50,15 @@ export async function upsertExpense(
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'No autenticado' };
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 
-  const payload = { ...parsed.data, user_id: user.id };
+  const supabase = await createClient();
+  const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
   const { error } = parsed.data.id
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,6 +74,11 @@ export async function upsertExpense(
 }
 
 export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
   const supabase = await createClient();
   const { error } = await supabase.from('expenses').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
@@ -80,6 +88,11 @@ export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: 
 }
 
 export async function togglePaid(id: string, paid: boolean) {
+  try {
+    await requireAdmin();
+  } catch {
+    return; // RLS lo va a bloquear igualmente; silenciamos para no romper el toggle
+  }
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.from('expenses') as any).update({ paid }).eq('id', id);

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Check, Wallet, Search, SlidersHorizontal, X,
-  Camera, Loader2, Sparkles,
+  Camera, Loader2, Sparkles, Download,
 } from 'lucide-react';
 import { upsertExpense, deleteExpense, togglePaid } from './actions';
 import { Sheet } from '@/components/Sheet';
@@ -339,7 +339,7 @@ export function ExpensesClient({
             <button
               type="button"
               onClick={() => setFiltersOpen(true)}
-              className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
             >
               <SlidersHorizontal className="w-4 h-4" />
               <span className="hidden sm:inline text-sm font-medium">Filtros</span>
@@ -349,6 +349,14 @@ export function ExpensesClient({
                 </span>
               )}
             </button>
+            <a
+              href={buildExportUrl(filters)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+              title="Exportar a Excel"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm font-medium">Exportar</span>
+            </a>
           </form>
 
           {/* Chips de filtros activos */}
@@ -1138,4 +1146,17 @@ function CurrencyInlineSelect({
       )}
     />
   );
+}
+
+// Construye la URL del endpoint de export respetando los filtros actuales
+// (rango de fechas, moneda, pagado/pendiente). El resto se ignora porque
+// los gastos exportados son simplemente el subset visible.
+function buildExportUrl(filters: Filters): string {
+  const params = new URLSearchParams();
+  if (filters.from)   params.set('from', filters.from);
+  if (filters.to)     params.set('to', filters.to);
+  if (filters.cur)    params.set('currency', filters.cur);
+  if (filters.paid)   params.set('paid', filters.paid);
+  const qs = params.toString();
+  return qs ? `/api/export/expenses?${qs}` : '/api/export/expenses';
 }

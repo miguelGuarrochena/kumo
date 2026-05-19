@@ -7,6 +7,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 type CategoriesRow = {
   id: string;
   user_id: string;
+  workspace_id: string;
   name: string;
   icon: string;
   color: string;
@@ -15,6 +16,7 @@ type CategoriesRow = {
 type CategoriesInsert = {
   id?: string;
   user_id: string;
+  workspace_id: string;
   name: string;
   icon?: string;
   color?: string;
@@ -23,6 +25,7 @@ type CategoriesInsert = {
 type CategoriesUpdate = {
   id?: string;
   user_id?: string;
+  workspace_id?: string;
   name?: string;
   icon?: string;
   color?: string;
@@ -33,6 +36,7 @@ type CategoriesUpdate = {
 type ExpensesRow = {
   id: string;
   user_id: string;
+  workspace_id: string;
   category_id: string | null;
   amount: number;
   currency: string;
@@ -48,6 +52,7 @@ type ExpensesRow = {
 type ExpensesInsert = {
   id?: string;
   user_id: string;
+  workspace_id: string;
   category_id?: string | null;
   amount: number;
   currency?: string;
@@ -63,6 +68,7 @@ type ExpensesInsert = {
 type ExpensesUpdate = {
   id?: string;
   user_id?: string;
+  workspace_id?: string;
   category_id?: string | null;
   amount?: number;
   currency?: string;
@@ -80,6 +86,7 @@ type ExpensesUpdate = {
 type RemindersRow = {
   id: string;
   user_id: string;
+  workspace_id: string;
   title: string;
   description: string | null;
   reminder_date: string;
@@ -94,6 +101,7 @@ type RemindersRow = {
 type RemindersInsert = {
   id?: string;
   user_id: string;
+  workspace_id: string;
   title: string;
   description?: string | null;
   reminder_date: string;
@@ -108,6 +116,7 @@ type RemindersInsert = {
 type RemindersUpdate = {
   id?: string;
   user_id?: string;
+  workspace_id?: string;
   title?: string;
   description?: string | null;
   reminder_date?: string;
@@ -124,6 +133,7 @@ type RemindersUpdate = {
 type ShoppingItemsRow = {
   id: string;
   user_id: string;
+  workspace_id: string;
   list_name: string;
   name: string;
   quantity: string | null;
@@ -135,6 +145,7 @@ type ShoppingItemsRow = {
 type ShoppingItemsInsert = {
   id?: string;
   user_id: string;
+  workspace_id: string;
   list_name?: string;
   name: string;
   quantity?: string | null;
@@ -146,6 +157,7 @@ type ShoppingItemsInsert = {
 type ShoppingItemsUpdate = {
   id?: string;
   user_id?: string;
+  workspace_id?: string;
   list_name?: string;
   name?: string;
   quantity?: string | null;
@@ -158,6 +170,7 @@ type ShoppingItemsUpdate = {
 // ---------- user_settings ----------
 type UserSettingsRow = {
   user_id: string;
+  workspace_id: string;
   whatsapp_number: string | null;
   whatsapp_verified: boolean;
   notify_expenses: boolean;
@@ -169,6 +182,7 @@ type UserSettingsRow = {
 };
 type UserSettingsInsert = {
   user_id: string;
+  workspace_id: string;
   whatsapp_number?: string | null;
   whatsapp_verified?: boolean;
   notify_expenses?: boolean;
@@ -180,6 +194,7 @@ type UserSettingsInsert = {
 };
 type UserSettingsUpdate = {
   user_id?: string;
+  workspace_id?: string;
   whatsapp_number?: string | null;
   whatsapp_verified?: boolean;
   notify_expenses?: boolean;
@@ -194,6 +209,7 @@ type UserSettingsUpdate = {
 type ContactsRow = {
   id: string;
   user_id: string;
+  workspace_id: string;
   name: string;
   phone: string | null;
   relationship: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
@@ -204,6 +220,7 @@ type ContactsRow = {
 type ContactsInsert = {
   id?: string;
   user_id: string;
+  workspace_id: string;
   name: string;
   phone?: string | null;
   relationship?: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
@@ -214,11 +231,92 @@ type ContactsInsert = {
 type ContactsUpdate = {
   id?: string;
   user_id?: string;
+  workspace_id?: string;
   name?: string;
   phone?: string | null;
   relationship?: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
   is_self?: boolean;
   verified?: boolean;
+  created_at?: string;
+};
+
+// ---------- workspaces ----------
+export type WorkspaceRole = 'admin' | 'reader';
+
+type WorkspacesRow = {
+  id: string;
+  name: string;
+  owner_id: string;
+  created_at: string;
+};
+type WorkspacesInsert = {
+  id?: string;
+  name?: string;
+  owner_id: string;
+  created_at?: string;
+};
+type WorkspacesUpdate = {
+  id?: string;
+  name?: string;
+  owner_id?: string;
+  created_at?: string;
+};
+
+// ---------- workspace_members ----------
+type WorkspaceMembersRow = {
+  workspace_id: string;
+  user_id: string;
+  role: WorkspaceRole;
+  invited_by: string | null;
+  joined_at: string;
+};
+type WorkspaceMembersInsert = {
+  workspace_id: string;
+  user_id: string;
+  role?: WorkspaceRole;
+  invited_by?: string | null;
+  joined_at?: string;
+};
+type WorkspaceMembersUpdate = {
+  workspace_id?: string;
+  user_id?: string;
+  role?: WorkspaceRole;
+  invited_by?: string | null;
+  joined_at?: string;
+};
+
+// ---------- workspace_invites ----------
+type WorkspaceInvitesRow = {
+  id: string;
+  workspace_id: string;
+  email: string;
+  role: WorkspaceRole;
+  token: string;
+  invited_by: string | null;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+};
+type WorkspaceInvitesInsert = {
+  id?: string;
+  workspace_id: string;
+  email: string;
+  role?: WorkspaceRole;
+  token: string;
+  invited_by?: string | null;
+  expires_at?: string;
+  accepted_at?: string | null;
+  created_at?: string;
+};
+type WorkspaceInvitesUpdate = {
+  id?: string;
+  workspace_id?: string;
+  email?: string;
+  role?: WorkspaceRole;
+  token?: string;
+  invited_by?: string | null;
+  expires_at?: string;
+  accepted_at?: string | null;
   created_at?: string;
 };
 
@@ -259,6 +357,24 @@ export type Database = {
         Row: ContactsRow;
         Insert: ContactsInsert;
         Update: ContactsUpdate;
+        Relationships: [];
+      };
+      workspaces: {
+        Row: WorkspacesRow;
+        Insert: WorkspacesInsert;
+        Update: WorkspacesUpdate;
+        Relationships: [];
+      };
+      workspace_members: {
+        Row: WorkspaceMembersRow;
+        Insert: WorkspaceMembersInsert;
+        Update: WorkspaceMembersUpdate;
+        Relationships: [];
+      };
+      workspace_invites: {
+        Row: WorkspaceInvitesRow;
+        Insert: WorkspaceInvitesInsert;
+        Update: WorkspaceInvitesUpdate;
         Relationships: [];
       };
     };
