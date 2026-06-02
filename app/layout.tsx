@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
-import { ThemeProvider } from '@/components/ThemeProvider';
+import { ThemeProvider, themeInitScript } from '@/lib/theme';
 import { PostHogProvider } from '@/components/PostHogProvider';
 import { I18nProvider } from '@/lib/i18n/client';
 import { getLocale } from '@/lib/i18n/server';
@@ -93,6 +93,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale();
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        {/* Pre-hidratación: aplica la clase `dark` antes del primer paint
+            para evitar el flash light → dark. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="antialiased">
         <PostHogProvider>
           <ThemeProvider>
