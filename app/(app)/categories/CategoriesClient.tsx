@@ -14,6 +14,7 @@ import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Database } from '@/lib/supabase/database.types';
 import { track } from '@/lib/analytics';
+import { useT } from '@/lib/i18n/client';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 
@@ -67,7 +68,8 @@ const COLOR_STYLES: Record<(typeof COLORS)[number], string> = {
   slate:    'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
 };
 
-export function CategoriesClient({ initialCategories }: { initialCategories: Category[] }) {
+export const CategoriesClient = ({ initialCategories }: { initialCategories: Category[] }) => {
+  const { t } = useT();
   const [editing, setEditing] = useState<Category | null>(null);
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<Category | null>(null);
@@ -77,10 +79,10 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
     if (!toDelete) return;
     const result = await deleteCategory(toDelete.id);
     if (result.ok) {
-      toast.success(`"${toDelete.name}" eliminada`);
+      toast.success(`"${toDelete.name}" ✓`);
       router.refresh();
     } else {
-      toast.error(result.error ?? 'No se pudo eliminar');
+      toast.error(result.error ?? 'Error');
     }
   };
 
@@ -101,7 +103,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
           className="kumo-card p-4 flex items-center justify-center gap-2 text-slate-400 hover:text-sky-600 active:scale-[0.98] border-dashed transition-all min-h-[68px]"
         >
           <Plus className="w-5 h-5" />
-          Nueva categoría
+          {t.categories.new}
         </button>
       </div>
 
@@ -118,14 +120,14 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
         open={!!toDelete}
         onClose={() => setToDelete(null)}
         onConfirm={onDelete}
-        title="Borrar categoría"
-        description={`¿Borrar "${toDelete?.name}"? Los gastos asociados quedan sin categoría.`}
+        title={t.categories.delete_confirm_title}
+        description={t.categories.delete_confirm.replace('{name}', toDelete?.name ?? '')}
       />
     </>
   );
-}
+};
 
-function CategoryCard({
+const CategoryCard = ({
   category,
   onEdit,
   onDelete,
@@ -133,7 +135,8 @@ function CategoryCard({
   category: Category;
   onEdit: () => void;
   onDelete: () => void;
-}) {
+}) => {
+  const { t } = useT();
   const Icon = ICON_MAP[category.icon] ?? Wallet;
   const colorClass = COLOR_STYLES[category.color as (typeof COLORS)[number]] ?? COLOR_STYLES.sky;
 
@@ -148,24 +151,24 @@ function CategoryCard({
       <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         <button
           onClick={onEdit}
-          className="p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500"
-          aria-label="Editar"
+          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-slate-200 text-slate-500"
+          aria-label={t.common.edit}
         >
           <Pencil className="w-4 h-4" />
         </button>
         <button
           onClick={onDelete}
-          className="p-2 rounded-lg hover:bg-rose-100 active:bg-rose-200 text-rose-500"
-          aria-label="Borrar"
+          className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/20 active:bg-rose-200 text-rose-500"
+          aria-label={t.common.delete}
         >
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>
   );
-}
+};
 
-function CategorySheet({
+const CategorySheet = ({
   open,
   category,
   onClose,
@@ -173,8 +176,9 @@ function CategorySheet({
   open: boolean;
   category: Category | null;
   onClose: () => void;
-}) {
+}) => {
   const router = useRouter();
+  const { t } = useT();
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState(category?.name ?? '');
   const [icon, setIcon] = useState(category?.icon ?? 'wallet');
@@ -204,7 +208,7 @@ function CategorySheet({
     startTransition(async () => {
       const result = await upsertCategory({ ok: false }, fd);
       if (result.ok) {
-        toast.success(category ? 'Categoría actualizada' : 'Categoría creada');
+        toast.success(category ? t.common.saved : '✓');
         if (!category) {
           track('category_created', { color });
         }
@@ -218,15 +222,15 @@ function CategorySheet({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title={category ? 'Editar categoría' : 'Nueva categoría'}>
+    <Sheet open={open} onClose={onClose} title={category ? t.categories.edit : t.categories.new}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nombre</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.categories.name}</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ej: Streaming"
+            placeholder={t.categories.name_placeholder}
             className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
             autoFocus
             required
@@ -235,7 +239,7 @@ function CategorySheet({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Color</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.categories.color}</label>
           <div className="grid grid-cols-5 gap-2">
             {COLORS.map((c) => (
               <button
@@ -254,7 +258,7 @@ function CategorySheet({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Ícono</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.categories.icon}</label>
           <div className="grid grid-cols-7 gap-2 max-h-[16rem] overflow-y-auto p-0.5">
             {ICONS.map((iconKey) => {
               const Icon = ICON_MAP[iconKey]!;
@@ -284,17 +288,17 @@ function CategorySheet({
             onClick={onClose}
             className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
           >
-            Cancelar
+            {t.common.cancel}
           </button>
           <button
             type="submit"
             disabled={pending || !name.trim()}
             className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
           >
-            {pending ? 'Guardando...' : category ? 'Guardar' : 'Crear'}
+            {pending ? t.common.saving : category ? t.common.save : t.common.new}
           </button>
         </div>
       </form>
     </Sheet>
   );
-}
+};

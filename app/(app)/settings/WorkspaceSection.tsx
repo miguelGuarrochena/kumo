@@ -8,6 +8,7 @@ import { createInvite, revokeInvite, removeMember, changeMemberRole } from './wo
 import { Select } from '@/components/Select';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
+import { useT } from '@/lib/i18n/client';
 
 export type Member = {
   user_id: string;
@@ -37,6 +38,7 @@ type Props = {
 
 export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) => {
   const router = useRouter();
+  const { t } = useT();
   const [, startTransition] = useTransition();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -56,7 +58,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
         const link = result.inviteLink ?? '';
         setLinkJustCreated(link);
         setEmail('');
-        toast.success('Invite creado');
+        toast.success(t.workspace.invite_created);
         router.refresh();
       } else {
         toast.error(result.error ?? 'Error');
@@ -66,19 +68,19 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
 
   const copyLink = (link: string) => {
     navigator.clipboard.writeText(link);
-    toast.success('Link copiado');
+    toast.success(t.workspace.link_copied);
   };
 
   const onRevoke = async (id: string) => {
     const result = await revokeInvite(id);
-    if (result.ok) { toast.success('Invite revocado'); router.refresh(); }
+    if (result.ok) { toast.success('✓'); router.refresh(); }
     else toast.error(result.error ?? 'Error');
   };
 
   const onChangeRole = (userId: string, newRole: WorkspaceRole) => {
     startTransition(async () => {
       const result = await changeMemberRole(userId, newRole);
-      if (result.ok) { toast.success('Rol actualizado'); router.refresh(); }
+      if (result.ok) { toast.success(t.workspace.role_updated); router.refresh(); }
       else toast.error(result.error ?? 'Error');
     });
   };
@@ -86,7 +88,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
   const onRemove = async () => {
     if (!memberToRemove) return;
     const result = await removeMember(memberToRemove.user_id);
-    if (result.ok) { toast.success('Miembro removido'); router.refresh(); }
+    if (result.ok) { toast.success(t.workspace.member_removed); router.refresh(); }
     else toast.error(result.error ?? 'Error');
     setMemberToRemove(null);
   };
@@ -99,9 +101,9 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-semibold">Compartir cuenta</h3>
+            <h3 className="font-semibold">{t.workspace.title}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Invitá a tu pareja, familia o amistades para ver y manejar los mismos gastos.
+              {t.workspace.subtitle}
             </p>
           </div>
         </div>
@@ -111,7 +113,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg kumo-gradient text-white text-sm font-medium hover:opacity-90 shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Invitar</span>
+            <span className="hidden sm:inline">{t.workspace.invite}</span>
           </button>
         )}
       </div>
@@ -123,7 +125,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
             <input
               type="email"
               required
-              placeholder="email@ejemplo.com"
+              placeholder={t.workspace.invite_link_email_placeholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
@@ -132,25 +134,25 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
               value={role}
               onChange={(v) => setRole(v as WorkspaceRole)}
               options={[
-                { value: 'reader', label: 'Lector', hint: 'solo ver' },
-                { value: 'admin',  label: 'Admin',  hint: 'todo' },
+                { value: 'reader', label: t.workspace.role_reader, hint: t.workspace.role_reader_hint },
+                { value: 'admin',  label: t.workspace.role_admin,  hint: t.workspace.role_admin_hint },
               ]}
               className="sm:w-40"
               buttonClassName="py-2"
-              ariaLabel="Rol"
+              ariaLabel="Role"
             />
             <button
               type="submit"
               className="px-4 py-2 rounded-lg kumo-gradient text-white text-sm font-medium hover:opacity-90"
             >
-              Crear invite
+              {t.workspace.create_invite}
             </button>
             <button
               type="button"
               onClick={() => { setInviteOpen(false); setLinkJustCreated(null); }}
               className="px-3 py-2 rounded-lg text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
             >
-              Cancelar
+              {t.common.cancel}
             </button>
           </div>
 
@@ -174,7 +176,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
       {/* Miembros */}
       <div className="space-y-1.5">
         <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold px-1">
-          Miembros · {members.length}
+          {t.workspace.members_n.replace('{n}', String(members.length))}
         </p>
         {members.map((m) => (
           <div key={m.user_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
@@ -188,8 +190,8 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
                 {m.full_name ?? m.email ?? m.user_id}
-                {m.is_me && <span className="ml-1.5 text-xs text-slate-400">(vos)</span>}
-                {m.is_owner && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-medium">owner</span>}
+                {m.is_me && <span className="ml-1.5 text-xs text-slate-400">({t.workspace.you_badge})</span>}
+                {m.is_owner && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-medium">{t.workspace.owner_badge}</span>}
               </p>
               {m.email && m.full_name && (
                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{m.email}</p>
@@ -201,17 +203,17 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
                   value={m.role}
                   onChange={(v) => onChangeRole(m.user_id, v as WorkspaceRole)}
                   options={[
-                    { value: 'reader', label: 'Lector' },
-                    { value: 'admin',  label: 'Admin' },
+                    { value: 'reader', label: t.workspace.role_reader },
+                    { value: 'admin',  label: t.workspace.role_admin },
                   ]}
                   className="w-28"
                   buttonClassName="py-1.5 text-sm"
-                  ariaLabel="Rol"
+                  ariaLabel="Role"
                 />
                 <button
                   onClick={() => setMemberToRemove(m)}
                   className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-900/20 hover:text-rose-500"
-                  title="Remover"
+                  title={t.workspace.remove}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -223,7 +225,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
               }`}>
                 {m.role === 'admin' ? <Shield className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                {m.role === 'admin' ? 'Admin' : 'Lector'}
+                {m.role === 'admin' ? t.workspace.role_admin : t.workspace.role_reader}
               </span>
             )}
           </div>
@@ -234,7 +236,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
       {invites.length > 0 && (
         <div className="mt-4 space-y-1.5">
           <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold px-1">
-            Invitaciones pendientes · {invites.length}
+            {t.workspace.invites_pending_n.replace('{n}', String(invites.length))}
           </p>
           {invites.map((inv) => {
             const link = `${origin}/accept-invite?token=${inv.token}`;
@@ -243,13 +245,13 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate">{inv.email}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {inv.role === 'admin' ? 'Admin' : 'Lector'} · vence {new Date(inv.expires_at).toLocaleDateString('es-AR')}
+                    {inv.role === 'admin' ? t.workspace.role_admin : t.workspace.role_reader} · {t.workspace.expires_on} {new Date(inv.expires_at).toLocaleDateString()}
                   </p>
                 </div>
                 <button
                   onClick={() => copyLink(link)}
                   className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                  title="Copiar link"
+                  title={t.workspace.copy_link}
                 >
                   <Copy className="w-4 h-4" />
                 </button>
@@ -257,7 +259,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
                   <button
                     onClick={() => onRevoke(inv.id)}
                     className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-900/20 hover:text-rose-500"
-                    title="Revocar"
+                    title={t.workspace.revoke}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -270,7 +272,7 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
 
       {!isAdmin && (
         <p className="mt-4 text-xs text-slate-500 dark:text-slate-400 italic">
-          Solo el admin puede gestionar miembros.
+          {t.workspace.only_admin_can_manage}
         </p>
       )}
 
@@ -278,8 +280,11 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
         open={!!memberToRemove}
         onClose={() => setMemberToRemove(null)}
         onConfirm={onRemove}
-        title="Remover miembro"
-        description={`¿Sacar a ${memberToRemove?.full_name ?? memberToRemove?.email ?? 'este usuario'} del workspace?`}
+        title={t.workspace.remove_title}
+        description={t.workspace.remove_confirm.replace(
+          '{who}',
+          memberToRemove?.full_name ?? memberToRemove?.email ?? '',
+        )}
       />
     </div>
   );

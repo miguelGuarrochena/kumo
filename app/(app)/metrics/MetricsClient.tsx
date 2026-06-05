@@ -8,6 +8,8 @@ import {
 } from 'recharts';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
+import { Select } from '@/components/Select';
+import { useT } from '@/lib/i18n/client';
 import type { MetricsPeriod } from './page';
 
 type ExpenseFull = {
@@ -70,6 +72,7 @@ export function MetricsClient({
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useT();
 
   // Helper: convertir cualquier monto a displayCurrency
   const convert = useMemo(() => {
@@ -146,9 +149,9 @@ export function MetricsClient({
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Métricas</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.metrics.title}</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          Seguí tus gastos en tiempo real.
+          {t.metrics.subtitle}
         </p>
       </header>
 
@@ -164,7 +167,7 @@ export function MetricsClient({
                 : 'text-slate-600 dark:text-slate-400'
             }`}
           >
-            {PERIOD_LABELS[p]}
+            {t.metrics[p]}
           </button>
         ))}
       </div>
@@ -192,22 +195,30 @@ export function MetricsClient({
         </div>
 
         <div className="text-center">
-          <p className="text-xs uppercase tracking-wider text-slate-400 mb-1">Total gastado</p>
+          <p className="text-xs uppercase tracking-wider text-slate-400 mb-1">{t.metrics.total}</p>
           <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
             {formatMoney(total, displayCurrency)}
           </p>
           <p className="mt-2 inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
-            {currentExpenses.length} {currentExpenses.length === 1 ? 'gasto' : 'gastos'} · en
-            <select
+            {t.expenses.n_expenses.replace('{n}', String(currentExpenses.length))} · {t.expenses.in_currency}
+            <Select
               value={displayCurrency}
-              onChange={(e) => setCurrencyParam(e.target.value)}
-              aria-label="Moneda"
-              className="appearance-none bg-transparent border-0 px-0 py-0 font-medium text-slate-500 dark:text-slate-300 cursor-pointer underline decoration-dotted decoration-slate-300 dark:decoration-slate-600 underline-offset-2 hover:text-sky-600 hover:decoration-sky-400 focus:outline-none focus:text-sky-600 transition-colors"
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.code}</option>
-              ))}
-            </select>
+              onChange={setCurrencyParam}
+              options={CURRENCIES.map((c) => ({ value: c.code, label: c.code, hint: c.symbol }))}
+              ariaLabel={t.expenses.currency}
+              className="inline-block"
+              renderTrigger={(_current, open) => (
+                <span
+                  className={`font-medium cursor-pointer underline decoration-dotted underline-offset-2 transition-colors ${
+                    open
+                      ? 'text-sky-600 decoration-sky-400'
+                      : 'text-slate-500 dark:text-slate-300 decoration-slate-300 dark:decoration-slate-600 hover:text-sky-600 hover:decoration-sky-400'
+                  }`}
+                >
+                  {displayCurrency}
+                </span>
+              )}
+            />
           </p>
 
           {diffPct !== null && (
@@ -220,9 +231,9 @@ export function MetricsClient({
                 <Minus className="w-3.5 h-3.5 text-slate-400" />
               )}
               <span className={diff > 0 ? 'text-rose-500' : diff < 0 ? 'text-mint-500' : 'text-slate-500'}>
-                {diff === 0 ? 'igual' : `${diff > 0 ? '+' : ''}${diffPct.toFixed(0)}%`}
+                {diff === 0 ? '=' : `${diff > 0 ? '+' : ''}${diffPct.toFixed(0)}%`}
               </span>
-              <span className="text-slate-400">vs período anterior</span>
+              <span className="text-slate-400">vs {t.metrics[period]}</span>
             </div>
           )}
         </div>
@@ -231,16 +242,14 @@ export function MetricsClient({
       {/* Gráficos solo si hay data */}
       {currentExpenses.length === 0 ? (
         <div className="kumo-card p-10 text-center">
-          <p className="text-slate-500 dark:text-slate-400">
-            Sin gastos en este período. Cargá algunos en <strong>Gastos</strong> para ver métricas.
-          </p>
+          <p className="text-slate-500 dark:text-slate-400">{t.metrics.no_data}</p>
         </div>
       ) : (
         <>
           {/* Fila combinada: Pie chart + Top 5 lado a lado en desktop */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="kumo-card p-5">
-              <h3 className="font-semibold mb-3">Por categoría</h3>
+              <h3 className="font-semibold mb-3">{t.metrics.by_category}</h3>
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="w-full sm:w-44 h-44 shrink-0">
                   <ResponsiveContainer>
@@ -292,7 +301,7 @@ export function MetricsClient({
             </div>
 
             <div className="kumo-card p-5">
-              <h3 className="font-semibold mb-3">Top 5 gastos del período</h3>
+              <h3 className="font-semibold mb-3">{t.metrics.top5}</h3>
               <div className="space-y-2">
                 {topExpenses.map((e, i) => {
                   const cat = e.categories;
@@ -321,7 +330,7 @@ export function MetricsClient({
 
           {/* Gráfico de evolución temporal */}
           <div className="kumo-card p-5">
-            <h3 className="font-semibold mb-3">Evolución · últimos 12 {PERIOD_PLURAL[period]}</h3>
+            <h3 className="font-semibold mb-3">{t.metrics.evolution} · {t.metrics.evolution_suffix} {t.metrics[`period_${period}_plural` as 'period_day_plural']}</h3>
             <div className="h-56">
               <ResponsiveContainer>
                 <BarChart data={trailData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>

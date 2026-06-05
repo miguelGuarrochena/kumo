@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Sparkles, Check, ArrowRight, X } from 'lucide-react';
 import { skipOnboarding } from '@/app/(app)/dashboard/onboardingActions';
 import { track } from '@/lib/analytics';
+import { useT } from '@/lib/i18n/client';
 
 type Step = {
   done: boolean;
@@ -23,28 +24,29 @@ type Props = {
 
 export const OnboardingChecklist = ({ hasExpense, hasContact, hasReminder }: Props) => {
   const router = useRouter();
+  const { t } = useT();
   const [pending, startTransition] = useTransition();
 
   const steps: Step[] = [
     {
       done: hasExpense,
-      title: 'Cargá tu primer gasto',
-      description: 'Lo más importante. En 5 segundos, podés cargar uno con foto o a mano.',
-      cta: 'Cargar gasto',
+      title: t.onboarding.step1_title,
+      description: t.onboarding.step1_desc,
+      cta: t.onboarding.step1_cta,
       href: '/expenses',
     },
     {
       done: hasContact,
-      title: 'Agregá tu WhatsApp',
-      description: 'Para que Kumo te avise de vencimientos y cumpleaños antes de que se olviden.',
-      cta: 'Configurar WhatsApp',
+      title: t.onboarding.step2_title,
+      description: t.onboarding.step2_desc,
+      cta: t.onboarding.step2_cta,
       href: '/settings',
     },
     {
       done: hasReminder,
-      title: 'Creá un recordatorio',
-      description: 'Citas médicas, cumpleaños o lo que sea. Te avisamos cuando se acerquen.',
-      cta: 'Crear recordatorio',
+      title: t.onboarding.step3_title,
+      description: t.onboarding.step3_desc,
+      cta: t.onboarding.step3_cta,
       href: '/calendar?view=upcoming',
     },
   ];
@@ -67,8 +69,8 @@ export const OnboardingChecklist = ({ hasExpense, hasContact, hasReminder }: Pro
         onClick={onSkip}
         disabled={pending}
         className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600"
-        title="Saltear onboarding"
-        aria-label="Cerrar"
+        title={t.onboarding.skip}
+        aria-label={t.onboarding.skip}
       >
         <X className="w-4 h-4" />
       </button>
@@ -78,16 +80,16 @@ export const OnboardingChecklist = ({ hasExpense, hasContact, hasReminder }: Pro
           <Sparkles className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <h2 className="font-semibold">Empezá con Kumo</h2>
+          <h2 className="font-semibold">{t.onboarding.title}</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            3 pasos para sacarle el jugo a la app. Tardás menos de 2 minutos.
+            {t.onboarding.subtitle}
           </p>
         </div>
       </div>
 
       <div className="mb-5">
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-          <span>{completed} de {total}</span>
+          <span>{t.onboarding.progress.replace('{done}', String(completed)).replace('{total}', String(total))}</span>
           <span className="font-medium">{Math.round(pct)}%</span>
         </div>
         <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
@@ -147,13 +149,13 @@ export const OnboardingChecklist = ({ hasExpense, hasContact, hasReminder }: Pro
 
       {completed === total && (
         <div className="mt-4 text-center">
-          <p className="text-sm font-medium kumo-gradient-text">¡Estás listo! 🎉</p>
+          <p className="text-sm font-medium kumo-gradient-text">✓</p>
           <button
             onClick={onSkip}
             disabled={pending}
             className="mt-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           >
-            Cerrar
+            {t.common.cancel}
           </button>
         </div>
       )}

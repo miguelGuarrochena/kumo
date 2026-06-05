@@ -12,6 +12,7 @@ import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Select, type SelectOption } from '@/components/Select';
 import { FiltersSheet, type Filters } from './FiltersSheet';
+import { useT } from '@/lib/i18n/client';
 import type { ExpensesView, ArchiveYear } from './page';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
@@ -83,6 +84,7 @@ export function ExpensesClient({
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useT();
   const [editing, setEditing] = useState<Expense | null>(null);
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<Expense | null>(null);
@@ -189,13 +191,9 @@ export function ExpensesClient({
       {/* --- Header --- */}
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gastos</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.expenses.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-            {view === 'month'
-              ? 'Cargá lo que gastás y mirá totales por mes.'
-              : view === 'all'
-                ? 'Mirá todos tus gastos con filtros.'
-                : 'Histórico por año.'}
+            {t.expenses.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -220,7 +218,7 @@ export function ExpensesClient({
               <Camera className="w-4 h-4" />
             )}
             <span className="hidden sm:inline text-sm">
-              {ocrLoading ? 'Leyendo...' : 'Foto'}
+              {ocrLoading ? t.common.loading : t.expenses.scan}
             </span>
           </button>
 
@@ -232,8 +230,7 @@ export function ExpensesClient({
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl kumo-gradient text-white font-medium hover:opacity-90 active:scale-95 transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nuevo gasto</span>
-            <span className="sm:hidden">Nuevo</span>
+            <span>{t.expenses.new}</span>
           </button>
         </div>
       </header>
@@ -246,7 +243,7 @@ export function ExpensesClient({
             view === 'month' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
           }`}
         >
-          Por mes
+          {t.expenses.view_month}
         </button>
         <button
           onClick={() => switchView('all')}
@@ -254,7 +251,7 @@ export function ExpensesClient({
             view === 'all' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
           }`}
         >
-          Todos
+          {t.expenses.view_all}
         </button>
         <button
           onClick={() => switchView('archive')}
@@ -262,7 +259,7 @@ export function ExpensesClient({
             view === 'archive' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
           }`}
         >
-          Histórico
+          {t.expenses.view_archive}
         </button>
       </div>
 
@@ -332,8 +329,8 @@ export function ExpensesClient({
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Buscar por descripción..."
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white"
+                placeholder={t.expenses.search_placeholder}
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               />
             </div>
             <button
@@ -342,7 +339,7 @@ export function ExpensesClient({
               className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
             >
               <SlidersHorizontal className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm font-medium">Filtros</span>
+              <span className="hidden sm:inline text-sm font-medium">{t.common.filters}</span>
               {activeFilterCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full kumo-gradient text-white text-[10px] font-bold grid place-items-center">
                   {activeFilterCount}
@@ -355,7 +352,7 @@ export function ExpensesClient({
               title="Exportar a Excel"
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm font-medium">Exportar</span>
+              <span className="hidden sm:inline text-sm font-medium">{t.expenses.export}</span>
             </a>
           </form>
 
@@ -435,12 +432,12 @@ export function ExpensesClient({
                 value={filters.sort}
                 onChange={(v) => setUrlParam('sort', v)}
                 options={[
-                  { value: 'date-desc',   label: 'Más nuevos primero' },
-                  { value: 'date-asc',    label: 'Más viejos primero' },
-                  { value: 'amount-desc', label: 'Monto mayor' },
-                  { value: 'amount-asc',  label: 'Monto menor' },
+                  { value: 'date-desc',   label: t.expenses.sort_newest },
+                  { value: 'date-asc',    label: t.expenses.sort_oldest },
+                  { value: 'amount-desc', label: t.expenses.sort_amount_desc },
+                  { value: 'amount-asc',  label: t.expenses.sort_amount_asc },
                 ]}
-                ariaLabel="Ordenar"
+                ariaLabel="Sort"
                 className="w-48"
                 buttonClassName="py-2"
               />
@@ -622,6 +619,7 @@ function ExpenseSheet({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { t } = useT();
   const [pending, startTransition] = useTransition();
 
   const [amount, setAmount] = useState('');
@@ -744,7 +742,7 @@ function ExpenseSheet({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title={expense ? 'Editar gasto' : 'Nuevo gasto'}>
+    <Sheet open={open} onClose={onClose} title={expense ? t.expenses.edit_title : t.expenses.new}>
       <form onSubmit={onSubmit} className="space-y-4">
         {/* Banner cuando vienen datos del OCR */}
         {!expense && aiSuggestion && (
@@ -766,7 +764,7 @@ function ExpenseSheet({
 
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Monto</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.expenses.amount}</label>
             <input
               type="number"
               step="0.01"
@@ -775,71 +773,71 @@ function ExpenseSheet({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+              className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               autoFocus
               required
             />
           </div>
           <div className="w-28">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Moneda</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.expenses.currency}</label>
             <Select
               value={currency}
               onChange={(v) => setCurrency(v as Currency)}
               options={CURRENCIES.map((c) => ({ value: c.code, label: c.code, hint: c.symbol }))}
-              ariaLabel="Moneda"
+              ariaLabel={t.expenses.currency}
               buttonClassName="py-3 rounded-xl"
             />
           </div>
         </div>
 
         {convertedAmount !== null && (
-          <div className="bg-sky-50 border border-sky-100 rounded-xl p-3 text-sm flex items-center justify-between">
-            <span className="text-sky-700">Equivalente:</span>
-            <span className="font-semibold text-sky-900">
+          <div className="bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800/50 rounded-xl p-3 text-sm flex items-center justify-between">
+            <span className="text-sky-700 dark:text-sky-300">{t.expenses.equivalent}:</span>
+            <span className="font-semibold text-sky-900 dark:text-sky-200">
               {formatMoney(convertedAmount, defaultCurrency)}
             </span>
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Categoría</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.expenses.category}</label>
           <Select
             value={categoryId}
             onChange={setCategoryId}
             options={[
-              { value: '', label: 'Sin categoría' } as SelectOption,
+              { value: '', label: t.expenses.no_category } as SelectOption,
               ...categories.map((c) => ({ value: c.id, label: c.name })),
             ]}
-            ariaLabel="Categoría"
+            ariaLabel={t.expenses.category}
             buttonClassName="py-3 rounded-xl"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Descripción</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.expenses.description}</label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ej: Suscripción Netflix"
-            className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            placeholder={t.expenses.description_placeholder}
+            className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
             maxLength={200}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.expenses.date}</label>
           <input
             type="date"
             value={expenseDate}
             onChange={(e) => setExpenseDate(e.target.value)}
-            className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1.5">Estado</label>
+          <label className="block text-sm font-medium mb-1.5">{t.expenses.state}</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -851,7 +849,7 @@ function ExpenseSheet({
               }`}
             >
               <Check className="w-4 h-4" />
-              Pagado
+              {t.expenses.paid}
             </button>
             <button
               type="button"
@@ -863,7 +861,7 @@ function ExpenseSheet({
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-peach-400" />
-              Pendiente
+              {t.expenses.pending}
             </button>
           </div>
         </div>
@@ -879,15 +877,15 @@ function ExpenseSheet({
               }}
               className="rounded text-sky-600 w-4 h-4"
             />
-            <span className="font-medium">Tiene vencimiento</span>
-            <span className="ml-auto text-[11px] text-slate-400">para alertas</span>
+            <span className="font-medium">{t.expenses.has_due_date}</span>
+            <span className="ml-auto text-[11px] text-slate-400">{t.expenses.due_date_for_alerts}</span>
           </label>
           {hasDueDate && (
             <input
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
             />
           )}
         </div>
@@ -900,18 +898,18 @@ function ExpenseSheet({
               onChange={(e) => setIsRecurring(e.target.checked)}
               className="rounded text-sky-600 w-4 h-4"
             />
-            <span className="font-medium">Es recurrente</span>
+            <span className="font-medium">{t.expenses.recurring}</span>
           </label>
           {isRecurring && (
             <Select
               value={recurrenceType}
               onChange={setRecurrenceType}
               options={[
-                { value: 'weekly',  label: 'Semanal' },
-                { value: 'monthly', label: 'Mensual' },
-                { value: 'yearly',  label: 'Anual' },
+                { value: 'weekly',  label: t.expenses.recurrence_weekly },
+                { value: 'monthly', label: t.expenses.recurrence_monthly },
+                { value: 'yearly',  label: t.expenses.recurrence_yearly },
               ]}
-              ariaLabel="Recurrencia"
+              ariaLabel="Recurrence"
             />
           )}
         </div>
@@ -919,9 +917,9 @@ function ExpenseSheet({
         {/* Selector "Avisar a" — solo aparece si hay vencimiento */}
         {hasDueDate && contacts.length > 0 && (
           <div>
-            <label className="block text-sm font-medium mb-1.5">Avisar a</label>
+            <label className="block text-sm font-medium mb-1.5">{t.expenses.notify_who}</label>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-              A quién mandamos WhatsApp cuando se acerque el vencimiento.
+              {t.expenses.notify_who_desc}
             </p>
             <div className="space-y-1.5">
               {contacts.map((c) => {
@@ -967,16 +965,16 @@ function ExpenseSheet({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200"
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
           >
-            Cancelar
+            {t.common.cancel}
           </button>
           <button
             type="submit"
             disabled={pending || !amount}
             className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
           >
-            {pending ? 'Guardando...' : expense ? 'Guardar' : 'Crear'}
+            {pending ? t.common.saving : expense ? t.common.save : t.common.new}
           </button>
         </div>
       </form>

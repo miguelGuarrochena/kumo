@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Sheet } from '@/components/Sheet';
 import { Select } from '@/components/Select';
 import { CURRENCIES, type Currency } from '@/lib/currency';
+import { useT } from '@/lib/i18n/client';
 
 type CategoryLite = {
   id: string;
@@ -46,6 +47,7 @@ export function FiltersSheet({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useT();
 
   const [cats, setCats] = useState<string[]>(filters.cat);
   const [from, setFrom] = useState(filters.from);
@@ -87,10 +89,10 @@ export function FiltersSheet({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Filtros">
+    <Sheet open={open} onClose={onClose} title={t.common.filters}>
       <div className="space-y-5">
         {/* Categorías */}
-        <Section title="Categorías">
+        <Section title={t.expenses.filter_section_categories}>
           <div className="flex flex-wrap gap-2">
             {categories.map((c) => {
               const active = cats.includes(c.id);
@@ -102,7 +104,7 @@ export function FiltersSheet({
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
                     active
                       ? 'kumo-gradient text-white'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300'
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${COLOR_DOT[c.color] ?? 'bg-slate-300'}`} />
@@ -111,116 +113,116 @@ export function FiltersSheet({
               );
             })}
             {categories.length === 0 && (
-              <p className="text-sm text-slate-400">No tenés categorías todavía.</p>
+              <p className="text-sm text-slate-400">—</p>
             )}
           </div>
         </Section>
 
         {/* Rango de fechas */}
-        <Section title="Rango de fechas">
+        <Section title={t.expenses.filter_section_dates}>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Desde</label>
+              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{t.expenses.filter_date_from}</label>
               <input
                 type="date"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Hasta</label>
+              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{t.expenses.filter_date_to}</label>
               <input
                 type="date"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               />
             </div>
           </div>
         </Section>
 
         {/* Rango de montos */}
-        <Section title="Monto">
+        <Section title={t.expenses.filter_section_amount}>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Mínimo</label>
+              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{t.expenses.filter_amount_min}</label>
               <input
                 type="number"
                 inputMode="decimal"
                 value={min}
                 onChange={(e) => setMin(e.target.value)}
                 placeholder="0"
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Máximo</label>
+              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{t.expenses.filter_amount_max}</label>
               <input
                 type="number"
                 inputMode="decimal"
                 value={max}
                 onChange={(e) => setMax(e.target.value)}
                 placeholder="∞"
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               />
             </div>
           </div>
         </Section>
 
         {/* Estado de pago */}
-        <Section title="Estado">
+        <Section title={t.expenses.filter_section_state}>
           <Segments
             value={paid}
             onChange={(v) => setPaid(v as Filters['paid'])}
             options={[
-              { value: '', label: 'Todos' },
-              { value: 'paid', label: 'Pagados' },
-              { value: 'pending', label: 'Pendientes' },
+              { value: '', label: t.common.all },
+              { value: 'paid', label: t.expenses.filter_paid },
+              { value: 'pending', label: t.expenses.filter_pending },
             ]}
           />
         </Section>
 
         {/* Recurrencia */}
-        <Section title="Recurrencia">
+        <Section title={t.expenses.filter_section_recurrence}>
           <Segments
             value={rec}
             onChange={(v) => setRec(v as Filters['rec'])}
             options={[
-              { value: '', label: 'Todos' },
-              { value: 'recurring', label: 'Recurrentes' },
-              { value: 'one-time', label: 'Una vez' },
+              { value: '', label: t.common.all },
+              { value: 'recurring', label: t.expenses.filter_recurring },
+              { value: 'one-time', label: t.expenses.filter_one_time },
             ]}
           />
         </Section>
 
         {/* Moneda */}
-        <Section title="Moneda">
+        <Section title={t.expenses.filter_section_currency}>
           <Select
             value={cur}
             onChange={setCur}
             options={[
-              { value: '', label: 'Todas' },
+              { value: '', label: t.expenses.filter_currency_all },
               ...CURRENCIES.map((c) => ({ value: c.code, label: c.label, hint: c.code })),
             ]}
-            ariaLabel="Moneda"
+            ariaLabel={t.expenses.currency}
           />
         </Section>
 
-        <div className="flex gap-2 pt-3 sticky bottom-0 bg-white pb-1">
+        <div className="flex gap-2 pt-3 sticky bottom-0 bg-white dark:bg-slate-800 pb-1">
           <button
             type="button"
             onClick={reset}
-            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200"
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
           >
-            Limpiar
+            {t.expenses.filter_clear}
           </button>
           <button
             type="button"
             onClick={apply}
             className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90"
           >
-            Aplicar
+            {t.expenses.filter_apply}
           </button>
         </div>
       </div>
@@ -231,7 +233,7 @@ export function FiltersSheet({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">{title}</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">{title}</h3>
       {children}
     </div>
   );
@@ -247,14 +249,14 @@ function Segments<T extends string>({
   options: { value: T; label: string }[];
 }) {
   return (
-    <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+    <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
           className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-            value === opt.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+            value === opt.value ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
           }`}
         >
           {opt.label}

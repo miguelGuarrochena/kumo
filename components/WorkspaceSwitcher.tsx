@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Check, ChevronsUpDown, Plus, Shield, Eye, X } from 'lucide-react';
 import { createWorkspace, switchWorkspace } from '@/app/(app)/settings/workspaceActions';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
+import { useT } from '@/lib/i18n/client';
 
 export type WorkspaceOption = {
   id: string;
@@ -20,6 +21,7 @@ type Props = {
 
 export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
   const router = useRouter();
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -34,7 +36,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
     startTransition(async () => {
       const result = await switchWorkspace(id);
       if (result.ok) {
-        toast.success('Workspace cambiado');
+        toast.success(t.workspace.switched);
         router.refresh();
       } else {
         toast.error(result.error ?? 'Error');
@@ -50,7 +52,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
     startTransition(async () => {
       const result = await createWorkspace({ ok: false }, fd);
       if (result.ok) {
-        toast.success('Workspace creado');
+        toast.success('✓');
         setCreating(false);
         setNewName('');
         setOpen(false);
@@ -80,7 +82,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{active.name}</p>
           <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            {active.role === 'admin' ? 'Admin' : 'Lector'}
+            {active.role === 'admin' ? t.workspace.role_admin : t.workspace.role_reader}
           </p>
         </div>
         <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0" />
@@ -138,7 +140,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Ej: Casa familia"
+                    placeholder={t.workspace.create_workspace_placeholder}
                     maxLength={60}
                     className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
                   />
@@ -146,7 +148,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
                     type="button"
                     onClick={() => { setCreating(false); setNewName(''); }}
                     className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    aria-label="Cancelar"
+                    aria-label={t.common.cancel}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -155,7 +157,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
                     disabled={!newName.trim()}
                     className="px-3 py-1.5 rounded-lg kumo-gradient text-white text-sm font-medium hover:opacity-90 disabled:opacity-50"
                   >
-                    Crear
+                    {t.common.new}
                   </button>
                 </form>
               ) : (
@@ -167,7 +169,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
                   <div className="w-6 h-6 rounded-md grid place-items-center bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
                     <Plus className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-medium">Crear workspace</span>
+                  <span className="font-medium">{t.workspace.create_workspace}</span>
                 </button>
               )}
             </div>
