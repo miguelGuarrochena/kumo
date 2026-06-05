@@ -305,17 +305,17 @@ export function ExpensesClient({
             </div>
 
             <div className="text-center">
-              <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Total del mes</p>
+              <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">{t.expenses.total_month}</p>
               <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
                 {formatMoney(totalInDisplay, displayCurrency)}
               </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 inline-flex items-center gap-1">
-                {expenses.length} {expenses.length === 1 ? 'gasto' : 'gastos'} · en
+              <div className="text-xs text-slate-400 dark:text-slate-500 mt-2 inline-flex items-center gap-1 flex-wrap justify-center">
+                <span>{t.expenses.n_expenses.replace('{n}', String(expenses.length))} · {t.expenses.in_currency}</span>
                 <CurrencyInlineSelect
                   value={displayCurrency}
                   onChange={(v) => setUrlParam('asCurrency', v)}
                 />
-              </p>
+              </div>
             </div>
           </div>
         </>

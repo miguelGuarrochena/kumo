@@ -199,8 +199,8 @@ export function MetricsClient({
           <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
             {formatMoney(total, displayCurrency)}
           </p>
-          <p className="mt-2 inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
-            {t.expenses.n_expenses.replace('{n}', String(currentExpenses.length))} · {t.expenses.in_currency}
+          <div className="mt-2 inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 flex-wrap justify-center">
+            <span>{t.expenses.n_expenses.replace('{n}', String(currentExpenses.length))} · {t.expenses.in_currency}</span>
             <Select
               value={displayCurrency}
               onChange={setCurrencyParam}
@@ -219,7 +219,7 @@ export function MetricsClient({
                 </span>
               )}
             />
-          </p>
+          </div>
 
           {diffPct !== null && (
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700">
