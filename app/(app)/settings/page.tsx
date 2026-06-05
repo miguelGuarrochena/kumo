@@ -11,7 +11,13 @@ const SettingsPage = async () => {
 
   const ctx = await getCurrentWorkspace();
 
-  const [{ data: settings }, { data: contacts }, { data: membersRaw }, { data: invitesRaw }] = await Promise.all([
+  const [
+    { data: settings },
+    { data: contacts },
+    { data: membersRaw },
+    { data: invitesRaw },
+    { count: spacesCount },
+  ] = await Promise.all([
     supabase.from('user_settings').select('*').eq('user_id', user!.id).single(),
     supabase.from('notification_contacts').select('*').order('created_at', { ascending: true }),
     supabase
@@ -28,6 +34,10 @@ const SettingsPage = async () => {
           .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: false })
       : Promise.resolve({ data: [] }),
+    supabase
+      .from('workspace_members')
+      .select('workspace_id', { count: 'exact', head: true })
+      .eq('user_id', user!.id),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,6 +88,10 @@ const SettingsPage = async () => {
         invites={invites}
         isAdmin={ctx.role === 'admin'}
         origin={origin}
+        workspaceId={ctx.workspaceId}
+        workspaceName={ctx.workspaceName}
+        isOwner={ctx.ownerId === user!.id}
+        totalSpaces={spacesCount ?? 1}
       />
 
       <ContactsSection contacts={contacts ?? []} />

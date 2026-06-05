@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Check, ChevronsUpDown, Plus, Shield, Eye, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Shield, Eye } from 'lucide-react';
 import { createWorkspace, switchWorkspace } from '@/app/(app)/settings/workspaceActions';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
 import { useT } from '@/lib/i18n/client';
+import { useClickOutside } from '@/lib/useClickOutside';
 
 export type WorkspaceOption = {
   id: string;
@@ -26,6 +27,12 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [, startTransition] = useTransition();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(containerRef, open, () => {
+    setOpen(false);
+    setCreating(false);
+  });
 
   const active = workspaces.find((w) => w.id === activeId) ?? workspaces[0];
   if (!active) return null;
@@ -64,7 +71,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
   };
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -89,16 +96,10 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
       </button>
 
       {open && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => { setOpen(false); setCreating(false); }}
-            aria-hidden="true"
-          />
-          <div
-            role="listbox"
-            className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden"
-          >
+        <div
+          role="listbox"
+          className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden"
+        >
             <div className="py-1 max-h-64 overflow-y-auto">
               {workspaces.map((ws) => {
                 const isActive = ws.id === activeId;
@@ -174,8 +175,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
                 </button>
               )}
             </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

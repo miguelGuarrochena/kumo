@@ -1,6 +1,7 @@
 'use server';
 
 import { randomBytes } from 'node:crypto';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -131,6 +132,52 @@ export const renameWorkspace = async (
     .eq('id', ctx.workspaceId);
   if (error) return { ok: false, error: error.message };
   revalidatePath('/settings');
+  return { ok: true };
+};
+
+/**
+ * Borra un workspace por completo. Solo el OWNER puede.
+ * No permite borrar el único workspace del usuario (quedaría huérfano).
+ * El cascade de Postgres se encarga de borrar todas las filas asociadas
+ * (expenses, reminders, shopping, categories, contacts, members, invites).
+ */
+export const deleteWorkspace = async (workspaceId: string): Promise<ActionState> => {
+  const ctx = await getCurrentWorkspace();
+  const supabase = await createClient();
+
+  // Solo el owner del workspace puede borrarlo
+  const { data: ws } = await supabase
+    .from('workspaces')
+    .select('owner_id, name')
+    .eq('id', workspaceId)
+    .single();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wsRow = ws as any;
+  if (!wsRow) return { ok: false, error: 'No encontrado' };
+  if (wsRow.owner_id !== ctx.userId) {
+    return { ok: false, error: 'Solo el dueño puede eliminar' };
+  }
+
+  // No puede borrar su único espacio
+  const { count } = await supabase
+    .from('workspace_members')
+    .select('workspace_id', { count: 'exact', head: true })
+    .eq('user_id', ctx.userId);
+  if ((count ?? 0) <= 1) {
+    return { ok: false, error: 'Es tu único espacio' };
+  }
+
+  // Si están borrando el activo, primero limpiamos la cookie así getCurrentWorkspace
+  // cae al fallback (otro espacio del que sean miembros).
+  if (workspaceId === ctx.workspaceId) {
+    const c = await cookies();
+    c.delete('workspace_id');
+  }
+
+  const { error } = await supabase.from('workspaces').delete().eq('id', workspaceId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/', 'layout');
   return { ok: true };
 };
 

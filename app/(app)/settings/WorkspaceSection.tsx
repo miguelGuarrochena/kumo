@@ -3,9 +3,10 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Users, Plus, Shield, Eye, Trash2, Copy, Check } from 'lucide-react';
-import { createInvite, revokeInvite, removeMember, changeMemberRole } from './workspaceActions';
+import { Users, Plus, Shield, Eye, Trash2, Copy, Check, AlertTriangle } from 'lucide-react';
+import { createInvite, revokeInvite, removeMember, changeMemberRole, deleteWorkspace } from './workspaceActions';
 import { Select } from '@/components/Select';
+import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
 import { useT } from '@/lib/i18n/client';
@@ -34,9 +35,22 @@ type Props = {
   invites: Invite[];
   isAdmin: boolean;
   origin: string;
+  workspaceId: string;
+  workspaceName: string;
+  isOwner: boolean;
+  totalSpaces: number;
 };
 
-export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) => {
+export const WorkspaceSection = ({
+  members,
+  invites,
+  isAdmin,
+  origin,
+  workspaceId,
+  workspaceName,
+  isOwner,
+  totalSpaces,
+}: Props) => {
   const router = useRouter();
   const { t } = useT();
   const [, startTransition] = useTransition();
@@ -45,6 +59,25 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
   const [role, setRole] = useState<WorkspaceRole>('reader');
   const [linkJustCreated, setLinkJustCreated] = useState<string | null>(null);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  const canDelete = isOwner && totalSpaces > 1;
+
+  const onDelete = () => {
+    if (deleteConfirmText !== workspaceName) return;
+    startTransition(async () => {
+      const result = await deleteWorkspace(workspaceId);
+      if (result.ok) {
+        toast.success(t.workspace.deleted);
+        setDeleteOpen(false);
+        setDeleteConfirmText('');
+        router.refresh();
+      } else {
+        toast.error(result.error ?? 'Error');
+      }
+    });
+  };
 
   const submitInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,6 +309,33 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
         </p>
       )}
 
+      {/* Zona de peligro: solo si es owner */}
+      {isOwner && (
+        <div className="mt-5 pt-4 border-t border-rose-100 dark:border-rose-900/30">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+            <h4 className="text-[10px] uppercase tracking-wider font-semibold text-rose-600 dark:text-rose-400">
+              {t.workspace.danger_zone}
+            </h4>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDeleteOpen(true)}
+            disabled={!canDelete}
+            title={!canDelete ? t.workspace.delete_only_one : undefined}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            {t.workspace.delete}
+          </button>
+          {!canDelete && (
+            <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 italic">
+              {t.workspace.delete_only_one}
+            </p>
+          )}
+        </div>
+      )}
+
       <ConfirmDialog
         open={!!memberToRemove}
         onClose={() => setMemberToRemove(null)}
@@ -286,6 +346,54 @@ export const WorkspaceSection = ({ members, invites, isAdmin, origin }: Props) =
           memberToRemove?.full_name ?? memberToRemove?.email ?? '',
         )}
       />
+
+      {/* Sheet de confirmación de borrado con typing del nombre */}
+      <Sheet
+        open={deleteOpen}
+        onClose={() => { setDeleteOpen(false); setDeleteConfirmText(''); }}
+        title={t.workspace.delete_title}
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { setDeleteOpen(false); setDeleteConfirmText(''); }}
+              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
+            >
+              {t.common.cancel}
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={deleteConfirmText !== workspaceName}
+              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {t.workspace.delete}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/40">
+            <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-rose-700 dark:text-rose-200">
+              {t.workspace.delete_confirm.replace('{name}', workspaceName)}
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              {t.workspace.delete_confirm_text}
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder={workspaceName}
+              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-400 text-base"
+              autoFocus
+            />
+          </div>
+        </div>
+      </Sheet>
     </div>
   );
 };

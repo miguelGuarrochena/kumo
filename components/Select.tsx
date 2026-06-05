@@ -13,6 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Search as SearchIcon, X } from 'lucide-react';
+import { useClickOutside } from '@/lib/useClickOutside';
 
 export type SelectOption = {
   value: string;
@@ -70,13 +71,15 @@ export const Select = ({
   const allOptions = useMemo(() => flattenOptions(options, groups), [options, groups]);
   const current = allOptions.find((o) => o.value === value) ?? null;
 
-  // Cerrar con Escape
+  // Cerrar con Escape o click afuera
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
+
+  useClickOutside(containerRef, open, () => setOpen(false));
 
   // Reset query cuando se cierra
   useEffect(() => {
@@ -157,20 +160,14 @@ export const Select = ({
       )}
 
       {open && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            role="listbox"
-            className={`absolute z-50 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-[18rem] flex flex-col ${
-              renderTrigger
-                ? 'left-0 min-w-[12rem]' // trigger custom: ancla a la izquierda con min-width
-                : 'left-0 right-0'        // trigger default: estira al ancho del botón
-            }`}
-          >
+        <div
+          role="listbox"
+          className={`absolute z-50 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-[18rem] flex flex-col ${
+            renderTrigger
+              ? 'left-0 min-w-[12rem]' // trigger custom: ancla a la izquierda con min-width
+              : 'left-0 right-0'        // trigger default: estira al ancho del botón
+          }`}
+        >
             {searchable && (
               <div className="p-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0">
                 <div className="relative">
@@ -244,8 +241,7 @@ export const Select = ({
                 ))
               )}
             </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
