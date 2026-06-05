@@ -230,8 +230,8 @@
     "role_reader_hint": "view only",
     "owner_badge": "owner",
     "you_badge": "you",
-    "switch_label": "Workspace",
-    "create_workspace": "Create workspace",
+    "switch_label": "Account",
+    "create_workspace": "Create account",
     "create_workspace_placeholder": "Eg: Family home",
     "expires_on": "expires",
     "copy_link": "Copy link",
@@ -244,7 +244,7 @@
     "link_copied": "Link copied",
     "member_removed": "Member removed",
     "role_updated": "Role updated",
-    "switched": "Workspace switched",
+    "switched": "Account switched",
     "default_name": "My account"
   },
   "onboarding": {

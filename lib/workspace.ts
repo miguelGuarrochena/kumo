@@ -25,6 +25,9 @@ export type WorkspaceContext = {
  * Devuelve el workspace activo del usuario actual.
  * Si la cookie tiene un workspace válido del cual es miembro, usa ese.
  * Si no, devuelve el primero del que es miembro (admin tiene prioridad).
+ *
+ * Si el usuario aún no tiene NINGÚN workspace (caso edge: trigger DB no
+ * disparó, migración no corrida, etc.) le crea uno automáticamente.
  */
 export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
   const supabase = await createClient();
@@ -32,20 +35,69 @@ export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
   if (!user) throw new Error('No autenticado');
 
   // Memberships del usuario, joineado con workspaces para sacar name/owner
-  const { data: memberships } = await supabase
-    .from('workspace_members')
-    .select('workspace_id, role, workspaces(id, name, owner_id)')
-    .eq('user_id', user.id)
-    .order('joined_at', { ascending: true });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let memberships: any[] | null = null;
+  {
+    const { data } = await supabase
+      .from('workspace_members')
+      .select('workspace_id, role, workspaces(id, name, owner_id)')
+      .eq('user_id', user.id)
+      .order('joined_at', { ascending: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    memberships = (data as any[]) ?? null;
+  }
 
+  // Si no tiene ninguno, lo creamos al vuelo (auto-recovery)
   if (!memberships || memberships.length === 0) {
-    throw new Error('El usuario no pertenece a ningún workspace');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: ws, error: wsErr } = await (supabase.from('workspaces') as any)
+      .insert({ name: 'Mi cuenta', owner_id: user.id })
+      .select('id, name, owner_id')
+      .single();
+    if (wsErr || !ws) throw new Error(wsErr?.message ?? 'No se pudo crear workspace');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('workspace_members') as any).insert({
+      workspace_id: ws.id,
+      user_id: user.id,
+      role: 'admin',
+    });
+
+    // Categorías default para que arranque con algo
+    const defaults = [
+      { name: 'Alquiler',     icon: 'home',         color: 'sky' },
+      { name: 'Supermercado', icon: 'shopping-cart', color: 'mint' },
+      { name: 'Servicios',    icon: 'zap',          color: 'peach' },
+      { name: 'Transporte',   icon: 'car',          color: 'lavender' },
+      { name: 'Salud',        icon: 'heart',        color: 'rose' },
+      { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
+    ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('categories') as any).insert(
+      defaults.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
+    );
+
+    // Contacto "Yo" + user_settings vacío
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('notification_contacts') as any).insert({
+      workspace_id: ws.id,
+      user_id: user.id,
+      name: 'Yo',
+      relationship: 'self',
+      is_self: true,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('user_settings') as any).upsert({
+      user_id: user.id,
+      workspace_id: ws.id,
+    });
+
+    memberships = [{ workspace_id: ws.id, role: 'admin', workspaces: ws }];
   }
 
   const c = await cookies();
   const cookieWs = c.get(COOKIE_NAME)?.value;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ms = memberships as any[];
+  const ms = memberships;
   const active =
     ms.find((m) => m.workspace_id === cookieWs) ??
     ms.find((m) => m.role === 'admin') ??
