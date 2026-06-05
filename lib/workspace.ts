@@ -3,9 +3,10 @@
 // primero del que el usuario sea miembro (o el que es owner).
 //
 // Convenciones:
-//   - getCurrentWorkspace()  → throws si no hay user o no tiene workspaces.
-//   - getRoleInWorkspace()   → 'admin' | 'reader' | null
-//   - requireAdmin()         → throws si no es admin (úsar en server actions de write)
+//   - findCurrentWorkspace()    → null si no tiene workspace (no crea nada)
+//   - getCurrentWorkspace()     → throws si no se pudo resolver/crear
+//   - tryGetCurrentWorkspace()  → null en cualquier error (silencia)
+//   - requireAdmin()            → throws si no es admin
 
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
@@ -21,91 +22,47 @@ export type WorkspaceContext = {
   ownerId: string;
 };
 
+const CATEGORY_DEFAULTS = [
+  { name: 'Alquiler',     icon: 'home',         color: 'sky' },
+  { name: 'Supermercado', icon: 'shopping-cart', color: 'mint' },
+  { name: 'Servicios',    icon: 'zap',          color: 'peach' },
+  { name: 'Transporte',   icon: 'car',          color: 'lavender' },
+  { name: 'Salud',        icon: 'heart',        color: 'rose' },
+  { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
+];
+
 /**
- * Devuelve el workspace activo del usuario actual.
- * Si la cookie tiene un workspace válido del cual es miembro, usa ese.
- * Si no, devuelve el primero del que es miembro (admin tiene prioridad).
+ * Resuelve el workspace activo SIN intentar crear nada.
+ * Devuelve null si el usuario no tiene ninguno todavía.
  *
- * Si el usuario aún no tiene NINGÚN workspace (caso edge: trigger DB no
- * disparó, migración no corrida, etc.) le crea uno automáticamente.
+ * Esto sirve para que el layout pueda detectar el caso "user nuevo sin espacio"
+ * y mostrar una pantalla de setup en vez de fallar/redirigir.
  */
-export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
+export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autenticado');
+  if (!user) return null;
 
-  // Memberships del usuario, joineado con workspaces para sacar name/owner
+  const { data } = await supabase
+    .from('workspace_members')
+    .select('workspace_id, role, workspaces(id, name, owner_id)')
+    .eq('user_id', user.id)
+    .order('joined_at', { ascending: true });
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let memberships: any[] | null = null;
-  {
-    const { data } = await supabase
-      .from('workspace_members')
-      .select('workspace_id, role, workspaces(id, name, owner_id)')
-      .eq('user_id', user.id)
-      .order('joined_at', { ascending: true });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    memberships = (data as any[]) ?? null;
-  }
-
-  // Si no tiene ninguno, lo creamos al vuelo (auto-recovery)
-  if (!memberships || memberships.length === 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: ws, error: wsErr } = await (supabase.from('workspaces') as any)
-      .insert({ name: 'Mi cuenta', owner_id: user.id })
-      .select('id, name, owner_id')
-      .single();
-    if (wsErr || !ws) throw new Error(wsErr?.message ?? 'No se pudo crear workspace');
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('workspace_members') as any).insert({
-      workspace_id: ws.id,
-      user_id: user.id,
-      role: 'admin',
-    });
-
-    // Categorías default para que arranque con algo
-    const defaults = [
-      { name: 'Alquiler',     icon: 'home',         color: 'sky' },
-      { name: 'Supermercado', icon: 'shopping-cart', color: 'mint' },
-      { name: 'Servicios',    icon: 'zap',          color: 'peach' },
-      { name: 'Transporte',   icon: 'car',          color: 'lavender' },
-      { name: 'Salud',        icon: 'heart',        color: 'rose' },
-      { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
-    ];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('categories') as any).insert(
-      defaults.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
-    );
-
-    // Contacto "Yo" + user_settings vacío
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('notification_contacts') as any).insert({
-      workspace_id: ws.id,
-      user_id: user.id,
-      name: 'Yo',
-      relationship: 'self',
-      is_self: true,
-    });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('user_settings') as any).upsert({
-      user_id: user.id,
-      workspace_id: ws.id,
-    });
-
-    memberships = [{ workspace_id: ws.id, role: 'admin', workspaces: ws }];
-  }
+  const memberships = (data as any[]) ?? [];
+  if (memberships.length === 0) return null;
 
   const c = await cookies();
   const cookieWs = c.get(COOKIE_NAME)?.value;
-  const ms = memberships;
   const active =
-    ms.find((m) => m.workspace_id === cookieWs) ??
-    ms.find((m) => m.role === 'admin') ??
-    ms[0];
+    memberships.find((m) => m.workspace_id === cookieWs) ??
+    memberships.find((m) => m.role === 'admin') ??
+    memberships[0];
 
   return {
     workspaceId: active.workspace_id,
-    workspaceName: active.workspaces?.name ?? 'Mi cuenta',
+    workspaceName: active.workspaces?.name ?? 'Mi espacio',
     role: active.role as WorkspaceRole,
     userId: user.id,
     ownerId: active.workspaces?.owner_id ?? user.id,
@@ -113,7 +70,62 @@ export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
 };
 
 /**
- * Versión segura para usar en queries — no tira si no hay user (útil en /api/notify).
+ * Como findCurrentWorkspace pero TIRA si no hay user o si no se pudo resolver.
+ * Si el usuario no tiene workspace, intenta crearlo on-the-fly.
+ */
+export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
+  const found = await findCurrentWorkspace();
+  if (found) return found;
+
+  // Auto-recovery: crear workspace si no tiene ninguno
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ws, error: wsErr } = await (supabase.from('workspaces') as any)
+    .insert({ name: 'Mi espacio', owner_id: user.id })
+    .select('id, name, owner_id')
+    .single();
+  if (wsErr || !ws) throw new Error(wsErr?.message ?? 'No se pudo crear espacio');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('workspace_members') as any).insert({
+    workspace_id: ws.id,
+    user_id: user.id,
+    role: 'admin',
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('categories') as any).insert(
+    CATEGORY_DEFAULTS.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('notification_contacts') as any).insert({
+    workspace_id: ws.id,
+    user_id: user.id,
+    name: 'Yo',
+    relationship: 'self',
+    is_self: true,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('user_settings') as any).upsert({
+    user_id: user.id,
+    workspace_id: ws.id,
+  });
+
+  return {
+    workspaceId: ws.id,
+    workspaceName: ws.name,
+    role: 'admin',
+    userId: user.id,
+    ownerId: ws.owner_id,
+  };
+};
+
+/**
+ * Versión segura para usar en queries — no tira nunca.
  */
 export const tryGetCurrentWorkspace = async (): Promise<WorkspaceContext | null> => {
   try {

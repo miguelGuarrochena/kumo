@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { getCurrentWorkspace, requireAdmin, setActiveWorkspace } from '@/lib/workspace';
+import { getCurrentWorkspace, requireAdmin, setActiveWorkspace, findCurrentWorkspace } from '@/lib/workspace';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
 
 const inviteSchema = z.object({
@@ -209,6 +209,68 @@ const createSchema = z.object({
  * Crea un workspace nuevo del cual el user actual es owner + admin.
  * Automáticamente lo deja como workspace activo y le crea categorías default.
  */
+/**
+ * Crea el PRIMER espacio del usuario (cuando aún no tiene ninguno).
+ * Se llama desde la pantalla de Setup cuando el auto-recovery falla por
+ * cualquier razón (RLS, permisos, etc).
+ */
+export const bootstrapWorkspace = async (
+  name: string = 'Mi espacio',
+): Promise<ActionState> => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'No autenticado' };
+
+  // Idempotente: si ya tiene, no hace nada
+  const existing = await findCurrentWorkspace();
+  if (existing) return { ok: true };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ws, error: wsErr } = await (supabase.from('workspaces') as any)
+    .insert({ name: name.trim() || 'Mi espacio', owner_id: user.id })
+    .select('id, name, owner_id')
+    .single();
+  if (wsErr) return { ok: false, error: wsErr.message };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: memErr } = await (supabase.from('workspace_members') as any).insert({
+    workspace_id: ws.id,
+    user_id: user.id,
+    role: 'admin',
+  });
+  if (memErr) return { ok: false, error: memErr.message };
+
+  const defaults = [
+    { name: 'Alquiler',     icon: 'home',         color: 'sky' },
+    { name: 'Supermercado', icon: 'shopping-cart', color: 'mint' },
+    { name: 'Servicios',    icon: 'zap',          color: 'peach' },
+    { name: 'Transporte',   icon: 'car',          color: 'lavender' },
+    { name: 'Salud',        icon: 'heart',        color: 'rose' },
+    { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
+  ];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('categories') as any).insert(
+    defaults.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
+  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('notification_contacts') as any).insert({
+    workspace_id: ws.id,
+    user_id: user.id,
+    name: 'Yo',
+    relationship: 'self',
+    is_self: true,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('user_settings') as any).upsert({
+    user_id: user.id,
+    workspace_id: ws.id,
+  });
+
+  await setActiveWorkspace(ws.id);
+  revalidatePath('/', 'layout');
+  return { ok: true };
+};
+
 export const createWorkspace = async (
   _prev: ActionState,
   formData: FormData,

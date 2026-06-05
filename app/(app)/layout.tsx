@@ -9,7 +9,8 @@ import { CloudDecorations } from '@/components/CloudDecorations';
 import { Footer } from '@/components/Footer';
 import { UserIdentifier } from '@/components/UserIdentifier';
 import { NavigationProgress } from '@/components/NavigationProgress';
-import { getCurrentWorkspace } from '@/lib/workspace';
+import { WorkspaceSetup } from '@/components/WorkspaceSetup';
+import { findCurrentWorkspace } from '@/lib/workspace';
 import type { WorkspaceOption } from '@/components/WorkspaceSwitcher';
 
 const AppLayout = async ({ children }: { children: React.ReactNode }) => {
@@ -18,8 +19,27 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
 
   if (!user) redirect('/auth/login');
 
-  // Workspaces de los que el usuario es miembro (para el switcher)
-  const ctx = await getCurrentWorkspace();
+  // Busca workspace sin auto-crear. Si no existe, mostramos pantalla de setup.
+  const ctx = await findCurrentWorkspace();
+
+  if (!ctx) {
+    return (
+      <>
+        <UserIdentifier
+          userId={user.id}
+          email={user.email ?? undefined}
+          name={user.user_metadata?.full_name}
+        />
+        <CloudDecorations />
+        <WorkspaceSetup
+          userEmail={user.email ?? undefined}
+          userName={user.user_metadata?.full_name}
+        />
+      </>
+    );
+  }
+
+  // Workspaces del usuario (para el switcher)
   const { data: rawMemberships } = await supabase
     .from('workspace_members')
     .select('workspace_id, role, workspaces(id, name)')
@@ -29,7 +49,7 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
   const workspaces: WorkspaceOption[] = ((rawMemberships ?? []) as any[])
     .map((m) => ({
       id: m.workspace_id,
-      name: m.workspaces?.name ?? 'Mi cuenta',
+      name: m.workspaces?.name ?? 'Mi espacio',
       role: m.role,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
