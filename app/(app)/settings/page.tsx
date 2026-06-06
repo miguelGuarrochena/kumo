@@ -6,6 +6,7 @@ import { WorkspaceSection, type Member, type Invite } from './WorkspaceSection';
 import { PlanSection } from './PlanSection';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
+import { getPricing } from '@/lib/pricing';
 
 const SettingsPage = async () => {
   const supabase = await createClient();
@@ -13,6 +14,11 @@ const SettingsPage = async () => {
 
   const ctx = await getCurrentWorkspace();
   const subscription = await getSubscription();
+  const pricing = getPricing();
+
+  // Limpieza silenciosa: si quedaron contactos "Yo" duplicados por bugs viejos,
+  // los borramos sin mostrar nada al user. El unique de DB previene futuros.
+  await supabase.rpc('cleanup_duplicate_self_contacts', { ws_id: ctx.workspaceId });
 
   const [
     { data: settings },
@@ -22,7 +28,11 @@ const SettingsPage = async () => {
     { count: spacesCount },
   ] = await Promise.all([
     supabase.from('user_settings').select('*').eq('user_id', user!.id).single(),
-    supabase.from('notification_contacts').select('*').order('created_at', { ascending: true }),
+    supabase
+      .from('notification_contacts')
+      .select('*')
+      .eq('workspace_id', ctx.workspaceId)
+      .order('created_at', { ascending: true }),
     // RPC con SECURITY DEFINER que trae emails reales de auth.users
     supabase.rpc('get_workspace_members', { ws_id: ctx.workspaceId }),
     ctx.role === 'admin'
@@ -80,13 +90,9 @@ const SettingsPage = async () => {
 
       <PlanSection
         sub={subscription}
-        priceMonthly={process.env.NEXT_PUBLIC_PRICE_MONTHLY ?? 'ARS 3.500'}
-        priceYearly={process.env.NEXT_PUBLIC_PRICE_YEARLY ?? 'ARS 35.000'}
-        yearlySavingsPct={Number(
-          process.env.NEXT_PUBLIC_PRICE_YEARLY_PCT
-          ?? process.env.NEXT_PUBLIC_PRICE_YEARLY_SAVINGS_PCT
-          ?? '17',
-        )}
+        priceMonthly={pricing.monthly}
+        priceYearly={pricing.yearly}
+        yearlySavingsPct={pricing.yearlyPct}
       />
 
       <WorkspaceSection
@@ -108,6 +114,7 @@ const SettingsPage = async () => {
         initialSettings={settings}
         userEmail={user?.email ?? ''}
         initialDisplayName={user?.user_metadata?.full_name ?? ''}
+        vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
       />
     </div>
   );

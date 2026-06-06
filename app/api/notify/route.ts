@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getWhatsAppAdapter } from '@/lib/notifications/whatsapp';
+import { sendPush, type PushSubscriptionRow } from '@/lib/push/server';
 import type { Database } from '@/lib/supabase/database.types';
 
 type Contact = Database['public']['Tables']['notification_contacts']['Row'];
@@ -49,28 +50,42 @@ export async function POST(request: Request) {
     ...reminders.map((r) => r.user_id),
   ]);
 
-  const [{ data: contactsRaw }, { data: settingsRaw }, { data: subsRaw }] = await Promise.all([
+  const [{ data: contactsRaw }, { data: settingsRaw }, { data: pushRaw }] = await Promise.all([
     supabase
       .from('notification_contacts')
       .select('*')
       .in('user_id', [...allUserIds]),
     supabase.from('user_settings').select('*').in('user_id', [...allUserIds]),
     supabase
-      .from('subscriptions')
-      .select('user_id, status, trial_ends_at')
+      .from('push_subscriptions')
+      .select('id, user_id, endpoint, p256dh, auth')
       .in('user_id', [...allUserIds]),
   ]);
 
+  const pushByUser = new Map<string, PushSubscriptionRow[]>();
+  for (const p of (pushRaw ?? []) as (PushSubscriptionRow & { user_id: string })[]) {
+    const arr = pushByUser.get(p.user_id) ?? [];
+    arr.push({ id: p.id, endpoint: p.endpoint, p256dh: p.p256dh, auth: p.auth });
+    pushByUser.set(p.user_id, arr);
+  }
+
+  // Limpia suscripciones que el endpoint ya no acepta (404/410).
+  const stalePushIds: string[] = [];
+  const pushToUser = async (userId: string, payload: { title: string; body: string; url: string; tag: string }) => {
+    const list = pushByUser.get(userId) ?? [];
+    for (const p of list) {
+      const r = await sendPush(p, payload);
+      if (!r.ok) {
+        if (r.gone) stalePushIds.push(p.id);
+        failed++;
+      } else {
+        sent++;
+      }
+    }
+  };
+
   const contacts = (contactsRaw ?? []) as Contact[];
   const settings = (settingsRaw ?? []) as Settings[];
-  const subs = (subsRaw ?? []) as { user_id: string; status: string; trial_ends_at: string | null }[];
-  const now = Date.now();
-  const proUsers = new Set(
-    subs.filter((s) =>
-      s.status === 'active' ||
-      (s.status === 'trialing' && s.trial_ends_at && new Date(s.trial_ends_at).getTime() > now),
-    ).map((s) => s.user_id),
-  );
 
   const contactsById = new Map<string, Contact>(contacts.map((c) => [c.id, c]));
   const settingsByUser = new Map<string, Settings>(settings.map((s) => [s.user_id, s]));
@@ -113,23 +128,22 @@ export async function POST(request: Request) {
   }
 
   for (const exp of dueExpenses) {
-    if (!proUsers.has(exp.user_id)) { skipped++; continue; }
     const userSettings = settingsByUser.get(exp.user_id);
     if (userSettings && !userSettings.notify_expenses) {
       skipped++;
       continue;
     }
 
-    const recipients = resolveRecipients(exp.user_id, exp.notify_contact_ids ?? []);
-    if (recipients.length === 0) {
-      skipped++;
-      continue;
-    }
+    const title = 'Vencimiento próximo · Kumo';
+    const body = `${exp.description ?? 'Gasto'} vence el ${exp.due_date}. Monto: ${exp.amount} ${exp.currency}`;
 
+    await pushToUser(exp.user_id, { title, body, url: '/expenses', tag: `exp-${exp.id}` });
+
+    const recipients = resolveRecipients(exp.user_id, exp.notify_contact_ids ?? []);
     for (const r of recipients) {
       const result = await wa.send({
         to: r.phone,
-        title: 'Vencimiento próximo · Kumo',
+        title,
         body: `${exp.description ?? 'Gasto'} vence el ${exp.due_date}.\nMonto: ${exp.amount} ${exp.currency}`,
         ref: { type: 'expense', id: exp.id },
       });
@@ -138,7 +152,6 @@ export async function POST(request: Request) {
   }
 
   for (const rem of reminders) {
-    if (!proUsers.has(rem.user_id)) { skipped++; continue; }
     const userSettings = settingsByUser.get(rem.user_id);
     if (userSettings && !userSettings.notify_reminders) {
       skipped++;
@@ -160,6 +173,14 @@ export async function POST(request: Request) {
         continue;
       }
     }
+
+    const when = diffDays === 0 ? 'hoy' : diffDays === 1 ? 'mañana' : `en ${diffDays} días`;
+    await pushToUser(rem.user_id, {
+      title: `${rem.title} · Kumo`,
+      body: `Es ${when} (${rem.reminder_date})`,
+      url: '/calendar',
+      tag: `rem-${rem.id}`,
+    });
 
     const recipients = resolveRecipients(rem.user_id, rem.notify_contact_ids ?? []);
     if (recipients.length === 0) {
@@ -200,5 +221,9 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ sent, failed, skipped });
+  if (stalePushIds.length > 0) {
+    await supabase.from('push_subscriptions').delete().in('id', stalePushIds);
+  }
+
+  return NextResponse.json({ sent, failed, skipped, stalePush: stalePushIds.length });
 }

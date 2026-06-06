@@ -134,9 +134,8 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
       {!isPaying && (
         <ul className="mt-4 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
           <Feature>{tb.feature_ocr}</Feature>
-          <Feature>{tb.feature_whatsapp}</Feature>
           <Feature>{tb.feature_spaces}</Feature>
-          <Feature>{tb.feature_support}</Feature>
+          <Feature>{tb.feature_history}</Feature>
         </ul>
       )}
 

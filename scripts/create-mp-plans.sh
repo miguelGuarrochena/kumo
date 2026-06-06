@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-# Crea los 2 planes de suscripción de Kumo Pro en MercadoPago.
+# Crea los 2 planes de suscripción de Kumo Pro en MercadoPago, en ARS.
 # Uso:
 #   export MP_ACCESS_TOKEN="APP_USR-tu-access-token"
 #   bash scripts/create-mp-plans.sh
-#
-# Después de correrlo, copiá los `id` que imprime y los pegás en tu .env como
-# MP_PLAN_MONTHLY y MP_PLAN_YEARLY.
 
 set -e
 
@@ -15,7 +12,7 @@ if [ -z "$MP_ACCESS_TOKEN" ]; then
   exit 1
 fi
 
-echo "Creando plan MENSUAL (ARS 3.500 / mes, 90 días free trial)..."
+echo "Creando plan MENSUAL (ARS 3.500 / mes, 90 días trial)..."
 curl -s -X POST "https://api.mercadopago.com/preapproval_plan" \
   -H "Authorization: Bearer $MP_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
@@ -33,7 +30,7 @@ curl -s -X POST "https://api.mercadopago.com/preapproval_plan" \
 echo ""
 echo ""
 
-echo "Creando plan ANUAL (ARS 35.000 / año, 90 días free trial)..."
+echo "Creando plan ANUAL (ARS 35.000 / año, 90 días trial)..."
 curl -s -X POST "https://api.mercadopago.com/preapproval_plan" \
   -H "Authorization: Bearer $MP_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
@@ -59,4 +56,7 @@ echo "Listo. Pegá esto en tu .env.local y en Vercel:"
 echo ""
 echo "MP_PLAN_MONTHLY=$MONTHLY_ID"
 echo "MP_PLAN_YEARLY=$YEARLY_ID"
+echo "NEXT_PUBLIC_PRICE_MONTHLY=ARS 3.500"
+echo "NEXT_PUBLIC_PRICE_YEARLY=ARS 35.000"
+echo "NEXT_PUBLIC_PRICE_YEARLY_PCT=17"
 echo "========================================"

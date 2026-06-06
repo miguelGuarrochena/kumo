@@ -104,13 +104,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <I18nProvider locale={locale}>
               {children}
               <Toaster
-                position="top-center"
+                position="top-right"
+                mobileOffset={{ top: 16, right: 16, left: 16 }}
+                offset={{ top: 24, right: 24 }}
                 richColors
                 closeButton
                 theme="system"
+                visibleToasts={3}
+                duration={4000}
                 toastOptions={{
                   classNames: {
-                    toast: 'rounded-xl border shadow-lg',
+                    toast: 'kumo-toast',
+                    title: 'kumo-toast-title',
+                    description: 'kumo-toast-desc',
                   },
                 }}
               />

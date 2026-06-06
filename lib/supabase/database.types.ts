@@ -330,6 +330,24 @@ type WorkspaceInvitesUpdate = {
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'free';
 
+type PushSubscriptionsRow = {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+  last_used_at: string | null;
+};
+type PushSubscriptionsInsert = Partial<PushSubscriptionsRow> & {
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+type PushSubscriptionsUpdate = Partial<PushSubscriptionsRow>;
+
 type SubscriptionsRow = {
   user_id: string;
   status: SubscriptionStatus;
@@ -406,6 +424,12 @@ export type Database = {
         Row: SubscriptionsRow;
         Insert: SubscriptionsInsert;
         Update: SubscriptionsUpdate;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: PushSubscriptionsRow;
+        Insert: PushSubscriptionsInsert;
+        Update: PushSubscriptionsUpdate;
         Relationships: [];
       };
     };

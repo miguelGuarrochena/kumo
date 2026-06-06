@@ -2,11 +2,12 @@ import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { getSubscription } from '@/lib/subscription';
 import { getMessages } from '@/lib/i18n/server';
+import { getPricing } from '@/lib/pricing';
 
 export const TrialBanner = async () => {
   const [sub, messages] = await Promise.all([getSubscription(), getMessages()]);
   const tb = messages.billing;
-  const priceMonthly = process.env.NEXT_PUBLIC_PRICE_MONTHLY ?? 'ARS 3.500';
+  const priceMonthly = getPricing().monthly;
 
   if (sub.status === 'active') return null;
   if (sub.status === 'trialing' && sub.daysLeftInTrial !== null && sub.daysLeftInTrial > 7) {

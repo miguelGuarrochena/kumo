@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getCurrentWorkspace, requireAdmin, setActiveWorkspace } from '@/lib/workspace';
+import { getSubscription } from '@/lib/subscription';
 import { sendEmail } from '@/lib/email';
 import { renderInviteEmail } from '@/lib/email/templates';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
@@ -206,7 +207,12 @@ export const updateWorkspaceMeta = async (patch: {
   const { error } = await (supabase.from('workspaces') as any)
     .update(parsed.data)
     .eq('id', ctx.workspaceId);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    if (error.code === '23505' || /duplicate|unique/i.test(error.message ?? '')) {
+      return { ok: false, error: 'Ya tenés un espacio con ese nombre.' };
+    }
+    return { ok: false, error: error.message };
+  }
 
   revalidatePath('/', 'layout');
   return { ok: true };
@@ -292,12 +298,29 @@ export const createWorkspace = async (
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'No autenticado' };
 
+  // Gate Free: 1 espacio. Pro: ilimitados.
+  const sub = await getSubscription();
+  if (sub.tier !== 'pro') {
+    const { count } = await supabase
+      .from('workspaces')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', user.id);
+    if ((count ?? 0) >= 1) {
+      return { ok: false, error: 'El plan Free permite 1 espacio. Pasate a Pro para crear más.' };
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ws, error: wsErr } = await (supabase.from('workspaces') as any)
     .insert({ name: parsed.data.name, owner_id: user.id })
     .select('id')
     .single();
-  if (wsErr) return { ok: false, error: wsErr.message };
+  if (wsErr) {
+    if (wsErr.code === '23505' || /duplicate|unique/i.test(wsErr.message ?? '')) {
+      return { ok: false, error: 'Ya tenés un espacio con ese nombre.' };
+    }
+    return { ok: false, error: wsErr.message };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: memErr } = await (supabase.from('workspace_members') as any).insert({

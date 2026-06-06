@@ -9,6 +9,7 @@ import { deleteAccount } from './workspaceActions';
 import { Sheet } from '@/components/Sheet';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { PushToggle } from '@/components/PushToggle';
 import { Select, type SelectGroup, type SelectOption } from '@/components/Select';
 import { useT } from '@/lib/i18n/client';
 import { createClient } from '@/lib/supabase/client';
@@ -98,10 +99,12 @@ export const SettingsClient = ({
   initialSettings,
   userEmail,
   initialDisplayName,
+  vapidPublicKey,
 }: {
   initialSettings: Settings | null;
   userEmail: string;
   initialDisplayName: string;
+  vapidPublicKey: string;
 }) => {
   const router = useRouter();
   const { t } = useT();
@@ -238,6 +241,9 @@ export const SettingsClient = ({
           />
           <span className="text-sm">{t.settings.notify_reminders}</span>
         </label>
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+          <PushToggle vapidPublicKey={vapidPublicKey} />
+        </div>
       </Section>
 
       <Section icon={<Palette className="w-5 h-5" />} title={t.settings.section_appearance} tone="lavender">
@@ -380,7 +386,7 @@ const DonateSection = () => (
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">¿Te sirve Kumo?</p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Invitanos un cafecito — nos ayuda a mantener todo gratis.
+          Invitanos un cafecito — nos banca para seguir mejorando la app.
         </p>
       </div>
       <span className="text-xs text-slate-400 dark:text-slate-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
