@@ -7,6 +7,7 @@ import { PlanSection } from './PlanSection';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
+import { isAdmin } from '@/lib/admin';
 
 const SettingsPage = async () => {
   const supabase = await createClient();
@@ -115,6 +116,7 @@ const SettingsPage = async () => {
         userEmail={user?.email ?? ''}
         initialDisplayName={user?.user_metadata?.full_name ?? ''}
         vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
+        isAdmin={isAdmin(user?.email)}
       />
     </div>
   );

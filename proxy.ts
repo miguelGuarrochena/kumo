@@ -11,7 +11,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Todas las rutas excepto archivos estáticos y rutas de API
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw\\.js|robots\\.txt|sitemap\\.xml|icons/|apple-touch-icon\\.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?|ico)$).*)',
   ],
 };

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { MessageCircle, DollarSign, Clock, Bell, Palette, Globe, Check, Loader2, User, AlertTriangle, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { MessageCircle, DollarSign, Clock, Bell, Palette, Globe, Check, Loader2, User, AlertTriangle, Trash2, Shield } from 'lucide-react';
 import { saveSettings } from './actions';
 import { deleteAccount } from './workspaceActions';
 import { Sheet } from '@/components/Sheet';
@@ -100,11 +101,13 @@ export const SettingsClient = ({
   userEmail,
   initialDisplayName,
   vapidPublicKey,
+  isAdmin = false,
 }: {
   initialSettings: Settings | null;
   userEmail: string;
   initialDisplayName: string;
   vapidPublicKey: string;
+  isAdmin?: boolean;
 }) => {
   const router = useRouter();
   const { t } = useT();
@@ -184,6 +187,28 @@ export const SettingsClient = ({
           )}
         </div>
       </div>
+
+      {isAdmin && (
+        <Link
+          href={'/admin' as never}
+          className="block kumo-card p-4 border-indigo-200/60 dark:border-indigo-500/30 hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 grid place-items-center">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Panel de administración</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Gestionar usuarios, regalar Pro, cancelar suscripciones.
+              </p>
+            </div>
+            <span className="text-xs text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              →
+            </span>
+          </div>
+        </Link>
+      )}
 
       <ProfileSection initialName={initialDisplayName} userEmail={userEmail} />
 

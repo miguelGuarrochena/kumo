@@ -41,7 +41,18 @@ export async function updateSession(request: NextRequest) {
     url.pathname.startsWith('/accept-invite') ||
     url.pathname.startsWith('/api/') ||  // API routes manejan su propia auth (401 directo, no redirect)
     url.pathname.startsWith('/_next') ||
-    url.pathname.startsWith('/favicon');
+    url.pathname.startsWith('/favicon') ||
+    url.pathname.startsWith('/icons/') ||
+    url.pathname === '/manifest.webmanifest' ||
+    url.pathname === '/sw.js' ||
+    url.pathname === '/robots.txt' ||
+    url.pathname === '/sitemap.xml' ||
+    url.pathname === '/apple-touch-icon.png' ||
+    url.pathname === '/icon.png' ||
+    url.pathname === '/og-image.png' ||
+    url.pathname === '/og-image.svg' ||
+    url.pathname === '/logo.svg' ||
+    url.pathname === '/logo-filled.svg';
 
   if (!user && !isPublic) {
     url.pathname = '/auth/login';
