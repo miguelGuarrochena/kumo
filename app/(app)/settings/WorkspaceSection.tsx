@@ -90,9 +90,10 @@ export const WorkspaceSection = ({
         color: editColor,
       });
       if (result.ok) {
-        toast.success('✓');
+        toast.success('Espacio actualizado');
         setEditOpen(false);
-        router.refresh();
+        // Hard reload para refrescar el avatar+nombre del switcher en sidebar
+        window.location.reload();
       } else {
         toast.error(result.error ?? 'Error');
       }
@@ -149,7 +150,7 @@ export const WorkspaceSection = ({
 
   const onRevoke = async (id: string) => {
     const result = await revokeInvite(id);
-    if (result.ok) { toast.success('✓'); router.refresh(); }
+    if (result.ok) { toast.success('Invitación revocada'); router.refresh(); }
     else toast.error(result.error ?? 'Error');
   };
 

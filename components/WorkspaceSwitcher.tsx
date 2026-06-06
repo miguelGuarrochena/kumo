@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Check, ChevronsUpDown, Plus, Shield, Eye } from 'lucide-react';
 import { createWorkspace, switchWorkspace } from '@/app/(app)/settings/workspaceActions';
@@ -44,7 +43,6 @@ type Props = {
 };
 
 export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
-  const router = useRouter();
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -67,7 +65,10 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
       const result = await switchWorkspace(id);
       if (result.ok) {
         toast.success(t.workspace.switched);
-        router.refresh();
+        // Hard reload para que el server layout traiga el workspace nuevo
+        // y todas las queries refiltren por el workspace_id activo.
+        window.location.href = '/dashboard';
+        return;
       } else {
         toast.error(result.error ?? 'Error');
       }
@@ -82,11 +83,14 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
     startTransition(async () => {
       const result = await createWorkspace({ ok: false }, fd);
       if (result.ok) {
-        toast.success('✓');
+        toast.success(`Espacio "${newName.trim()}" creado`);
         setCreating(false);
         setNewName('');
         setOpen(false);
-        router.refresh();
+        // Hard navigation porque el server layout tiene que rehidratar
+        // con el nuevo workspace activo.
+        window.location.href = '/dashboard';
+        return;
       } else {
         toast.error(result.error ?? 'Error');
       }

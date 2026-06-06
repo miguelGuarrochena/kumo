@@ -188,7 +188,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
     setActiveList(newListName.trim());
     setNewListName('');
     setCreatingList(false);
-    toast.success(`${newListName.trim()} ✓`);
+    toast.success(`Lista "${newListName.trim()}" creada`);
   };
 
   return (

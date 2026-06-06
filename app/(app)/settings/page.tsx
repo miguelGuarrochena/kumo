@@ -90,7 +90,11 @@ const SettingsPage = async () => {
 
       <ContactsSection contacts={contacts ?? []} />
 
-      <SettingsClient initialSettings={settings} userEmail={user?.email ?? ''} />
+      <SettingsClient
+        initialSettings={settings}
+        userEmail={user?.email ?? ''}
+        initialDisplayName={user?.user_metadata?.full_name ?? ''}
+      />
     </div>
   );
 };

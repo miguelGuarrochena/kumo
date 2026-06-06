@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { bootstrapWorkspace } from '@/app/(app)/settings/workspaceActions';
@@ -14,7 +13,6 @@ type Props = {
 };
 
 export const WorkspaceSetup = ({ userEmail, userName }: Props) => {
-  const router = useRouter();
   const { t } = useT();
   const [name, setName] = useState('');
   const [pending, startTransition] = useTransition();
@@ -26,10 +24,12 @@ export const WorkspaceSetup = ({ userEmail, userName }: Props) => {
     startTransition(async () => {
       const result = await bootstrapWorkspace(name.trim() || 'Mi espacio');
       if (result.ok) {
-        toast.success('✓');
-        router.refresh();
+        toast.success('Espacio creado');
+        // Hard navigation para garantizar que el layout (server) se rehidrate
+        // con el nuevo workspace en lugar de quedarse en el setup screen.
+        window.location.href = '/dashboard';
       } else {
-        toast.error(result.error ?? 'Error');
+        toast.error(result.error ?? 'No se pudo crear el espacio');
       }
     });
   };

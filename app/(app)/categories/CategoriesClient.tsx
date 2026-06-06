@@ -79,7 +79,7 @@ export const CategoriesClient = ({ initialCategories }: { initialCategories: Cat
     if (!toDelete) return;
     const result = await deleteCategory(toDelete.id);
     if (result.ok) {
-      toast.success(`"${toDelete.name}" ✓`);
+      toast.success(`Categoría "${toDelete.name}" eliminada`);
       router.refresh();
     } else {
       toast.error(result.error ?? 'Error');
@@ -208,7 +208,7 @@ const CategorySheet = ({
     startTransition(async () => {
       const result = await upsertCategory({ ok: false }, fd);
       if (result.ok) {
-        toast.success(category ? t.common.saved : '✓');
+        toast.success(category ? 'Categoría actualizada' : 'Categoría creada');
         if (!category) {
           track('category_created', { color });
         }
