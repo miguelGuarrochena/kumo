@@ -60,10 +60,10 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
   const isPaying = sub.status === 'active';
   const isInTrial = sub.status === 'trialing';
   const trialDaysLeft = sub.daysLeftInTrial ?? 0;
-  // Durante el trial con margen (>7 días), no mostramos checkout — el user ya
-  // está en Pro y suscribirse ahora no le suma nada. Aparece cuando faltan
-  // pocos días o cuando el trial terminó.
-  const showCheckout = !isPaying && (!isInTrial || trialDaysLeft <= 7);
+  const now = Date.now();
+  const isCanceledWithAccess =
+    sub.status === 'canceled' && sub.currentPeriodEnd !== null && sub.currentPeriodEnd.getTime() > now;
+  const showCheckout = !isPaying && !isCanceledWithAccess && (!isInTrial || trialDaysLeft <= 7);
   const dateFmt = (d: Date) => d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR');
 
   return (
@@ -113,7 +113,48 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
         </div>
       )}
 
-      {!isPaying && isInTrial && !showCheckout && (
+      {isCanceledWithAccess && (
+        <div className="space-y-3">
+          <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
+            <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-200">
+              <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">{tb.canceled_label}</p>
+                {sub.currentPeriodEnd && (
+                  <p className="text-xs opacity-80 mt-0.5">
+                    {tb.canceled_keep_until.replace('{date}', dateFmt(sub.currentPeriodEnd))}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <PlanCard
+              title={tb.plan_monthly}
+              price={priceMonthly}
+              period={tb.per_month}
+              highlight={false}
+              loading={loading === 'monthly'}
+              labelSubscribe={tb.resubscribe_button}
+              labelOpening={tb.opening_provider}
+              onClick={() => openCheckout('monthly')}
+            />
+            <PlanCard
+              title={tb.plan_yearly}
+              price={priceYearly}
+              period={tb.per_year}
+              saveLabel={tb.save_label.replace('{pct}', String(yearlySavingsPct))}
+              highlight
+              loading={loading === 'yearly'}
+              labelSubscribe={tb.resubscribe_button}
+              labelOpening={tb.opening_provider}
+              onClick={() => openCheckout('yearly')}
+            />
+          </div>
+        </div>
+      )}
+
+      {!isPaying && !isCanceledWithAccess && isInTrial && !showCheckout && (
         <div className="space-y-3">
           <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
             <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-200">

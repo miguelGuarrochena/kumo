@@ -43,11 +43,12 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
   const currentPeriodEnd = row.current_period_end ? new Date(row.current_period_end) : null;
 
   const now = new Date();
-  const isTrialActive =
-    row.status === 'trialing' && trialEndsAt !== null && trialEndsAt > now;
-  const isActive = row.status === 'active';
+  const isTrialActive  = row.status === 'trialing' && trialEndsAt !== null && trialEndsAt > now;
+  const isActive       = row.status === 'active';
+  // Después de cancelar, mantenemos Pro hasta el fin del período pagado.
+  const inGracePeriod  = row.status === 'canceled' && currentPeriodEnd !== null && currentPeriodEnd > now;
 
-  const tier: SubscriptionTier = isTrialActive || isActive ? 'pro' : 'free';
+  const tier: SubscriptionTier = isTrialActive || isActive || inGracePeriod ? 'pro' : 'free';
 
   let daysLeftInTrial: number | null = null;
   if (isTrialActive && trialEndsAt) {
