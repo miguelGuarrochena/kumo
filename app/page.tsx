@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { CloudLogo } from '@/components/CloudLogo';
 import { CloudDecorations } from '@/components/CloudDecorations';
 import { Footer } from '@/components/Footer';
+import { StructuredData } from '@/components/StructuredData';
 import {
   Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight, Sparkles, Check,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen relative overflow-hidden">
+      <StructuredData />
       <CloudDecorations />
 
       {/* Nav */}

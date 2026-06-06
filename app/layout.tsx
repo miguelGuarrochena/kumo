@@ -73,6 +73,16 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
     },
   },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+  },
+  alternates: {
+    canonical: appUrl,
+    languages: {
+      'es-AR': appUrl,
+      'en-US': appUrl,
+    },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

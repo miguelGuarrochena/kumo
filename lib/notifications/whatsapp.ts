@@ -1,19 +1,9 @@
-// Adapter de WhatsApp via Meta Cloud API (oficial).
+// WhatsApp Cloud API adapter (Meta Graph).
 //
-// Por qué este y no Twilio: pega DIRECTO a graph.facebook.com sin intermediarios.
-// Tier gratis de Meta: 1.000 conversaciones/mes. Después se paga directo a Meta sin
-// markup de proveedores como Twilio.
-//
-// Setup:
-//  1. https://developers.facebook.com/apps → crear app → tipo "Business".
-//  2. Agregar producto "WhatsApp" → setup.
-//  3. Te dan un Phone Number ID y un Access Token temporal (24hs) para probar.
-//  4. Para producción: generar System User token permanente.
-//  5. Verificar el número que vas a usar como remitente.
-//
-// Templates requeridas en Meta (Utilidad, aprobadas):
-//   - kumo_vencimiento (es / en_US): parámetros {{1}} descripción, {{2}} fecha, {{3}} monto
-//   - kumo_reminder (es / en_US): parámetros {{1}} emoji, {{2}} título, {{3}} cuándo
+// Templates en Meta (Utility, aprobadas):
+//   - kumo_vencimiento (es): {{1}} descripción, {{2}} fecha, {{3}} monto
+//   - kumo_reminder    (es): {{1}} tipo (Turno médico / Cumpleaños / Recordatorio),
+//                            {{2}} título, {{3}} cuándo
 
 import type { NotificationAdapter, NotificationMessage, NotificationResult } from './types';
 
@@ -22,8 +12,6 @@ const GRAPH_VERSION = 'v21.0';
 type TemplateParam = { type: 'text'; text: string };
 
 function buildExpenseParams(message: NotificationMessage): TemplateParam[] {
-  // title: "🌥️ Vencimiento próximo · Kumo"  (no se usa en template)
-  // body:  "Tarjeta Visa vence el 2025-06-09.\nMonto: 5000 ARS"
   const descripcion = message.body.match(/^(.+?) vence/)?.[1] ?? message.title;
   const fecha       = message.body.match(/vence el (.+?)\./)?.[1] ?? '';
   const monto       = message.body.match(/Monto: (.+)/)?.[1] ?? '';
@@ -35,14 +23,14 @@ function buildExpenseParams(message: NotificationMessage): TemplateParam[] {
 }
 
 function buildReminderParams(message: NotificationMessage): TemplateParam[] {
-  // title: "🏥 Turno médico · Kumo"
-  // body:  "Es mañana (2025-06-09)"  ó  "Hola Juan, te aviso de parte de Kumo: Es mañana..."
-  const emoji  = message.title.match(/^(\S+)/)?.[1] ?? '🔔';
-  const titulo = message.title.match(/^\S+\s+(.+?)\s+·\s+Kumo$/)?.[1] ?? message.title;
-  // Si el body tiene el greeting de Kumo, lo sacamos para quedarnos solo con el cuándo
+  // title: "Turno médico · <título> · Kumo"
+  // body:  "Es mañana (2025-06-09)" o con greeting "Hola Juan, te aviso..."
+  const titleMatch = message.title.match(/^(.+?) · (.+?) · Kumo$/);
+  const tipo   = titleMatch?.[1] ?? 'Recordatorio';
+  const titulo = titleMatch?.[2] ?? message.title;
   const cuando = message.body.replace(/^Hola .+?, te aviso de parte de Kumo: /, '');
   return [
-    { type: 'text', text: emoji },
+    { type: 'text', text: tipo },
     { type: 'text', text: titulo },
     { type: 'text', text: cuando },
   ];

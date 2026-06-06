@@ -188,10 +188,10 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const emoji =
-      rem.reminder_type === 'medical'  ? '🏥' :
-      rem.reminder_type === 'birthday' ? '🎂' :
-      '🔔';
+    const prefix =
+      rem.reminder_type === 'medical'  ? 'Turno médico' :
+      rem.reminder_type === 'birthday' ? 'Cumpleaños' :
+      'Recordatorio';
 
     let anyOk = false;
     for (const r of recipients) {
@@ -201,7 +201,7 @@ export async function POST(request: Request) {
 
       const result = await wa.send({
         to: r.phone,
-        title: `${emoji} ${rem.title} · Kumo`,
+        title: `${prefix} · ${rem.title} · Kumo`,
         body: `${greeting}Es ${diffDays === 0 ? 'hoy' : diffDays === 1 ? 'mañana' : `en ${diffDays} días`} (${rem.reminder_date})`,
         ref: { type: 'reminder', id: rem.id },
       });
