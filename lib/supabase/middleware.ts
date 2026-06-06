@@ -39,6 +39,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname === '/' ||
     url.pathname.startsWith('/legal') ||
     url.pathname.startsWith('/accept-invite') ||
+    url.pathname.startsWith('/api/') ||  // API routes manejan su propia auth (401 directo, no redirect)
     url.pathname.startsWith('/_next') ||
     url.pathname.startsWith('/favicon');
 

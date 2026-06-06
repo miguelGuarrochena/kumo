@@ -11,3 +11,12 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Vitest coverage
+coverage
+
+# Playwright artifacts
+e2e/.auth/
+playwright-report/
+test-results/
+.playwright/

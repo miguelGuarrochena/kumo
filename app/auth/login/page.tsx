@@ -192,8 +192,9 @@ const EmailMode = ({
     </button>
 
     <div>
-      <label className="block text-sm font-medium mb-1.5">Tu email</label>
+      <label htmlFor="login-email" className="block text-sm font-medium mb-1.5">Tu email</label>
       <input
+        id="login-email"
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
