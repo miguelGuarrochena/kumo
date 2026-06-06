@@ -47,6 +47,8 @@ type ExpensesRow = {
   recurrence_type: 'weekly' | 'monthly' | 'yearly' | null;
   paid: boolean;
   notify_contact_ids: string[];
+  next_occurrence: string | null;
+  parent_id: string | null;
   created_at: string;
 };
 type ExpensesInsert = {
@@ -333,9 +335,10 @@ type SubscriptionsRow = {
   status: SubscriptionStatus;
   trial_ends_at: string | null;
   current_period_end: string | null;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  stripe_price_id: string | null;
+  provider: string;
+  provider_customer_id: string | null;
+  provider_subscription_id: string | null;
+  provider_variant_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -437,6 +440,14 @@ export type Database = {
       is_pro: {
         Args: { uid?: string };
         Returns: boolean;
+      };
+      generate_recurring_expenses: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      compute_next_occurrence: {
+        Args: { base_date: string; recurrence: string };
+        Returns: string | null;
       };
     };
     Enums: { [_ in never]: never };

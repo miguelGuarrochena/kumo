@@ -61,6 +61,7 @@ type Props = {
   displayCurrency: Currency;   // moneda en la que se muestra el TOTAL ahora
   rates: Partial<Record<Currency, number>>;
   filters: Filters;
+  isPro: boolean;
 };
 
 const COLOR_DOT: Record<string, string> = {
@@ -82,6 +83,7 @@ export function ExpensesClient({
   displayCurrency,
   rates,
   filters,
+  isPro,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -92,15 +94,25 @@ export function ExpensesClient({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(filters.q);
 
-  // --- OCR (cargar desde foto) ---
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<ExtractedExpense | null>(null);
+
+  const onScanClick = () => {
+    if (!isPro) {
+      router.push('/settings#plan');
+      return;
+    }
+    fileInputRef.current?.click();
+  };
 
   const onPhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = ''; // permite re-elegir el mismo archivo
+    e.target.value = '';
+    const previewUrl = URL.createObjectURL(file);
+    setOcrPreviewUrl(previewUrl);
     setOcrLoading(true);
     const fd = new FormData();
     fd.set('image', file);
@@ -108,19 +120,21 @@ export function ExpensesClient({
       const res = await fetch('/api/ocr', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? 'No se pudo procesar la imagen');
+        toast.error(data.error ?? t.expenses.ocr_failed);
         track('photo_ocr_used', { success: false });
         return;
       }
       setAiSuggestion(data as ExtractedExpense);
       setCreating(true);
-      toast.success('Ticket procesado — revisá los datos');
+      toast.success(t.expenses.ocr_done);
       track('photo_ocr_used', { success: true });
     } catch {
-      toast.error('Error de red al procesar la imagen');
+      toast.error(t.expenses.ocr_network_error);
       track('photo_ocr_used', { success: false });
     } finally {
       setOcrLoading(false);
+      URL.revokeObjectURL(previewUrl);
+      setOcrPreviewUrl(null);
     }
   };
 
@@ -198,7 +212,6 @@ export function ExpensesClient({
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {/* Botón cargar desde foto */}
           <input
             ref={fileInputRef}
             type="file"
@@ -208,10 +221,10 @@ export function ExpensesClient({
             className="hidden"
           />
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={onScanClick}
             disabled={ocrLoading}
-            title="Cargar desde foto del ticket"
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait"
+            title={isPro ? t.expenses.scan : t.expenses.scan_pro_only}
+            className="relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait"
           >
             {ocrLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -221,6 +234,11 @@ export function ExpensesClient({
             <span className="hidden sm:inline text-sm">
               {ocrLoading ? t.common.loading : t.expenses.scan}
             </span>
+            {!isPro && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-white grid place-items-center text-[9px] font-bold shadow-sm">
+                ★
+              </span>
+            )}
           </button>
 
           <button
@@ -505,6 +523,23 @@ export function ExpensesClient({
         title="Borrar gasto"
         description={`¿Borrar "${toDelete?.description ?? toDelete?.categories?.name ?? 'este gasto'}"? No se puede deshacer.`}
       />
+
+      {ocrLoading && ocrPreviewUrl && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm grid place-items-center p-6">
+          <div className="max-w-sm w-full text-center space-y-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={ocrPreviewUrl}
+              alt="Ticket"
+              className="w-full max-h-[60vh] object-contain rounded-2xl shadow-2xl border-2 border-white/20"
+            />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm font-medium">{t.expenses.ocr_processing}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

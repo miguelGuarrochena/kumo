@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getOcrProvider } from '@/lib/ocr';
 import { getSubscription } from '@/lib/subscription';
+import { getMessages } from '@/lib/i18n/server';
 
 export const maxDuration = 30; // segundos — OCR puede tardar varios
 
@@ -23,8 +24,9 @@ export async function POST(request: Request) {
 
   const sub = await getSubscription();
   if (sub.tier !== 'pro') {
+    const messages = await getMessages();
     return NextResponse.json(
-      { error: 'OCR requiere Pro. Suscribite desde Configuración para reactivarlo.', code: 'PRO_REQUIRED' },
+      { error: messages.billing.pro_required, code: 'PRO_REQUIRED' },
       { status: 402 },
     );
   }

@@ -78,7 +78,16 @@ const SettingsPage = async () => {
         </p>
       </header>
 
-      <PlanSection sub={subscription} />
+      <PlanSection
+        sub={subscription}
+        priceMonthly={process.env.NEXT_PUBLIC_PRICE_MONTHLY ?? 'ARS 3.500'}
+        priceYearly={process.env.NEXT_PUBLIC_PRICE_YEARLY ?? 'ARS 35.000'}
+        yearlySavingsPct={Number(
+          process.env.NEXT_PUBLIC_PRICE_YEARLY_PCT
+          ?? process.env.NEXT_PUBLIC_PRICE_YEARLY_SAVINGS_PCT
+          ?? '17',
+        )}
+      />
 
       <WorkspaceSection
         members={members}

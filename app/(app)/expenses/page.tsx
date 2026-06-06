@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { ExpensesClient } from './ExpensesClient';
 import { getRates, type Currency } from '@/lib/currency';
+import { getSubscription } from '@/lib/subscription';
 
 export type ExpensesView = 'month' | 'all' | 'archive';
 
@@ -43,8 +44,7 @@ export default async function ExpensesPage({
   let expenses: Array<Record<string, unknown>> = [];
   let archiveYears: ArchiveYear[] = [];
 
-  // Carga de catálogos comunes
-  const [{ data: categories }, { data: settings }, { data: contacts }, rates] = await Promise.all([
+  const [{ data: categories }, { data: settings }, { data: contacts }, rates, subscription] = await Promise.all([
     supabase.from('categories').select('*').order('name'),
     supabase.from('user_settings').select('default_currency').single(),
     supabase
@@ -52,6 +52,7 @@ export default async function ExpensesPage({
       .select('id, name, relationship, is_self, phone')
       .order('created_at'),
     getRates(),
+    getSubscription(),
   ]);
 
   const userCurrency = ((settings as { default_currency?: string } | null)?.default_currency ?? 'ARS') as Currency;
@@ -130,6 +131,7 @@ export default async function ExpensesPage({
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}
       rates={rates.rates}
+      isPro={subscription.tier === 'pro'}
       filters={{
         q: params.q ?? '',
         cat: params.cat?.split(',').filter(Boolean) ?? [],

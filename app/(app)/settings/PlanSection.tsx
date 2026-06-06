@@ -2,49 +2,63 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Sparkles, Check, ExternalLink, Loader2 } from 'lucide-react';
+import { Sparkles, Check, Loader2, XCircle } from 'lucide-react';
 import type { SubscriptionInfo } from '@/lib/subscription';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useT } from '@/lib/i18n/client';
 
-type Props = { sub: SubscriptionInfo };
+type Props = {
+  sub: SubscriptionInfo;
+  priceMonthly: string;
+  priceYearly: string;
+  yearlySavingsPct: number;
+};
 
-export const PlanSection = ({ sub }: Props) => {
-  const [loading, setLoading] = useState<'monthly' | 'yearly' | 'portal' | null>(null);
+export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }: Props) => {
+  const { t, locale } = useT();
+  const tb = t.billing;
+  const [loading, setLoading] = useState<'monthly' | 'yearly' | 'cancel' | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const openCheckout = async (interval: 'monthly' | 'yearly') => {
     setLoading(interval);
     try {
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ interval: interval === 'yearly' ? 'year' : 'month' }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-      else toast.error(data.error ?? 'No se pudo abrir el checkout');
+      else toast.error(data.error ?? tb.checkout_error);
     } catch {
-      toast.error('Error al conectar con Stripe');
+      toast.error(tb.connect_error);
     } finally {
       setLoading(null);
     }
   };
 
-  const openPortal = async () => {
-    setLoading('portal');
+  const cancelSub = async () => {
+    setLoading('cancel');
     try {
-      const res = await fetch('/api/stripe/portal', { method: 'POST' });
+      const res = await fetch('/api/billing/cancel', { method: 'POST' });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else toast.error(data.error ?? 'No se pudo abrir el portal');
+      if (data.ok) {
+        toast.success(tb.cancel_success);
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        toast.error(data.error ?? tb.cancel_error);
+      }
     } catch {
-      toast.error('Error al conectar con Stripe');
+      toast.error(tb.cancel_error);
     } finally {
       setLoading(null);
+      setConfirmCancel(false);
     }
   };
 
-  const isPro = sub.tier === 'pro';
-  const isTrial = sub.status === 'trialing';
   const isPaying = sub.status === 'active';
+  const dateFmt = (d: Date) => d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR');
 
   return (
     <div id="plan" className="kumo-card p-5">
@@ -53,13 +67,15 @@ export const PlanSection = ({ sub }: Props) => {
           <Sparkles className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold">Plan</h3>
+          <h3 className="font-semibold">{tb.title}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {isPaying && 'Sos Pro. Gracias por bancar Kumo.'}
-            {isTrial && sub.daysLeftInTrial !== null && (
-              <>Prueba gratis — {sub.daysLeftInTrial} {sub.daysLeftInTrial === 1 ? 'día restante' : 'días restantes'}.</>
+            {isPaying && tb.subtitle_active}
+            {sub.status === 'trialing' && sub.daysLeftInTrial !== null && (
+              sub.daysLeftInTrial === 1
+                ? tb.subtitle_trial_day
+                : tb.subtitle_trial_days.replace('{n}', String(sub.daysLeftInTrial))
             )}
-            {!isPro && 'Tu prueba terminó. Suscribite para reactivar features Pro.'}
+            {sub.tier === 'free' && sub.status !== 'trialing' && tb.subtitle_expired}
           </p>
         </div>
       </div>
@@ -70,10 +86,10 @@ export const PlanSection = ({ sub }: Props) => {
             <div className="flex items-start gap-2 text-sm text-mint-700 dark:text-mint-200">
               <Check className="w-4 h-4 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium">Suscripción activa</p>
+                <p className="font-medium">{tb.active_label}</p>
                 {sub.currentPeriodEnd && (
                   <p className="text-xs opacity-80 mt-0.5">
-                    Próximo cobro: {sub.currentPeriodEnd.toLocaleDateString()}
+                    {tb.next_charge.replace('{date}', dateFmt(sub.currentPeriodEnd))}
                   </p>
                 )}
               </div>
@@ -81,31 +97,35 @@ export const PlanSection = ({ sub }: Props) => {
           </div>
           <button
             type="button"
-            onClick={openPortal}
-            disabled={loading === 'portal'}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+            onClick={() => setConfirmCancel(true)}
+            disabled={loading === 'cancel'}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 disabled:opacity-50"
           >
-            {loading === 'portal' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-            Manejar suscripción
+            {loading === 'cancel' ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+            {tb.cancel_button}
           </button>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-3">
           <PlanCard
-            title="Mensual"
-            price="USD 3"
-            period="/ mes"
+            title={tb.plan_monthly}
+            price={priceMonthly}
+            period={tb.per_month}
             highlight={false}
             loading={loading === 'monthly'}
+            labelSubscribe={tb.subscribe_button}
+            labelOpening={tb.opening_provider}
             onClick={() => openCheckout('monthly')}
           />
           <PlanCard
-            title="Anual"
-            price="USD 30"
-            period="/ año"
-            saveLabel="Ahorrás USD 6"
+            title={tb.plan_yearly}
+            price={priceYearly}
+            period={tb.per_year}
+            saveLabel={tb.save_label.replace('{pct}', String(yearlySavingsPct))}
             highlight
             loading={loading === 'yearly'}
+            labelSubscribe={tb.subscribe_button}
+            labelOpening={tb.opening_provider}
             onClick={() => openCheckout('yearly')}
           />
         </div>
@@ -113,18 +133,26 @@ export const PlanSection = ({ sub }: Props) => {
 
       {!isPaying && (
         <ul className="mt-4 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
-          <Feature>OCR de tickets desde foto (extracción automática)</Feature>
-          <Feature>Notificaciones por WhatsApp</Feature>
-          <Feature>Espacios compartidos ilimitados</Feature>
-          <Feature>Soporte prioritario y nuevas funciones primero</Feature>
+          <Feature>{tb.feature_ocr}</Feature>
+          <Feature>{tb.feature_whatsapp}</Feature>
+          <Feature>{tb.feature_spaces}</Feature>
+          <Feature>{tb.feature_support}</Feature>
         </ul>
       )}
+
+      <ConfirmDialog
+        open={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        onConfirm={cancelSub}
+        title={tb.cancel_title}
+        description={tb.cancel_desc}
+      />
     </div>
   );
 };
 
 const PlanCard = ({
-  title, price, period, saveLabel, highlight, loading, onClick,
+  title, price, period, saveLabel, highlight, loading, labelSubscribe, labelOpening, onClick,
 }: {
   title: string;
   price: string;
@@ -132,6 +160,8 @@ const PlanCard = ({
   saveLabel?: string;
   highlight: boolean;
   loading: boolean;
+  labelSubscribe: string;
+  labelOpening: string;
   onClick: () => void;
 }) => (
   <button
@@ -156,7 +186,7 @@ const PlanCard = ({
     </div>
     <div className="mt-3 text-sm font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-      {loading ? 'Abriendo...' : 'Suscribirme'}
+      {loading ? labelOpening : labelSubscribe}
     </div>
   </button>
 );
