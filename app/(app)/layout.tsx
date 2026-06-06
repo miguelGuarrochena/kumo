@@ -41,10 +41,11 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Workspaces del usuario (para el switcher)
+  // Workspaces del usuario (para el switcher).
+  // workspaces(*) tolera columnas faltantes si alguna migración no se corrió.
   const { data: rawMemberships } = await supabase
     .from('workspace_members')
-    .select('workspace_id, role, workspaces(id, name, icon, color)')
+    .select('workspace_id, role, workspaces(*)')
     .eq('user_id', user.id);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

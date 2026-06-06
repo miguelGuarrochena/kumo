@@ -45,9 +45,12 @@ export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> =
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  // Usamos workspaces(*) para tolerar migraciones aún no corridas:
+  // si la columna icon/color no existe todavía, simplemente vienen como
+  // undefined y los reemplazamos con defaults abajo.
   const { data } = await supabase
     .from('workspace_members')
-    .select('workspace_id, role, workspaces(id, name, owner_id, icon, color)')
+    .select('workspace_id, role, workspaces(*)')
     .eq('user_id', user.id)
     .order('joined_at', { ascending: true });
 
