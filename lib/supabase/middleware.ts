@@ -38,11 +38,14 @@ export async function updateSession(request: NextRequest) {
     url.pathname.startsWith('/auth') ||
     url.pathname === '/' ||
     url.pathname.startsWith('/legal') ||
+    url.pathname.startsWith('/accept-invite') ||
     url.pathname.startsWith('/_next') ||
     url.pathname.startsWith('/favicon');
 
   if (!user && !isPublic) {
     url.pathname = '/auth/login';
+    // Preservamos el destino original para que el callback pueda volver acá
+    url.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

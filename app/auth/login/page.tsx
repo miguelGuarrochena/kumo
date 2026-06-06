@@ -3,20 +3,38 @@
 import { CloudLogo } from '@/components/CloudLogo';
 import { CloudDecorations } from '@/components/CloudDecorations';
 import { createClient } from '@/lib/supabase/client';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 
-export default function LoginPage() {
+// Mensajes amigables por código de error que viene del callback
+const ERROR_LABELS: Record<string, string> = {
+  auth_failed:   'No pudimos completar el login. Probá de nuevo.',
+  no_user:       'La sesión no se creó correctamente. Probá de nuevo.',
+  missing_code:  'Falta el código de autenticación.',
+};
+
+const LoginInner = () => {
+  const sp = useSearchParams();
+  const errorCode = sp.get('error');
+  const errorDetail = sp.get('detail');
+  const next = sp.get('next');
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    errorCode ? (ERROR_LABELS[errorCode] ?? errorCode) : null,
+  );
 
   const onGoogle = async () => {
     setLoading(true);
     setError(null);
     const supabase = createClient();
+    const callbackUrl = new URL(`${window.location.origin}/auth/callback`);
+    if (next) callbackUrl.searchParams.set('next', next);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
     if (error) {
@@ -48,7 +66,14 @@ export default function LoginPage() {
           </button>
 
           {error && (
-            <p className="mt-3 text-sm text-rose-500 text-center">{error}</p>
+            <div className="mt-3 p-2.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/40">
+              <p className="text-sm text-rose-700 dark:text-rose-300 text-center">{error}</p>
+              {errorDetail && (
+                <p className="text-[11px] text-rose-500 dark:text-rose-400 text-center mt-1 font-mono break-all">
+                  {decodeURIComponent(errorDetail)}
+                </p>
+              )}
+            </div>
           )}
 
           <p className="mt-6 text-xs text-slate-400 dark:text-slate-500 text-center">
@@ -57,6 +82,14 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+};
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }
 
