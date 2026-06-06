@@ -47,7 +47,7 @@ export const AdminClient = ({ rows, totalUsers }: Props) => {
   }, [rows]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className="space-y-5">
       <header>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">

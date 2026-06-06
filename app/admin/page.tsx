@@ -1,7 +1,8 @@
-import { notFound } from 'next/navigation';
-import { requireAdminUser } from '@/lib/admin';
 import { createServiceClient } from '@/lib/supabase/service';
 import { AdminClient, type AdminRow } from './AdminClient';
+
+// El layout (app/admin/layout.tsx) ya valida que el user sea admin y redirige
+// si no. Acá solo cargamos data.
 
 export const metadata = {
   title: 'Admin',
@@ -9,9 +10,6 @@ export const metadata = {
 };
 
 export default async function AdminPage() {
-  const adminUser = await requireAdminUser();
-  if (!adminUser) notFound();
-
   const supabase = createServiceClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usersResp } = await (supabase as any).auth.admin.listUsers({ page: 1, perPage: 200 });

@@ -75,7 +75,7 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold">{tb.title}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {isPaying && tb.subtitle_active}
+            {isPaying && (sub.isLifetime ? tb.lifetime_label : sub.isCourtesy ? tb.courtesy_label : tb.subtitle_active)}
             {sub.status === 'trialing' && sub.daysLeftInTrial !== null && (
               sub.daysLeftInTrial === 1
                 ? tb.subtitle_trial_day
@@ -86,7 +86,36 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
         </div>
       </div>
 
-      {isPaying && (
+      {isPaying && sub.isLifetime && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
+          <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-200">
+            <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">{tb.lifetime_label}</p>
+              <p className="text-xs opacity-80 mt-0.5">{tb.lifetime_desc}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPaying && !sub.isLifetime && sub.isCourtesy && (
+        <div className="rounded-xl border border-sky-200 dark:border-sky-500/30 bg-sky-50 dark:bg-sky-500/10 p-3">
+          <div className="flex items-start gap-2 text-sm text-sky-700 dark:text-sky-200">
+            <Check className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">{tb.courtesy_label}</p>
+              {sub.currentPeriodEnd && (
+                <p className="text-xs opacity-80 mt-0.5">
+                  {tb.courtesy_until.replace('{date}', dateFmt(sub.currentPeriodEnd))}
+                </p>
+              )}
+              <p className="text-xs opacity-80 mt-1.5">{tb.courtesy_desc}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPaying && !sub.isLifetime && !sub.isCourtesy && (
         <div className="space-y-3">
           <div className="rounded-xl border border-mint-200 dark:border-mint-500/30 bg-mint-50 dark:bg-mint-500/10 p-3">
             <div className="flex items-start gap-2 text-sm text-mint-700 dark:text-mint-200">
