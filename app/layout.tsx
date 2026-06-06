@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
+import { CookieBanner } from '@/components/CookieBanner';
 import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider, themeInitScript } from '@/lib/theme';
 import { PostHogProvider } from '@/components/PostHogProvider';
@@ -103,6 +104,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ThemeProvider>
             <I18nProvider locale={locale}>
               {children}
+              <CookieBanner />
               <Toaster
                 position="top-right"
                 mobileOffset={{ top: 16, right: 16, left: 16 }}

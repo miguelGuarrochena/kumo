@@ -5,8 +5,9 @@ import { CloudLogo } from '@/components/CloudLogo';
 import { CloudDecorations } from '@/components/CloudDecorations';
 import { Footer } from '@/components/Footer';
 import {
-  Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight,
+  Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight, Sparkles, Check,
 } from 'lucide-react';
+import { getPricing } from '@/lib/pricing';
 
 // Landing page pública. Si el user ya está logueado, lo manda al dashboard.
 
@@ -28,12 +29,20 @@ export default async function HomePage() {
           <CloudLogo className="w-9 h-9" />
           <span className="font-bold text-xl tracking-tight kumo-gradient-text">Kumo</span>
         </div>
-        <Link
-          href="/auth/login"
-          className="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors"
-        >
-          Iniciar sesión
-        </Link>
+        <div className="flex items-center gap-1">
+          <a
+            href="#pricing"
+            className="hidden sm:inline-block px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors"
+          >
+            Precios
+          </a>
+          <Link
+            href="/auth/login"
+            className="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors"
+          >
+            Iniciar sesión
+          </Link>
+        </div>
       </header>
 
       {/* Hero */}
@@ -124,6 +133,45 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section id="pricing" className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Precios simples</h2>
+        <p className="text-center text-slate-500 dark:text-slate-400 mb-10 text-sm sm:text-base">
+          Empezás con 90 días gratis del plan Pro. Después elegís.
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+          <PricingCard
+            title="Free"
+            price="$0"
+            period="para siempre"
+            features={[
+              'Gastos, recordatorios, lista de compras',
+              'Notificaciones por WhatsApp',
+              'Notificaciones push web/mobile',
+              '1 espacio personal',
+            ]}
+          />
+          <PricingCard
+            title="Pro"
+            price={getPricing().monthly}
+            period="/ mes"
+            badge="90 días gratis"
+            highlight
+            features={[
+              'Todo lo del Free',
+              'OCR de tickets desde foto (Gemini)',
+              'Espacios compartidos ilimitados',
+              'Sin límite de historial',
+            ]}
+          />
+        </div>
+
+        <p className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6">
+          Pagás con MercadoPago. Cancelás cuando quieras desde Configuración.
+        </p>
+      </section>
+
       {/* How it works */}
       <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
@@ -194,6 +242,47 @@ function Feature({
       </div>
       <h3 className="font-semibold mb-1">{title}</h3>
       <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
+    </div>
+  );
+}
+
+function PricingCard({
+  title, price, period, features, badge, highlight,
+}: {
+  title: string;
+  price: string;
+  period: string;
+  features: string[];
+  badge?: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`relative kumo-card p-6 ${
+        highlight ? 'border-amber-300 dark:border-amber-500/50 bg-amber-50/40 dark:bg-amber-500/5' : ''
+      }`}
+    >
+      {badge && (
+        <span className="absolute -top-2.5 right-4 text-[10px] px-2.5 py-1 rounded-full bg-amber-500 text-white font-medium shadow-sm">
+          {badge}
+        </span>
+      )}
+      <div className="flex items-center gap-2 mb-3">
+        {highlight && <Sparkles className="w-4 h-4 text-amber-500" />}
+        <h3 className="font-semibold text-lg">{title}</h3>
+      </div>
+      <div className="flex items-baseline gap-1.5 mb-5">
+        <span className="text-3xl font-bold">{price}</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">{period}</span>
+      </div>
+      <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+        {features.map((f) => (
+          <li key={f} className="flex items-start gap-2">
+            <Check className="w-4 h-4 mt-0.5 text-mint-500 shrink-0" />
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

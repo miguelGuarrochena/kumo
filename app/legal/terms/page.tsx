@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'Reglas de uso de Kumo.',
 };
 
-const UPDATED = '16 de mayo de 2026';
+const UPDATED = '6 de junio de 2026';
 
 export default function TermsPage() {
   return (
@@ -14,23 +14,26 @@ export default function TermsPage() {
       <p className="text-xs text-slate-500 dark:text-slate-500 mb-6">Actualizados el {UPDATED}</p>
 
       <p>
-        Al usar Kumo aceptás estos términos. Si no estás de acuerdo, no uses la aplicación. Si tenés dudas:{' '}
+        Al usar Kumo aceptás estos términos. Si no estás de acuerdo, no uses la aplicación. Dudas:{' '}
         <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>.
       </p>
 
       <h2 className="text-xl font-bold mt-8 mb-3">1. Qué es Kumo</h2>
       <p>
-        Kumo es una aplicación web para gestionar finanzas personales: cargar gastos, programar vencimientos, llevar
-        recordatorios y recibir avisos por WhatsApp. La aplicación es de uso personal y no constituye asesoramiento
-        financiero, contable ni legal.
+        Kumo es una aplicación web para gestión de finanzas personales: gastos, vencimientos, recordatorios,
+        notificaciones por WhatsApp y push, y OCR de tickets. Es de uso personal y <strong>no constituye asesoramiento
+        financiero, contable ni legal</strong>.
       </p>
 
       <h2 className="text-xl font-bold mt-8 mb-3">2. Cuenta</h2>
       <ul className="list-disc pl-5 space-y-1">
-        <li>Necesitás una cuenta de Google válida para usar Kumo.</li>
-        <li>Sos responsable de mantener la seguridad de tu cuenta de Google.</li>
-        <li>No podés compartir tu cuenta con terceros.</li>
-        <li>Podés cerrar tu cuenta cuando quieras desde la configuración o por email.</li>
+        <li>Necesitás una cuenta con email válido (login por Magic Link o Google).</li>
+        <li>Sos responsable de mantener la seguridad de tu acceso.</li>
+        <li>No podés compartir tu cuenta con terceros (los espacios compartidos son la forma oficial de compartir).</li>
+        <li>
+          Podés <strong>eliminar tu cuenta en cualquier momento</strong> desde Configuración → Eliminar cuenta. La
+          eliminación es inmediata e irreversible.
+        </li>
       </ul>
 
       <h2 className="text-xl font-bold mt-8 mb-3">3. Uso aceptable</h2>
@@ -38,61 +41,104 @@ export default function TermsPage() {
       <ul className="list-disc pl-5 space-y-1">
         <li>No subir contenido ilegal, ofensivo, fraudulento o que viole derechos de terceros.</li>
         <li>No intentar acceder a datos de otros usuarios.</li>
-        <li>No usar la aplicación para enviar spam por WhatsApp ni para fines comerciales no autorizados.</li>
+        <li>No usar Kumo para enviar spam por WhatsApp ni para fines comerciales no autorizados.</li>
         <li>No realizar ingeniería inversa, scraping masivo ni abusos del servicio.</li>
         <li>
-          Cargar únicamente números de WhatsApp de personas que te dieron su consentimiento explícito para
-          recibir notificaciones de tu parte.
+          Cargar únicamente números de WhatsApp de personas que te dieron consentimiento explícito para recibir
+          notificaciones tuyas.
         </li>
       </ul>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">4. Servicios de terceros</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">4. Planes y suscripción</h2>
+      <p>Kumo tiene dos planes:</p>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>
+          <strong>Free</strong>: gastos, recordatorios, lista de compras, notificaciones por WhatsApp y push, 1
+          espacio personal.
+        </li>
+        <li>
+          <strong>Pro</strong>: incluye todo lo de Free más OCR de tickets desde foto, espacios compartidos ilimitados
+          y sin límite de historial. Precio publicado en la página de Configuración → Plan.
+        </li>
+      </ul>
       <p>
-        Kumo usa proveedores como Supabase, Vercel, Google (Gemini) y Meta (WhatsApp). Su disponibilidad y términos
-        pueden afectar la aplicación. No nos hacemos responsables de fallas en servicios de terceros.
+        Todos los usuarios nuevos arrancan con <strong>90 días de prueba gratis del plan Pro</strong>. Al terminar la
+        prueba, si no te suscribiste pasás automáticamente al plan Free.
       </p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">5. Disponibilidad</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">5. Pagos, cancelación y reembolso</h2>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>
+          Los pagos se procesan a través de <strong>MercadoPago</strong>. Nosotros no almacenamos los datos de tu
+          tarjeta.
+        </li>
+        <li>
+          La suscripción Pro se renueva automáticamente al final de cada período (mensual o anual) hasta que la
+          canceles.
+        </li>
+        <li>
+          Podés <strong>cancelar en cualquier momento</strong> desde Configuración → Plan → Cancelar suscripción.
+          Mantenés acceso a Pro hasta el final del período ya pagado.
+        </li>
+        <li>
+          <strong>No hacemos reembolsos por períodos parciales</strong>. Si cancelás a la mitad del mes, mantenés Pro
+          hasta el final del mes y no se renueva.
+        </li>
+        <li>
+          Si tenés un problema con un cobro, escribinos a <a href="mailto:info@kumo-app.com">info@kumo-app.com</a> y
+          revisamos caso por caso.
+        </li>
+      </ul>
+
+      <h2 className="text-xl font-bold mt-8 mb-3">6. Servicios de terceros</h2>
       <p>
-        Hacemos lo posible para que la aplicación esté siempre disponible, pero no garantizamos un uptime del 100%.
-        Podemos hacer mantenimiento programado o tener cortes imprevistos.
+        Kumo usa Supabase (DB y auth), Vercel (hosting), Google Gemini (OCR), Meta (WhatsApp Business), MercadoPago
+        (pagos), Resend (email), PostHog y Sentry (analytics y errores). Su disponibilidad y términos pueden afectar
+        la aplicación. No nos hacemos responsables de fallas en servicios de terceros.
       </p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">6. Limitación de responsabilidad</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">7. Disponibilidad</h2>
+      <p>
+        Hacemos lo posible para que la app esté siempre online, pero no garantizamos un uptime del 100%. Podemos
+        hacer mantenimiento programado o tener cortes imprevistos.
+      </p>
+
+      <h2 className="text-xl font-bold mt-8 mb-3">8. Limitación de responsabilidad</h2>
       <p>
         Kumo se ofrece &ldquo;tal cual&rdquo;. En la máxima medida permitida por la ley, no nos hacemos responsables
-        de pérdidas indirectas, lucro cesante, ni daños derivados del uso o imposibilidad de uso de la aplicación.
+        de pérdidas indirectas, lucro cesante, ni daños derivados del uso o imposibilidad de uso de la app.
       </p>
       <p>
-        Si un recordatorio o notificación de vencimiento falla por cualquier motivo (problemas en WhatsApp, en
-        proveedores, en la red), seguís siendo el único responsable por gestionar tus pagos y compromisos.
+        Si un recordatorio o notificación falla (WhatsApp, push, red), seguís siendo el único responsable por
+        gestionar tus pagos y compromisos. Kumo es una herramienta de ayuda, no un reemplazo de tu propio control
+        financiero.
       </p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">7. Cambios al servicio</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">9. Datos al cancelar o eliminar</h2>
       <p>
-        Podemos modificar o discontinuar funcionalidades en cualquier momento. Si discontinuamos la aplicación
-        completa, te avisaremos con al menos 30 días de anticipación para que puedas exportar tus datos.
+        Al cancelar la suscripción mantenés tus datos y seguís usando el plan Free. Al{' '}
+        <strong>eliminar tu cuenta</strong>, todos tus datos asociados (gastos, contactos, recordatorios, espacios
+        donde sos dueño) se borran permanentemente. Esta acción no es reversible.
       </p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">8. Precios</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">10. Cambios al servicio</h2>
       <p>
-        Hoy Kumo es 100% gratis. Si en el futuro lanzamos un plan pago, los usuarios existentes mantienen acceso al
-        plan gratuito y los nuevos features pagos quedan claramente identificados.
+        Podemos modificar o discontinuar funcionalidades. Si discontinuamos la aplicación completa, te avisamos con al
+        menos 30 días para que puedas exportar tus datos.
       </p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">9. Cambios en estos términos</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">11. Cambios en estos términos</h2>
       <p>
-        Si modificamos estos términos te avisamos por email y dentro de la aplicación. Los cambios significativos
-        requieren tu aceptación para seguir usando Kumo.
+        Si modificamos estos términos te avisamos por email y dentro de la app. Los cambios significativos requieren
+        tu aceptación para seguir usando Kumo.
       </p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">10. Ley aplicable</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">12. Ley aplicable</h2>
       <p>Estos términos se rigen por la legislación de Argentina, sin perjuicio de los derechos del consumidor.</p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">11. Contacto</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">13. Contacto</h2>
       <p>
-        Para cualquier consulta sobre estos términos:{' '}
-        <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>
+        Consultas sobre estos términos: <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>
       </p>
     </div>
   );
