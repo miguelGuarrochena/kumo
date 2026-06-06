@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Select, type SelectOption } from '@/components/Select';
 import { FiltersSheet, type Filters } from './FiltersSheet';
 import { useT } from '@/lib/i18n/client';
+import { useClickOutside } from '@/lib/useClickOutside';
 import type { ExpensesView, ArchiveYear } from './page';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
@@ -346,14 +347,7 @@ export function ExpensesClient({
                 </span>
               )}
             </button>
-            <a
-              href={buildExportUrl(filters)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
-              title="Exportar a Excel"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm font-medium">{t.expenses.export}</span>
-            </a>
+            <ExportMenu filters={filters} label={t.expenses.export} />
           </form>
 
           {/* Chips de filtros activos */}
@@ -1149,12 +1143,58 @@ function CurrencyInlineSelect({
 // Construye la URL del endpoint de export respetando los filtros actuales
 // (rango de fechas, moneda, pagado/pendiente). El resto se ignora porque
 // los gastos exportados son simplemente el subset visible.
-function buildExportUrl(filters: Filters): string {
+function buildExportUrl(filters: Filters, format: 'xlsx' | 'csv' = 'xlsx'): string {
   const params = new URLSearchParams();
+  params.set('format', format);
   if (filters.from)   params.set('from', filters.from);
   if (filters.to)     params.set('to', filters.to);
   if (filters.cur)    params.set('currency', filters.cur);
   if (filters.paid)   params.set('paid', filters.paid);
-  const qs = params.toString();
-  return qs ? `/api/export/expenses?${qs}` : '/api/export/expenses';
+  return `/api/export/expenses?${params.toString()}`;
 }
+
+// Botón con menú desplegable Excel / CSV
+function ExportMenu({ filters, label }: { filters: Filters; label: string }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useClickOutside(wrapRef, open, () => setOpen(false));
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <Download className="w-4 h-4" />
+        <span className="hidden sm:inline text-sm font-medium">{label}</span>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute z-50 right-0 top-full mt-1 min-w-[10rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden py-1"
+        >
+          <a
+            href={buildExportUrl(filters, 'xlsx')}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200"
+          >
+            <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 w-9">XLSX</span>
+            Excel
+          </a>
+          <a
+            href={buildExportUrl(filters, 'csv')}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200"
+          >
+            <span className="text-xs font-mono font-bold text-sky-600 dark:text-sky-400 w-9">CSV</span>
+            CSV plano
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+

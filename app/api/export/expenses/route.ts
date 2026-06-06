@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import * as XLSX from 'xlsx';
 
-// Exporta los gastos del usuario a un archivo Excel (.xlsx).
+// Exporta los gastos del usuario a Excel (.xlsx) o CSV (.csv).
 //
 // Soporta filtros opcionales por query string:
+//   ?format=xlsx|csv     default xlsx
 //   ?from=YYYY-MM-DD     fecha desde (expense_date >=)
 //   ?to=YYYY-MM-DD       fecha hasta (expense_date <=)
 //   ?currency=ARS        filtrar por moneda
@@ -47,10 +48,15 @@ export async function GET(request: Request) {
   if (!user) return new NextResponse('No autenticado', { status: 401 });
 
   const url = new URL(request.url);
+  const format = (url.searchParams.get('format') ?? 'xlsx').toLowerCase();
   const from = url.searchParams.get('from');
   const to = url.searchParams.get('to');
   const currency = url.searchParams.get('currency');
   const paid = url.searchParams.get('paid'); // 'paid' | 'pending' | null
+
+  if (format !== 'xlsx' && format !== 'csv') {
+    return new NextResponse('format inválido — usá xlsx o csv', { status: 400 });
+  }
 
   let q = supabase
     .from('expenses')
@@ -92,6 +98,25 @@ export async function GET(request: Request) {
       r.is_recurring ? (RECURRENCE_LABEL[r.recurrence_type ?? ''] ?? 'Sí') : 'No',
     ]),
   ];
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // -------- RAMA CSV --------
+  if (format === 'csv') {
+    const csv = buildCsv(sheetData);
+    // BOM al inicio para que Excel detecte UTF-8 (acentos)
+    const body = '﻿' + csv;
+    return new NextResponse(body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="kumo-gastos-${today}.csv"`,
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
+
+  // -------- RAMA XLSX --------
 
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
@@ -155,8 +180,6 @@ export async function GET(request: Request) {
   XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
 
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-
-  const today = new Date().toISOString().slice(0, 10);
   const filename = `kumo-gastos-${today}.xlsx`;
 
   return new NextResponse(buf, {
@@ -168,3 +191,20 @@ export async function GET(request: Request) {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// CSV builder — RFC 4180 compatible
+// ---------------------------------------------------------------------------
+
+const escapeCsvCell = (value: string | number | undefined | null): string => {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  // Si tiene coma, comilla, salto de línea, o empieza/termina con espacio,
+  // hay que entrecomillar y escapar comillas internas duplicándolas.
+  const needsQuoting = /[",\r\n]/.test(str) || /^\s|\s$/.test(str);
+  const escaped = str.replace(/"/g, '""');
+  return needsQuoting ? `"${escaped}"` : escaped;
+};
+
+const buildCsv = (rows: (string | number)[][]): string =>
+  rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
