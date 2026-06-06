@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import { CookieBanner } from '@/components/CookieBanner';
+import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider, themeInitScript } from '@/lib/theme';
 import { PostHogProvider } from '@/components/PostHogProvider';
@@ -113,6 +114,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <PostHogProvider>
           <ThemeProvider>
             <I18nProvider locale={locale}>
+              <ServiceWorkerRegister />
               {children}
               <CookieBanner />
               <Toaster
