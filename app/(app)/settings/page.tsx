@@ -82,6 +82,8 @@ const SettingsPage = async () => {
         origin={origin}
         workspaceId={ctx.workspaceId}
         workspaceName={ctx.workspaceName}
+        workspaceIcon={ctx.workspaceIcon}
+        workspaceColor={ctx.workspaceColor}
         isOwner={ctx.ownerId === user!.id}
         totalSpaces={spacesCount ?? 1}
       />

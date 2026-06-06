@@ -247,18 +247,24 @@ type WorkspacesRow = {
   id: string;
   name: string;
   owner_id: string;
+  icon: string;
+  color: string;
   created_at: string;
 };
 type WorkspacesInsert = {
   id?: string;
   name?: string;
   owner_id: string;
+  icon?: string;
+  color?: string;
   created_at?: string;
 };
 type WorkspacesUpdate = {
   id?: string;
   name?: string;
   owner_id?: string;
+  icon?: string;
+  color?: string;
   created_at?: string;
 };
 

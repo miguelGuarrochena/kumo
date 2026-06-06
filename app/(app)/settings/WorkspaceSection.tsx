@@ -3,13 +3,20 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Users, Plus, Shield, Eye, Trash2, Copy, Check, AlertTriangle } from 'lucide-react';
-import { createInvite, revokeInvite, removeMember, changeMemberRole, deleteWorkspace } from './workspaceActions';
+import { Users, Plus, Shield, Eye, Trash2, Copy, Check, AlertTriangle, Pencil } from 'lucide-react';
+import { createInvite, revokeInvite, removeMember, changeMemberRole, deleteWorkspace, updateWorkspaceMeta } from './workspaceActions';
 import { Select } from '@/components/Select';
 import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
 import { useT } from '@/lib/i18n/client';
+import {
+  WORKSPACE_ICON_KEYS,
+  WORKSPACE_COLORS,
+  WORKSPACE_COLOR_DOT,
+  getWorkspaceIcon,
+  getWorkspaceColorClass,
+} from '@/lib/workspaceTheme';
 
 export type Member = {
   user_id: string;
@@ -37,6 +44,8 @@ type Props = {
   origin: string;
   workspaceId: string;
   workspaceName: string;
+  workspaceIcon: string;
+  workspaceColor: string;
   isOwner: boolean;
   totalSpaces: number;
 };
@@ -48,6 +57,8 @@ export const WorkspaceSection = ({
   origin,
   workspaceId,
   workspaceName,
+  workspaceIcon,
+  workspaceColor,
   isOwner,
   totalSpaces,
 }: Props) => {
@@ -64,8 +75,29 @@ export const WorkspaceSection = ({
   const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const [emailErrorMsg, setEmailErrorMsg] = useState<string | null>(null);
   const [lastInvitedEmail, setLastInvitedEmail] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState(workspaceName);
+  const [editIcon, setEditIcon] = useState(workspaceIcon);
+  const [editColor, setEditColor] = useState(workspaceColor);
 
   const canDelete = isOwner && totalSpaces > 1;
+
+  const onSaveMeta = () => {
+    startTransition(async () => {
+      const result = await updateWorkspaceMeta({
+        name: editName.trim() || workspaceName,
+        icon: editIcon,
+        color: editColor,
+      });
+      if (result.ok) {
+        toast.success('✓');
+        setEditOpen(false);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? 'Error');
+      }
+    });
+  };
 
   const onDelete = () => {
     if (deleteConfirmText !== workspaceName) return;
@@ -137,30 +169,54 @@ export const WorkspaceSection = ({
     setMemberToRemove(null);
   };
 
+  const WsIcon = getWorkspaceIcon(workspaceIcon);
+  const wsClass = getWorkspaceColorClass(workspaceColor);
+
   return (
     <div className="kumo-card p-5">
+      {/* Header con avatar editable + nombre */}
       <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 grid place-items-center">
-            <Users className="w-5 h-5" />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-11 h-11 rounded-xl ${wsClass} grid place-items-center shrink-0`}>
+            <WsIcon className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="font-semibold">{t.workspace.title}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {t.workspace.subtitle}
-            </p>
+          <div className="min-w-0">
+            <h3 className="font-semibold truncate">{workspaceName}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t.workspace.title}</p>
           </div>
         </div>
-        {isAdmin && !inviteOpen && (
-          <button
-            onClick={() => setInviteOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg kumo-gradient text-white text-sm font-medium hover:opacity-90 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">{t.workspace.invite}</span>
-          </button>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditName(workspaceName);
+                setEditIcon(workspaceIcon);
+                setEditColor(workspaceColor);
+                setEditOpen(true);
+              }}
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+              aria-label={t.common.edit}
+              title={t.common.edit}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+          {isAdmin && !inviteOpen && (
+            <button
+              onClick={() => setInviteOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg kumo-gradient text-white text-sm font-medium hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{t.workspace.invite}</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 -mt-2">
+        {t.workspace.subtitle}
+      </p>
 
       {/* Form de invite */}
       {isAdmin && inviteOpen && (
@@ -375,6 +431,106 @@ export const WorkspaceSection = ({
           memberToRemove?.full_name ?? memberToRemove?.email ?? '',
         )}
       />
+
+      {/* Sheet de editar espacio: nombre + icono + color */}
+      <Sheet
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title={t.common.edit}
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditOpen(false)}
+              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
+            >
+              {t.common.cancel}
+            </button>
+            <button
+              type="button"
+              onClick={onSaveMeta}
+              disabled={!editName.trim()}
+              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {t.common.save}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {/* Preview */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+            <div className={`w-11 h-11 rounded-xl ${getWorkspaceColorClass(editColor)} grid place-items-center shrink-0`}>
+              {(() => {
+                const PreviewIcon = getWorkspaceIcon(editIcon);
+                return <PreviewIcon className="w-5 h-5" />;
+              })()}
+            </div>
+            <p className="font-medium truncate">{editName || workspaceName}</p>
+          </div>
+
+          {/* Nombre */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Nombre</label>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              maxLength={60}
+              autoFocus
+              className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            />
+          </div>
+
+          {/* Color */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Color</label>
+            <div className="grid grid-cols-9 gap-2">
+              {WORKSPACE_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setEditColor(c)}
+                  className={`aspect-square rounded-lg ${WORKSPACE_COLOR_DOT[c]} grid place-items-center transition-all active:scale-90 ${
+                    editColor === c
+                      ? 'ring-2 ring-offset-2 ring-slate-900 dark:ring-offset-slate-800 dark:ring-white'
+                      : ''
+                  }`}
+                  aria-label={c}
+                >
+                  {editColor === c && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Icono */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Ícono</label>
+            <div className="grid grid-cols-6 gap-2">
+              {WORKSPACE_ICON_KEYS.map((iconKey) => {
+                const Icon = getWorkspaceIcon(iconKey);
+                const active = editIcon === iconKey;
+                return (
+                  <button
+                    key={iconKey}
+                    type="button"
+                    onClick={() => setEditIcon(iconKey)}
+                    className={`p-2.5 rounded-xl border-2 transition-colors ${
+                      active
+                        ? 'border-sky-400 bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
+                    } active:scale-95`}
+                    aria-label={iconKey}
+                  >
+                    <Icon className="w-4 h-4 mx-auto" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </Sheet>
 
       {/* Sheet de confirmación de borrado con typing del nombre */}
       <Sheet

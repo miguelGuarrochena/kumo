@@ -17,6 +17,8 @@ const COOKIE_NAME = 'workspace_id';
 export type WorkspaceContext = {
   workspaceId: string;
   workspaceName: string;
+  workspaceIcon: string;
+  workspaceColor: string;
   role: WorkspaceRole;
   userId: string;
   ownerId: string;
@@ -45,7 +47,7 @@ export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> =
 
   const { data } = await supabase
     .from('workspace_members')
-    .select('workspace_id, role, workspaces(id, name, owner_id)')
+    .select('workspace_id, role, workspaces(id, name, owner_id, icon, color)')
     .eq('user_id', user.id)
     .order('joined_at', { ascending: true });
 
@@ -63,6 +65,8 @@ export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> =
   return {
     workspaceId: active.workspace_id,
     workspaceName: active.workspaces?.name ?? 'Mi espacio',
+    workspaceIcon: active.workspaces?.icon ?? 'home',
+    workspaceColor: active.workspaces?.color ?? 'sky',
     role: active.role as WorkspaceRole,
     userId: user.id,
     ownerId: active.workspaces?.owner_id ?? user.id,
@@ -118,6 +122,8 @@ export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
   return {
     workspaceId: ws.id,
     workspaceName: ws.name,
+    workspaceIcon: 'home',
+    workspaceColor: 'sky',
     role: 'admin',
     userId: user.id,
     ownerId: ws.owner_id,

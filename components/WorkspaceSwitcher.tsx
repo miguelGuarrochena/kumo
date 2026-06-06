@@ -8,11 +8,34 @@ import { createWorkspace, switchWorkspace } from '@/app/(app)/settings/workspace
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
 import { useT } from '@/lib/i18n/client';
 import { useClickOutside } from '@/lib/useClickOutside';
+import { getWorkspaceIcon, getWorkspaceColorClass } from '@/lib/workspaceTheme';
 
 export type WorkspaceOption = {
   id: string;
   name: string;
   role: WorkspaceRole;
+  icon: string;
+  color: string;
+};
+
+const WorkspaceAvatar = ({
+  icon,
+  color,
+  size = 'md',
+}: {
+  icon: string;
+  color: string;
+  size?: 'sm' | 'md';
+}) => {
+  const Icon = getWorkspaceIcon(icon);
+  const cls = getWorkspaceColorClass(color);
+  const dims = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
+  const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+  return (
+    <div className={`${dims} rounded-md grid place-items-center shrink-0 ${cls}`}>
+      <Icon className={iconSize} />
+    </div>
+  );
 };
 
 type Props = {
@@ -79,13 +102,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <div className={`w-7 h-7 rounded-md grid place-items-center text-xs font-bold shrink-0 ${
-          active.role === 'admin'
-            ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-            : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-        }`}>
-          {active.name.charAt(0).toUpperCase()}
-        </div>
+        <WorkspaceAvatar icon={active.icon} color={active.color} size="md" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{active.name}</p>
           <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -116,13 +133,7 @@ export const WorkspaceSwitcher = ({ workspaces, activeId }: Props) => {
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                     }`}
                   >
-                    <div className={`w-6 h-6 rounded-md grid place-items-center text-[10px] font-bold shrink-0 ${
-                      ws.role === 'admin'
-                        ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                    }`}>
-                      {ws.name.charAt(0).toUpperCase()}
-                    </div>
+                    <WorkspaceAvatar icon={ws.icon} color={ws.color} size="sm" />
                     <span className="flex-1 truncate text-left font-medium">{ws.name}</span>
                     <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-0.5 shrink-0">
                       {ws.role === 'admin' ? <Shield className="w-3 h-3" /> : <Eye className="w-3 h-3" />}

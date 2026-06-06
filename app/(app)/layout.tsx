@@ -11,6 +11,7 @@ import { UserIdentifier } from '@/components/UserIdentifier';
 import { NavigationProgress } from '@/components/NavigationProgress';
 import { WorkspaceSetup } from '@/components/WorkspaceSetup';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { CommandPalette } from '@/components/CommandPalette';
 import { findCurrentWorkspace } from '@/lib/workspace';
 import type { WorkspaceOption } from '@/components/WorkspaceSwitcher';
 
@@ -43,7 +44,7 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
   // Workspaces del usuario (para el switcher)
   const { data: rawMemberships } = await supabase
     .from('workspace_members')
-    .select('workspace_id, role, workspaces(id, name)')
+    .select('workspace_id, role, workspaces(id, name, icon, color)')
     .eq('user_id', user.id);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +53,8 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
       id: m.workspace_id,
       name: m.workspaces?.name ?? 'Mi espacio',
       role: m.role,
+      icon: m.workspaces?.icon ?? 'home',
+      color: m.workspaces?.color ?? 'sky',
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -85,6 +88,7 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
         <MobileNav />
       </div>
       <InstallPrompt />
+      <CommandPalette />
     </div>
   );
 };

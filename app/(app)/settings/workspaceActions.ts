@@ -19,6 +19,12 @@ const renameSchema = z.object({
   name: z.string().min(1, 'Nombre requerido').max(60),
 });
 
+const metaSchema = z.object({
+  name:  z.string().min(1, 'Nombre requerido').max(60).optional(),
+  icon:  z.string().min(1).max(40).optional(),
+  color: z.string().min(1).max(20).optional(),
+});
+
 export type ActionState = { ok: boolean; error?: string };
 
 /**
@@ -172,6 +178,34 @@ export const renameWorkspace = async (
     .eq('id', ctx.workspaceId);
   if (error) return { ok: false, error: error.message };
   revalidatePath('/settings');
+  return { ok: true };
+};
+
+/**
+ * Actualiza metadata del workspace activo: name, icon y/o color.
+ * Solo admins.
+ */
+export const updateWorkspaceMeta = async (patch: {
+  name?: string;
+  icon?: string;
+  color?: string;
+}): Promise<ActionState> => {
+  const parsed = metaSchema.safeParse(patch);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+
+  let ctx;
+  try { ctx = await requireAdmin(); } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('workspaces') as any)
+    .update(parsed.data)
+    .eq('id', ctx.workspaceId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/', 'layout');
   return { ok: true };
 };
 
