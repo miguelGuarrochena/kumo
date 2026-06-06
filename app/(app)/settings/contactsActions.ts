@@ -57,7 +57,14 @@ export async function upsertContact(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     : await (supabase.from('notification_contacts') as any).insert(payload);
 
-  if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+  if (error) {
+    const code = (error as { code?: string }).code;
+    const msg = (error as { message?: string }).message ?? 'Error';
+    if (code === '23505' || /duplicate|unique/i.test(msg)) {
+      return { ok: false, error: 'Ya existe un contacto "Yo" en este espacio.' };
+    }
+    return { ok: false, error: msg };
+  }
 
   revalidatePath('/settings');
   return { ok: true };
@@ -72,8 +79,6 @@ export async function deleteContact(id: string): Promise<ContactFormState> {
   }
   const supabase = await createClient();
 
-  // Si es is_self, solo permitimos borrarlo si hay más de uno.
-  // Esto cubre el caso de duplicados generados por el bug del bootstrap loop.
   const { data: contact } = await supabase
     .from('notification_contacts')
     .select('is_self')
@@ -98,10 +103,6 @@ export async function deleteContact(id: string): Promise<ContactFormState> {
   return { ok: true };
 }
 
-/**
- * Limpia duplicados de contactos is_self generados por el bootstrap loop.
- * Devuelve cuántos borró.
- */
 export async function cleanupDuplicateSelfContacts(): Promise<{ ok: boolean; deleted?: number; error?: string }> {
   let ctx;
   try {

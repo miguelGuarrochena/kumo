@@ -5,6 +5,7 @@ export type NotificationMessage = {
   to: string; // número o identificador del destinatario
   title: string;
   body: string;
+  lang?: 'es' | 'en_US';
   // metadatos opcionales (referencia al gasto, recordatorio, etc.)
   ref?: { type: 'expense' | 'reminder'; id: string };
 };

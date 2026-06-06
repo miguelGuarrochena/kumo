@@ -326,6 +326,22 @@ type WorkspaceInvitesUpdate = {
   created_at?: string;
 };
 
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'free';
+
+type SubscriptionsRow = {
+  user_id: string;
+  status: SubscriptionStatus;
+  trial_ends_at: string | null;
+  current_period_end: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+type SubscriptionsInsert = Partial<SubscriptionsRow> & { user_id: string };
+type SubscriptionsUpdate = Partial<SubscriptionsRow>;
+
 export type Database = {
   public: {
     Tables: {
@@ -383,6 +399,12 @@ export type Database = {
         Update: WorkspaceInvitesUpdate;
         Relationships: [];
       };
+      subscriptions: {
+        Row: SubscriptionsRow;
+        Insert: SubscriptionsInsert;
+        Update: SubscriptionsUpdate;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -403,6 +425,18 @@ export type Database = {
       delete_my_account: {
         Args: Record<string, never>;
         Returns: void;
+      };
+      delete_workspace_safe: {
+        Args: { ws_id: string };
+        Returns: void;
+      };
+      bootstrap_workspace_safe: {
+        Args: { ws_name: string };
+        Returns: string;
+      };
+      is_pro: {
+        Args: { uid?: string };
+        Returns: boolean;
       };
     };
     Enums: { [_ in never]: never };

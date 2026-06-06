@@ -49,16 +49,28 @@ export async function POST(request: Request) {
     ...reminders.map((r) => r.user_id),
   ]);
 
-  const [{ data: contactsRaw }, { data: settingsRaw }] = await Promise.all([
+  const [{ data: contactsRaw }, { data: settingsRaw }, { data: subsRaw }] = await Promise.all([
     supabase
       .from('notification_contacts')
       .select('*')
       .in('user_id', [...allUserIds]),
     supabase.from('user_settings').select('*').in('user_id', [...allUserIds]),
+    supabase
+      .from('subscriptions')
+      .select('user_id, status, trial_ends_at')
+      .in('user_id', [...allUserIds]),
   ]);
 
   const contacts = (contactsRaw ?? []) as Contact[];
   const settings = (settingsRaw ?? []) as Settings[];
+  const subs = (subsRaw ?? []) as { user_id: string; status: string; trial_ends_at: string | null }[];
+  const now = Date.now();
+  const proUsers = new Set(
+    subs.filter((s) =>
+      s.status === 'active' ||
+      (s.status === 'trialing' && s.trial_ends_at && new Date(s.trial_ends_at).getTime() > now),
+    ).map((s) => s.user_id),
+  );
 
   const contactsById = new Map<string, Contact>(contacts.map((c) => [c.id, c]));
   const settingsByUser = new Map<string, Settings>(settings.map((s) => [s.user_id, s]));
@@ -101,6 +113,7 @@ export async function POST(request: Request) {
   }
 
   for (const exp of dueExpenses) {
+    if (!proUsers.has(exp.user_id)) { skipped++; continue; }
     const userSettings = settingsByUser.get(exp.user_id);
     if (userSettings && !userSettings.notify_expenses) {
       skipped++;
@@ -116,7 +129,7 @@ export async function POST(request: Request) {
     for (const r of recipients) {
       const result = await wa.send({
         to: r.phone,
-        title: '🌥️ Vencimiento próximo · Kumo',
+        title: 'Vencimiento próximo · Kumo',
         body: `${exp.description ?? 'Gasto'} vence el ${exp.due_date}.\nMonto: ${exp.amount} ${exp.currency}`,
         ref: { type: 'expense', id: exp.id },
       });
@@ -125,6 +138,7 @@ export async function POST(request: Request) {
   }
 
   for (const rem of reminders) {
+    if (!proUsers.has(rem.user_id)) { skipped++; continue; }
     const userSettings = settingsByUser.get(rem.user_id);
     if (userSettings && !userSettings.notify_reminders) {
       skipped++;

@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getOcrProvider } from '@/lib/ocr';
+import { getSubscription } from '@/lib/subscription';
 
 export const maxDuration = 30; // segundos — OCR puede tardar varios
 
@@ -18,6 +19,14 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+  }
+
+  const sub = await getSubscription();
+  if (sub.tier !== 'pro') {
+    return NextResponse.json(
+      { error: 'OCR requiere Pro. Suscribite desde Configuración para reactivarlo.', code: 'PRO_REQUIRED' },
+      { status: 402 },
+    );
   }
 
   // --- Validación ----------------------------------------------------

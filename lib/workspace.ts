@@ -1,13 +1,3 @@
-// Helper para resolver el workspace activo del usuario en server components y actions.
-// El workspace activo se guarda en la cookie 'workspace_id'. Si no existe, usamos el
-// primero del que el usuario sea miembro (o el que es owner).
-//
-// Convenciones:
-//   - findCurrentWorkspace()    → null si no tiene workspace (no crea nada)
-//   - getCurrentWorkspace()     → throws si no se pudo resolver/crear
-//   - tryGetCurrentWorkspace()  → null en cualquier error (silencia)
-//   - requireAdmin()            → throws si no es admin
-
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
@@ -33,21 +23,11 @@ const CATEGORY_DEFAULTS = [
   { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
 ];
 
-/**
- * Resuelve el workspace activo SIN intentar crear nada.
- * Devuelve null si el usuario no tiene ninguno todavía.
- *
- * Esto sirve para que el layout pueda detectar el caso "user nuevo sin espacio"
- * y mostrar una pantalla de setup en vez de fallar/redirigir.
- */
 export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Usamos workspaces(*) para tolerar migraciones aún no corridas:
-  // si la columna icon/color no existe todavía, simplemente vienen como
-  // undefined y los reemplazamos con defaults abajo.
   const { data } = await supabase
     .from('workspace_members')
     .select('workspace_id, role, workspaces(*)')
@@ -55,13 +35,19 @@ export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> =
     .order('joined_at', { ascending: true });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const memberships = (data as any[]) ?? [];
+  const memberships = ((data as any[]) ?? []).filter((m) => m.workspaces != null);
   if (memberships.length === 0) return null;
 
   const c = await cookies();
   const cookieWs = c.get(COOKIE_NAME)?.value;
+  const fromCookie = cookieWs ? memberships.find((m) => m.workspace_id === cookieWs) : undefined;
+
+  if (cookieWs && !fromCookie) {
+    try { c.delete(COOKIE_NAME); } catch {}
+  }
+
   const active =
-    memberships.find((m) => m.workspace_id === cookieWs) ??
+    fromCookie ??
     memberships.find((m) => m.role === 'admin') ??
     memberships[0];
 
@@ -76,15 +62,10 @@ export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> =
   };
 };
 
-/**
- * Como findCurrentWorkspace pero TIRA si no hay user o si no se pudo resolver.
- * Si el usuario no tiene workspace, intenta crearlo on-the-fly.
- */
 export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
   const found = await findCurrentWorkspace();
   if (found) return found;
 
-  // Auto-recovery: crear workspace si no tiene ninguno
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('No autenticado');
@@ -133,9 +114,6 @@ export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
   };
 };
 
-/**
- * Versión segura para usar en queries — no tira nunca.
- */
 export const tryGetCurrentWorkspace = async (): Promise<WorkspaceContext | null> => {
   try {
     return await getCurrentWorkspace();
@@ -144,10 +122,6 @@ export const tryGetCurrentWorkspace = async (): Promise<WorkspaceContext | null>
   }
 };
 
-/**
- * Lanza error si el usuario no es admin del workspace activo.
- * Úsalo al principio de cada server action que escribe.
- */
 export const requireAdmin = async (): Promise<WorkspaceContext> => {
   const ctx = await getCurrentWorkspace();
   if (ctx.role !== 'admin') {
@@ -156,9 +130,6 @@ export const requireAdmin = async (): Promise<WorkspaceContext> => {
   return ctx;
 };
 
-/**
- * Setea la cookie del workspace activo (para el switcher).
- */
 export const setActiveWorkspace = async (workspaceId: string) => {
   const c = await cookies();
   c.set(COOKIE_NAME, workspaceId, {
@@ -166,6 +137,6 @@ export const setActiveWorkspace = async (workspaceId: string) => {
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 60 * 24 * 365, // 1 año
+    maxAge: 60 * 60 * 24 * 365,
   });
 };

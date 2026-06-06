@@ -51,7 +51,12 @@ export async function upsertCategory(
     : await (supabase.from('categories') as any).insert(payload);
 
   if (error) {
-    return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+    const code = (error as { code?: string }).code;
+    const msg = (error as { message?: string }).message ?? 'Error';
+    if (code === '23505' || /duplicate|unique/i.test(msg)) {
+      return { ok: false, error: 'Ya tenés una categoría con ese nombre.' };
+    }
+    return { ok: false, error: msg };
   }
 
   revalidatePath('/categories');

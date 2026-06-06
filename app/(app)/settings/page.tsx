@@ -3,13 +3,16 @@ import { createClient } from '@/lib/supabase/server';
 import { SettingsClient } from './SettingsClient';
 import { ContactsSection } from './ContactsSection';
 import { WorkspaceSection, type Member, type Invite } from './WorkspaceSection';
+import { PlanSection } from './PlanSection';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import { getSubscription } from '@/lib/subscription';
 
 const SettingsPage = async () => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const ctx = await getCurrentWorkspace();
+  const subscription = await getSubscription();
 
   const [
     { data: settings },
@@ -74,6 +77,8 @@ const SettingsPage = async () => {
           Contactos, moneda, zona horaria, tema y preferencias de notificación.
         </p>
       </header>
+
+      <PlanSection sub={subscription} />
 
       <WorkspaceSection
         members={members}

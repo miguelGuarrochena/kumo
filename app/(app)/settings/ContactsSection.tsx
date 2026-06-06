@@ -33,14 +33,12 @@ export function ContactsSection({ contacts }: { contacts: Contact[] }) {
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<Contact | null>(null);
 
-  // self primero, después por nombre
   const sorted = [...contacts].sort((a, b) => {
     if (a.is_self && !b.is_self) return -1;
     if (!a.is_self && b.is_self) return 1;
     return a.name.localeCompare(b.name);
   });
 
-  // Detección de duplicados is_self (efecto del bug viejo de bootstrap)
   const selfCount = contacts.filter((c) => c.is_self).length;
   const hasDuplicateSelves = selfCount > 1;
   const [cleaning, startClean] = useTransition();

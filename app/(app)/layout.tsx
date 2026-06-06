@@ -12,6 +12,7 @@ import { NavigationProgress } from '@/components/NavigationProgress';
 import { WorkspaceSetup } from '@/components/WorkspaceSetup';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { CommandPalette } from '@/components/CommandPalette';
+import { TrialBanner } from '@/components/TrialBanner';
 import { findCurrentWorkspace } from '@/lib/workspace';
 import type { WorkspaceOption } from '@/components/WorkspaceSwitcher';
 
@@ -21,7 +22,6 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
 
   if (!user) redirect('/auth/login');
 
-  // Busca workspace sin auto-crear. Si no existe, mostramos pantalla de setup.
   const ctx = await findCurrentWorkspace();
 
   if (!ctx) {
@@ -41,8 +41,6 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Workspaces del usuario (para el switcher).
-  // workspaces(*) tolera columnas faltantes si alguna migración no se corrió.
   const { data: rawMemberships } = await supabase
     .from('workspace_members')
     .select('workspace_id, role, workspaces(*)')
@@ -82,6 +80,9 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
           activeWorkspaceId={ctx.workspaceId}
         />
         <DesktopTopBar />
+        <Suspense fallback={null}>
+          <TrialBanner />
+        </Suspense>
         <main className="flex-1 flex flex-col pb-20 lg:pb-0 pt-4 lg:pt-10">
           <div className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">{children}</div>
           <Footer variant="app" />

@@ -114,7 +114,6 @@ export const SettingsClient = ({
   const [notifyReminders, setNotifyReminders] = useState(initialSettings?.notify_reminders ?? true);
   const [status, setStatus] = useState<SaveStatus>('idle');
 
-  // Evita ejecutar el auto-save en el primer render (mount).
   const firstRenderRef = useRef(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -163,7 +162,6 @@ export const SettingsClient = ({
 
   return (
     <div className="space-y-4">
-      {/* Indicador sticky de auto-save */}
       <div className="sticky top-0 z-10 -mx-1 px-1 pb-1">
         <div className="flex items-center justify-end gap-2 text-xs text-slate-500 dark:text-slate-400 min-h-[1.5rem]">
           {status === 'saving' && (
@@ -268,9 +266,6 @@ export const SettingsClient = ({
   );
 };
 
-// Zona de peligro: borrar la cuenta entera del user (y todos sus workspaces
-// donde es owner). Usa typing-confirm con la palabra "ELIMINAR" para evitar
-// clicks accidentales.
 const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -283,7 +278,6 @@ const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
       const result = await deleteAccount();
       if (result.ok) {
         toast.success('Cuenta eliminada');
-        // Hard nav al landing — la sesión ya está cerrada del lado del server
         window.location.href = '/';
       } else {
         toast.error(result.error ?? 'No se pudo eliminar');
@@ -414,10 +408,6 @@ const LanguageSection = () => {
   );
 };
 
-// Display name editable. Auto-save con debounce 600ms.
-// El nombre se guarda en supabase.auth.user_metadata.full_name vía
-// updateUser desde el cliente (no requiere server action porque el user
-// edita SUS propios metadatos).
 const ProfileSection = ({
   initialName,
   userEmail,
@@ -468,7 +458,6 @@ const ProfileSection = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
 
-  // Avatar = primer inicial del nombre o del email
   const initial = (name.trim() || userEmail).charAt(0).toUpperCase();
 
   return (
