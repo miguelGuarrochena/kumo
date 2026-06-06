@@ -14,7 +14,11 @@ export type AnalyticsEvent =
   | { name: 'onboarding_step_completed'; props: { step: 1 | 2 | 3 } }
   | { name: 'onboarding_skipped' }
   | { name: 'shopping_item_added' }
-  | { name: 'whatsapp_configured' };
+  | { name: 'whatsapp_configured' }
+  | { name: 'pwa_install_dismissed' }
+  | { name: 'pwa_install_clicked' }
+  | { name: 'pwa_install_result'; props: { outcome: 'accepted' | 'dismissed' } }
+  | { name: 'pwa_install_ios_help_shown' };
 
 /**
  * Manda un evento a PostHog. No-op si PostHog no está configurado.

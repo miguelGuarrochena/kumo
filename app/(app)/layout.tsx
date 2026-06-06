@@ -10,6 +10,7 @@ import { Footer } from '@/components/Footer';
 import { UserIdentifier } from '@/components/UserIdentifier';
 import { NavigationProgress } from '@/components/NavigationProgress';
 import { WorkspaceSetup } from '@/components/WorkspaceSetup';
+import { InstallPrompt } from '@/components/InstallPrompt';
 import { findCurrentWorkspace } from '@/lib/workspace';
 import type { WorkspaceOption } from '@/components/WorkspaceSwitcher';
 
@@ -83,6 +84,7 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
         </main>
         <MobileNav />
       </div>
+      <InstallPrompt />
     </div>
   );
 };
