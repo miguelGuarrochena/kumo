@@ -211,7 +211,8 @@ export const updateWorkspaceMeta = async (patch: {
 
 /**
  * Borra un workspace por completo. Solo el OWNER puede.
- * No permite borrar el único workspace del usuario (quedaría huérfano).
+ * Se permite borrar el único — en ese caso el user queda sin espacios y la próxima
+ * vez que entre al app va a ver la pantalla de Setup para crear uno nuevo.
  * El cascade de Postgres se encarga de borrar todas las filas asociadas
  * (expenses, reminders, shopping, categories, contacts, members, invites).
  */
@@ -232,17 +233,8 @@ export const deleteWorkspace = async (workspaceId: string): Promise<ActionState>
     return { ok: false, error: 'Solo el dueño puede eliminar' };
   }
 
-  // No puede borrar su único espacio
-  const { count } = await supabase
-    .from('workspace_members')
-    .select('workspace_id', { count: 'exact', head: true })
-    .eq('user_id', ctx.userId);
-  if ((count ?? 0) <= 1) {
-    return { ok: false, error: 'Es tu único espacio' };
-  }
-
   // Si están borrando el activo, primero limpiamos la cookie así getCurrentWorkspace
-  // cae al fallback (otro espacio del que sean miembros).
+  // cae al fallback (otro espacio del que sean miembros) o muestra Setup si no hay.
   if (workspaceId === ctx.workspaceId) {
     const c = await cookies();
     c.delete('workspace_id');
@@ -252,6 +244,31 @@ export const deleteWorkspace = async (workspaceId: string): Promise<ActionState>
   if (error) return { ok: false, error: error.message };
 
   revalidatePath('/', 'layout');
+  return { ok: true };
+};
+
+/**
+ * Borra la cuenta entera del user. Vía RPC SECURITY DEFINER (delete_my_account)
+ * porque borrar de auth.users requiere privilegios elevados. El cascade en DB
+ * limpia todos los workspaces donde es owner + members + datos.
+ *
+ * Después de borrar, cerramos la sesión así el redirect funciona.
+ */
+export const deleteAccount = async (): Promise<ActionState> => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'No autenticado' };
+
+  const { error } = await supabase.rpc('delete_my_account');
+  if (error) return { ok: false, error: error.message };
+
+  // Limpia cookie del workspace y signOut por las dudas
+  try {
+    const c = await cookies();
+    c.delete('workspace_id');
+  } catch { /* no-op */ }
+  try { await supabase.auth.signOut(); } catch { /* user ya no existe, ok */ }
+
   return { ok: true };
 };
 

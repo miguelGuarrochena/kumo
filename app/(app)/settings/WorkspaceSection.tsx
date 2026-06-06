@@ -80,7 +80,8 @@ export const WorkspaceSection = ({
   const [editIcon, setEditIcon] = useState(workspaceIcon);
   const [editColor, setEditColor] = useState(workspaceColor);
 
-  const canDelete = isOwner && totalSpaces > 1;
+  // El owner siempre puede borrar — si es el único espacio, queda en Setup
+  const isLastSpace = totalSpaces <= 1;
 
   const onSaveMeta = () => {
     startTransition(async () => {
@@ -108,7 +109,9 @@ export const WorkspaceSection = ({
         toast.success(t.workspace.deleted);
         setDeleteOpen(false);
         setDeleteConfirmText('');
-        router.refresh();
+        // Hard navigation así el layout vuelve a evaluar findCurrentWorkspace.
+        // Si era el único, va a aterrizar en la pantalla de Setup.
+        window.location.href = isLastSpace ? '/dashboard' : '/settings';
       } else {
         toast.error(result.error ?? 'Error');
       }
@@ -407,16 +410,14 @@ export const WorkspaceSection = ({
           <button
             type="button"
             onClick={() => setDeleteOpen(true)}
-            disabled={!canDelete}
-            title={!canDelete ? t.workspace.delete_only_one : undefined}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
             {t.workspace.delete}
           </button>
-          {!canDelete && (
+          {isLastSpace && (
             <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 italic">
-              {t.workspace.delete_only_one}
+              Es tu único espacio. Si lo borrás vas a tener que crear uno nuevo.
             </p>
           )}
         </div>

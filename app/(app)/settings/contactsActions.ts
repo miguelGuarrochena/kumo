@@ -64,14 +64,16 @@ export async function upsertContact(
 }
 
 export async function deleteContact(id: string): Promise<ContactFormState> {
+  let ctx;
   try {
-    await requireAdmin();
+    ctx = await requireAdmin();
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
   const supabase = await createClient();
 
-  // No permitir borrar el contacto propio (is_self)
+  // Si es is_self, solo permitimos borrarlo si hay más de uno.
+  // Esto cubre el caso de duplicados generados por el bug del bootstrap loop.
   const { data: contact } = await supabase
     .from('notification_contacts')
     .select('is_self')
@@ -79,7 +81,14 @@ export async function deleteContact(id: string): Promise<ContactFormState> {
     .single();
 
   if ((contact as { is_self?: boolean } | null)?.is_self) {
-    return { ok: false, error: 'No se puede borrar tu propio contacto.' };
+    const { count } = await supabase
+      .from('notification_contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('is_self', true);
+    if ((count ?? 0) <= 1) {
+      return { ok: false, error: 'No podés borrar tu único contacto. Editalo para cambiar nombre/número.' };
+    }
   }
 
   const { error } = await supabase.from('notification_contacts').delete().eq('id', id);
@@ -87,4 +96,22 @@ export async function deleteContact(id: string): Promise<ContactFormState> {
 
   revalidatePath('/settings');
   return { ok: true };
+}
+
+/**
+ * Limpia duplicados de contactos is_self generados por el bootstrap loop.
+ * Devuelve cuántos borró.
+ */
+export async function cleanupDuplicateSelfContacts(): Promise<{ ok: boolean; deleted?: number; error?: string }> {
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('cleanup_duplicate_self_contacts', { ws_id: ctx.workspaceId });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/settings');
+  return { ok: true, deleted: (data as number) ?? 0 };
 }

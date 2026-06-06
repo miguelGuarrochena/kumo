@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { upsertContact, deleteContact } from './contactsActions';
+import { upsertContact, deleteContact, cleanupDuplicateSelfContacts } from './contactsActions';
 import type { Database } from '@/lib/supabase/database.types';
 
 type Contact = Database['public']['Tables']['notification_contacts']['Row'];
@@ -40,6 +40,11 @@ export function ContactsSection({ contacts }: { contacts: Contact[] }) {
     return a.name.localeCompare(b.name);
   });
 
+  // Detección de duplicados is_self (efecto del bug viejo de bootstrap)
+  const selfCount = contacts.filter((c) => c.is_self).length;
+  const hasDuplicateSelves = selfCount > 1;
+  const [cleaning, startClean] = useTransition();
+
   const onDelete = async () => {
     if (!toDelete) return;
     const result = await deleteContact(toDelete.id);
@@ -49,6 +54,22 @@ export function ContactsSection({ contacts }: { contacts: Contact[] }) {
     } else {
       toast.error(result.error ?? 'No se pudo eliminar');
     }
+  };
+
+  const onCleanupDuplicates = () => {
+    startClean(async () => {
+      const result = await cleanupDuplicateSelfContacts();
+      if (result.ok) {
+        toast.success(
+          result.deleted && result.deleted > 0
+            ? `${result.deleted} ${result.deleted === 1 ? 'duplicado eliminado' : 'duplicados eliminados'}`
+            : 'No había duplicados',
+        );
+        router.refresh();
+      } else {
+        toast.error(result.error ?? 'No se pudo limpiar');
+      }
+    });
   };
 
   return (
@@ -72,6 +93,22 @@ export function ContactsSection({ contacts }: { contacts: Contact[] }) {
           <span className="hidden sm:inline">Agregar</span>
         </button>
       </div>
+
+      {hasDuplicateSelves && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2">
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            Detectamos {selfCount} contactos &ldquo;Yo&rdquo; duplicados. Podés limpiarlos dejando solo uno.
+          </p>
+          <button
+            type="button"
+            onClick={onCleanupDuplicates}
+            disabled={cleaning}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600 disabled:opacity-50"
+          >
+            {cleaning ? 'Limpiando...' : 'Limpiar duplicados'}
+          </button>
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6">
@@ -156,15 +193,13 @@ function ContactRow({
         >
           <Pencil className="w-4 h-4" />
         </button>
-        {!contact.is_self && (
-          <button
-            onClick={onDelete}
-            className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/20 text-rose-500"
-            aria-label="Borrar"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+        <button
+          onClick={onDelete}
+          className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/20 text-rose-500"
+          aria-label="Borrar"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );

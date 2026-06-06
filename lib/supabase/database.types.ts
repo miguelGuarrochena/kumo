@@ -396,6 +396,14 @@ export type Database = {
           full_name: string | null;
         }[];
       };
+      cleanup_duplicate_self_contacts: {
+        Args: { ws_id: string };
+        Returns: number;
+      };
+      delete_my_account: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
