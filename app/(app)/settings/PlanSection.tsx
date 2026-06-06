@@ -58,6 +58,12 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
   };
 
   const isPaying = sub.status === 'active';
+  const isInTrial = sub.status === 'trialing';
+  const trialDaysLeft = sub.daysLeftInTrial ?? 0;
+  // Durante el trial con margen (>7 días), no mostramos checkout — el user ya
+  // está en Pro y suscribirse ahora no le suma nada. Aparece cuando faltan
+  // pocos días o cuando el trial terminó.
+  const showCheckout = !isPaying && (!isInTrial || trialDaysLeft <= 7);
   const dateFmt = (d: Date) => d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR');
 
   return (
@@ -80,7 +86,7 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
         </div>
       </div>
 
-      {isPaying ? (
+      {isPaying && (
         <div className="space-y-3">
           <div className="rounded-xl border border-mint-200 dark:border-mint-500/30 bg-mint-50 dark:bg-mint-500/10 p-3">
             <div className="flex items-start gap-2 text-sm text-mint-700 dark:text-mint-200">
@@ -105,38 +111,64 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
             {tb.cancel_button}
           </button>
         </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 gap-3">
-          <PlanCard
-            title={tb.plan_monthly}
-            price={priceMonthly}
-            period={tb.per_month}
-            highlight={false}
-            loading={loading === 'monthly'}
-            labelSubscribe={tb.subscribe_button}
-            labelOpening={tb.opening_provider}
-            onClick={() => openCheckout('monthly')}
-          />
-          <PlanCard
-            title={tb.plan_yearly}
-            price={priceYearly}
-            period={tb.per_year}
-            saveLabel={tb.save_label.replace('{pct}', String(yearlySavingsPct))}
-            highlight
-            loading={loading === 'yearly'}
-            labelSubscribe={tb.subscribe_button}
-            labelOpening={tb.opening_provider}
-            onClick={() => openCheckout('yearly')}
-          />
+      )}
+
+      {!isPaying && isInTrial && !showCheckout && (
+        <div className="space-y-3">
+          <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
+            <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-200">
+              <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">{tb.trial_active_label}</p>
+                {sub.trialEndsAt && (
+                  <p className="text-xs opacity-80 mt-0.5">
+                    {tb.trial_active_until.replace('{date}', dateFmt(sub.trialEndsAt))}
+                  </p>
+                )}
+                <p className="text-xs opacity-80 mt-1.5">{tb.trial_active_desc}</p>
+              </div>
+            </div>
+          </div>
+          <ul className="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+            <Feature>{tb.feature_ocr}</Feature>
+            <Feature>{tb.feature_spaces}</Feature>
+            <Feature>{tb.feature_history}</Feature>
+          </ul>
         </div>
       )}
 
-      {!isPaying && (
-        <ul className="mt-4 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
-          <Feature>{tb.feature_ocr}</Feature>
-          <Feature>{tb.feature_spaces}</Feature>
-          <Feature>{tb.feature_history}</Feature>
-        </ul>
+      {showCheckout && (
+        <>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <PlanCard
+              title={tb.plan_monthly}
+              price={priceMonthly}
+              period={tb.per_month}
+              highlight={false}
+              loading={loading === 'monthly'}
+              labelSubscribe={tb.subscribe_button}
+              labelOpening={tb.opening_provider}
+              onClick={() => openCheckout('monthly')}
+            />
+            <PlanCard
+              title={tb.plan_yearly}
+              price={priceYearly}
+              period={tb.per_year}
+              saveLabel={tb.save_label.replace('{pct}', String(yearlySavingsPct))}
+              highlight
+              loading={loading === 'yearly'}
+              labelSubscribe={tb.subscribe_button}
+              labelOpening={tb.opening_provider}
+              onClick={() => openCheckout('yearly')}
+            />
+          </div>
+
+          <ul className="mt-4 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+            <Feature>{tb.feature_ocr}</Feature>
+            <Feature>{tb.feature_spaces}</Feature>
+            <Feature>{tb.feature_history}</Feature>
+          </ul>
+        </>
       )}
 
       <ConfirmDialog

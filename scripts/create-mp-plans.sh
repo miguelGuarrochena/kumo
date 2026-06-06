@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Crea los 2 planes de suscripción de Kumo Pro en MercadoPago, en ARS.
+# Sin free_trial en MP — el trial 90 días lo maneja Kumo (tabla subscriptions).
 # Uso:
 #   export MP_ACCESS_TOKEN="APP_USR-tu-access-token"
 #   bash scripts/create-mp-plans.sh
@@ -12,7 +13,7 @@ if [ -z "$MP_ACCESS_TOKEN" ]; then
   exit 1
 fi
 
-echo "Creando plan MENSUAL (ARS 3.500 / mes, 90 días trial)..."
+echo "Creando plan MENSUAL (ARS 3.500 / mes)..."
 curl -s -X POST "https://api.mercadopago.com/preapproval_plan" \
   -H "Authorization: Bearer $MP_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
@@ -22,15 +23,14 @@ curl -s -X POST "https://api.mercadopago.com/preapproval_plan" \
       "frequency": 1,
       "frequency_type": "months",
       "transaction_amount": 3500,
-      "currency_id": "ARS",
-      "free_trial": { "frequency": 90, "frequency_type": "days" }
+      "currency_id": "ARS"
     },
     "back_url": "https://kumo-app.com/settings?subscribed=1"
   }' | tee /tmp/mp_monthly.json
 echo ""
 echo ""
 
-echo "Creando plan ANUAL (ARS 35.000 / año, 90 días trial)..."
+echo "Creando plan ANUAL (ARS 35.000 / año)..."
 curl -s -X POST "https://api.mercadopago.com/preapproval_plan" \
   -H "Authorization: Bearer $MP_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
@@ -40,8 +40,7 @@ curl -s -X POST "https://api.mercadopago.com/preapproval_plan" \
       "frequency": 12,
       "frequency_type": "months",
       "transaction_amount": 35000,
-      "currency_id": "ARS",
-      "free_trial": { "frequency": 90, "frequency_type": "days" }
+      "currency_id": "ARS"
     },
     "back_url": "https://kumo-app.com/settings?subscribed=1"
   }' | tee /tmp/mp_yearly.json
@@ -56,7 +55,6 @@ echo "Listo. Pegá esto en tu .env.local y en Vercel:"
 echo ""
 echo "MP_PLAN_MONTHLY=$MONTHLY_ID"
 echo "MP_PLAN_YEARLY=$YEARLY_ID"
-echo "NEXT_PUBLIC_PRICE_MONTHLY=ARS 3.500"
-echo "NEXT_PUBLIC_PRICE_YEARLY=ARS 35.000"
-echo "NEXT_PUBLIC_PRICE_YEARLY_PCT=17"
+echo ""
+echo "(el trial 90 días lo maneja Kumo, no MP)"
 echo "========================================"
