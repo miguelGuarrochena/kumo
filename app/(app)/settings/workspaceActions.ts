@@ -1,11 +1,13 @@
 'use server';
 
 import { randomBytes } from 'node:crypto';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getCurrentWorkspace, requireAdmin, setActiveWorkspace, findCurrentWorkspace } from '@/lib/workspace';
+import { sendEmail } from '@/lib/email';
+import { renderInviteEmail } from '@/lib/email/templates';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
 
 const inviteSchema = z.object({
@@ -20,14 +22,14 @@ const renameSchema = z.object({
 export type ActionState = { ok: boolean; error?: string };
 
 /**
- * Genera un invite con un token único y lo guarda en la DB.
- * Devuelve el link para que el admin lo pueda compartir manualmente.
- * (En una futura iteración, podemos disparar un email desde acá.)
+ * Genera un invite con un token único, lo guarda en la DB y manda el email
+ * con el link de aceptación. Si el email falla (provider down, env vars
+ * faltantes), igual devuelve el link para que el admin lo comparta a mano.
  */
 export const createInvite = async (
   _prev: ActionState,
   formData: FormData,
-): Promise<ActionState & { inviteLink?: string }> => {
+): Promise<ActionState & { inviteLink?: string; emailSent?: boolean; emailError?: string }> => {
   const parsed = inviteSchema.safeParse({
     email: formData.get('email'),
     role: formData.get('role') || 'reader',
@@ -55,9 +57,47 @@ export const createInvite = async (
 
   revalidatePath('/settings');
 
-  // Construyo el link con el dominio del request (en client lo armamos)
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kumo-app.com';
-  return { ok: true, inviteLink: `${origin}/accept-invite?token=${token}` };
+  // Origin para el link — preferimos el header del request (más preciso que env)
+  let origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kumo-app.com';
+  try {
+    const h = await headers();
+    const host = h.get('x-forwarded-host') ?? h.get('host');
+    const proto = h.get('x-forwarded-proto') ?? 'https';
+    if (host) origin = `${proto}://${host}`;
+  } catch {
+    // En algunos contextos headers() no está disponible — usamos el env
+  }
+  const inviteLink = `${origin}/accept-invite?token=${token}`;
+
+  // Mando el email. Si falla, no rompemos el flow — el admin puede copiar
+  // el link manualmente desde la UI.
+  const { data: inviter } = await supabase.auth.getUser();
+  const inviterName =
+    inviter.user?.user_metadata?.full_name?.split(' ')[0] ??
+    inviter.user?.email?.split('@')[0] ??
+    'Alguien';
+
+  const rendered = renderInviteEmail({
+    inviteeEmail: parsed.data.email,
+    inviterName,
+    workspaceName: ctx.workspaceName,
+    role: parsed.data.role,
+    acceptLink: inviteLink,
+  });
+
+  const send = await sendEmail({
+    to: parsed.data.email,
+    subject: rendered.subject,
+    html: rendered.html,
+    replyTo: inviter.user?.email ?? undefined,
+  });
+
+  return {
+    ok: true,
+    inviteLink,
+    emailSent: send.ok,
+    emailError: send.ok ? undefined : send.error,
+  };
 };
 
 export const revokeInvite = async (id: string): Promise<ActionState> => {

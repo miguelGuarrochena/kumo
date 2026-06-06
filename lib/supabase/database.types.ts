@@ -379,7 +379,18 @@ export type Database = {
       };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      get_workspace_members: {
+        Args: { ws_id: string };
+        Returns: {
+          user_id: string;
+          role: WorkspaceRole;
+          joined_at: string;
+          email: string | null;
+          full_name: string | null;
+        }[];
+      };
+    };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };

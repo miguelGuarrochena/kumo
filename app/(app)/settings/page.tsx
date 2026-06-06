@@ -20,11 +20,8 @@ const SettingsPage = async () => {
   ] = await Promise.all([
     supabase.from('user_settings').select('*').eq('user_id', user!.id).single(),
     supabase.from('notification_contacts').select('*').order('created_at', { ascending: true }),
-    supabase
-      .from('workspace_members')
-      .select('user_id, role, joined_at')
-      .eq('workspace_id', ctx.workspaceId)
-      .order('joined_at', { ascending: true }),
+    // RPC con SECURITY DEFINER que trae emails reales de auth.users
+    supabase.rpc('get_workspace_members', { ws_id: ctx.workspaceId }),
     ctx.role === 'admin'
       ? supabase
           .from('workspace_invites')
@@ -42,18 +39,13 @@ const SettingsPage = async () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const memberRows = (membersRaw ?? []) as any[];
-  const userIds = memberRows.map((m) => m.user_id);
 
-  // Hidratamos nombres y emails de auth.users. Como no podemos selectear de
-  // auth.users directamente con RLS desde el cliente, dependemos del único caso
-  // que tenemos: el self. Para el resto, mostramos el id parcial.
-  // (Una mejora futura: una function RPC que devuelva email por user_id.)
   const members: Member[] = memberRows.map((m) => ({
     user_id: m.user_id,
     role: m.role,
     joined_at: m.joined_at,
-    email: m.user_id === user!.id ? user!.email ?? null : null,
-    full_name: m.user_id === user!.id ? user!.user_metadata?.full_name ?? null : null,
+    email: m.email ?? null,
+    full_name: m.full_name ?? null,
     is_owner: m.user_id === ctx.ownerId,
     is_me: m.user_id === user!.id,
   }));

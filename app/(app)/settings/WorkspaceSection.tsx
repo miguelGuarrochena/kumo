@@ -61,6 +61,9 @@ export const WorkspaceSection = ({
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [emailSent, setEmailSent] = useState<boolean | null>(null);
+  const [emailErrorMsg, setEmailErrorMsg] = useState<string | null>(null);
+  const [lastInvitedEmail, setLastInvitedEmail] = useState<string | null>(null);
 
   const canDelete = isOwner && totalSpaces > 1;
 
@@ -85,13 +88,21 @@ export const WorkspaceSection = ({
     const fd = new FormData();
     fd.set('email', email.trim());
     fd.set('role', role);
+    const invitedEmail = email.trim();
     startTransition(async () => {
       const result = await createInvite({ ok: false }, fd);
       if (result.ok) {
         const link = result.inviteLink ?? '';
         setLinkJustCreated(link);
+        setLastInvitedEmail(invitedEmail);
+        setEmailSent(result.emailSent ?? false);
+        setEmailErrorMsg(result.emailError ?? null);
         setEmail('');
-        toast.success(t.workspace.invite_created);
+        toast.success(
+          result.emailSent
+            ? `Invitación enviada a ${invitedEmail}`
+            : t.workspace.invite_created,
+        );
         router.refresh();
       } else {
         toast.error(result.error ?? 'Error');
@@ -190,17 +201,35 @@ export const WorkspaceSection = ({
           </div>
 
           {linkJustCreated && (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sm">
-              <Check className="w-4 h-4 text-mint-500 shrink-0" />
-              <code className="flex-1 text-xs truncate text-slate-700 dark:text-slate-200">{linkJustCreated}</code>
-              <button
-                type="button"
-                onClick={() => copyLink(linkJustCreated)}
-                className="p-1.5 rounded text-slate-500 hover:bg-white dark:hover:bg-slate-800"
-                title="Copiar"
-              >
-                <Copy className="w-3.5 h-3.5" />
-              </button>
+            <div className="space-y-1.5">
+              {emailSent ? (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-mint-50 dark:bg-mint-500/10 border border-mint-200 dark:border-mint-500/30 text-sm">
+                  <Check className="w-4 h-4 text-mint-500 shrink-0" />
+                  <span className="text-mint-700 dark:text-mint-300">
+                    Invitación enviada a <strong>{lastInvitedEmail}</strong>
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {emailErrorMsg && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 px-1">
+                      No se pudo enviar el email automáticamente — compartí el link a mano:
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sm">
+                    <Check className="w-4 h-4 text-mint-500 shrink-0" />
+                    <code className="flex-1 text-xs truncate text-slate-700 dark:text-slate-200">{linkJustCreated}</code>
+                    <button
+                      type="button"
+                      onClick={() => copyLink(linkJustCreated)}
+                      className="p-1.5 rounded text-slate-500 hover:bg-white dark:hover:bg-slate-800"
+                      title={t.workspace.copy_link}
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </form>

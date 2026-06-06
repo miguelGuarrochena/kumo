@@ -1,9 +1,12 @@
 import Link from 'next/link';
+import { Coffee } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 
 type Props = {
   variant?: 'public' | 'app';
 };
+
+const DONATE_URL = process.env.NEXT_PUBLIC_DONATE_URL ?? 'https://cafecito.app/miguelguarrochena';
 
 export const Footer = ({ variant = 'public' }: Props) => (
   <footer
@@ -32,6 +35,16 @@ export const Footer = ({ variant = 'public' }: Props) => (
       </div>
 
       <div className="flex items-center justify-end gap-5">
+        <a
+          href={DONATE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+          title="Invitanos un cafecito"
+        >
+          <Coffee className="w-3.5 h-3.5" />
+          <span>cafecito</span>
+        </a>
         <Link href="/legal/privacy" className="hover:text-slate-700 dark:hover:text-slate-300">
           Privacidad
         </Link>
