@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { MetricsClient } from './MetricsClient';
 import { getRates, type Currency } from '@/lib/currency';
+import { getCurrentWorkspace } from '@/lib/workspace';
 
 export type MetricsPeriod = 'day' | 'week' | 'month' | 'year';
 
@@ -16,6 +17,7 @@ export default async function MetricsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const supabase = await createClient();
+  const ctx = await getCurrentWorkspace();
   const params = await searchParams;
 
   const period: MetricsPeriod = (['day', 'week', 'month', 'year'].includes(params.period ?? '')
@@ -39,19 +41,22 @@ export default async function MetricsPage({
     supabase
       .from('expenses')
       .select('id, amount, currency, expense_date, description, category_id, categories(name, color)')
+      .eq('workspace_id', ctx.workspaceId)
       .gte('expense_date', start)
       .lte('expense_date', end),
     supabase
       .from('expenses')
       .select('id, amount, currency, expense_date')
+      .eq('workspace_id', ctx.workspaceId)
       .gte('expense_date', prevStart)
       .lte('expense_date', prevEnd),
     supabase
       .from('expenses')
       .select('id, amount, currency, expense_date')
+      .eq('workspace_id', ctx.workspaceId)
       .gte('expense_date', trailStart)
       .lte('expense_date', end),
-    supabase.from('categories').select('*'),
+    supabase.from('categories').select('*').eq('workspace_id', ctx.workspaceId),
     supabase.from('user_settings').select('default_currency').single(),
     getRates(),
   ]);

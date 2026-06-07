@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { CalendarClient } from './CalendarClient';
 import { type Currency } from '@/lib/currency';
 import { countryFromTimezone } from '@/lib/holidays';
+import { getCurrentWorkspace } from '@/lib/workspace';
 
 type SearchParams = {
   month?: string;
@@ -18,6 +19,7 @@ const CalendarPage = async ({
   searchParams: Promise<SearchParams>;
 }) => {
   const supabase = await createClient();
+  const ctx = await getCurrentWorkspace();
   const params = await searchParams;
 
   const now = new Date();
@@ -60,22 +62,26 @@ const CalendarPage = async ({
     supabase
       .from('expenses')
       .select('id, description, amount, currency, due_date, expense_date, paid, categories(name, color)')
+      .eq('workspace_id', ctx.workspaceId)
       .not('due_date', 'is', null)
       .gte('due_date', queryStart)
       .lte('due_date', queryEnd),
     supabase
       .from('reminders')
       .select('id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
+      .eq('workspace_id', ctx.workspaceId)
       .gte('reminder_date', queryStart)
       .lte('reminder_date', queryEnd),
     supabase
       .from('reminders')
       .select('id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
+      .eq('workspace_id', ctx.workspaceId)
       .order('reminder_date', { ascending: true }),
     supabase.from('user_settings').select('default_currency, timezone').eq('user_id', userId).maybeSingle(),
     supabase
       .from('notification_contacts')
       .select('id, name, relationship, is_self, phone')
+      .eq('workspace_id', ctx.workspaceId)
       .order('created_at'),
   ]);
 

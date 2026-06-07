@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ExpensesClient } from './ExpensesClient';
 import { getRates, type Currency } from '@/lib/currency';
 import { getSubscription } from '@/lib/subscription';
+import { getCurrentWorkspace } from '@/lib/workspace';
 
 export type ExpensesView = 'month' | 'all' | 'archive';
 
@@ -44,12 +45,15 @@ export default async function ExpensesPage({
   let expenses: Array<Record<string, unknown>> = [];
   let archiveYears: ArchiveYear[] = [];
 
+  const ctx = await getCurrentWorkspace();
+
   const [{ data: categories }, { data: settings }, { data: contacts }, rates, subscription] = await Promise.all([
-    supabase.from('categories').select('*').order('name'),
+    supabase.from('categories').select('*').eq('workspace_id', ctx.workspaceId).order('name'),
     supabase.from('user_settings').select('default_currency').single(),
     supabase
       .from('notification_contacts')
       .select('id, name, relationship, is_self, phone')
+      .eq('workspace_id', ctx.workspaceId)
       .order('created_at'),
     getRates(),
     getSubscription(),
@@ -63,6 +67,7 @@ export default async function ExpensesPage({
     const { data: all } = await supabase
       .from('expenses')
       .select('id, amount, currency, expense_date')
+      .eq('workspace_id', ctx.workspaceId)
       .order('expense_date', { ascending: false });
 
     type Mini = { id: string; amount: number; currency: string; expense_date: string };
@@ -84,12 +89,16 @@ export default async function ExpensesPage({
     // Vista month o all
     let query = supabase
       .from('expenses')
-      .select('*, categories(id, name, icon, color)');
+      .select('*, categories(id, name, icon, color)')
+      .eq('workspace_id', ctx.workspaceId);
 
     if (view === 'month') {
-      const monthStart = `${monthStr}-01`;
-      const monthEnd = `${monthStr}-31`;
-      query = query.gte('expense_date', monthStart).lte('expense_date', monthEnd);
+      const [y, m] = monthStr.split('-').map(Number) as [number, number];
+      const monthStart = `${y}-${String(m).padStart(2, '0')}-01`;
+      const nextMonth = m === 12
+        ? `${y + 1}-01-01`
+        : `${y}-${String(m + 1).padStart(2, '0')}-01`;
+      query = query.gte('expense_date', monthStart).lt('expense_date', nextMonth);
     } else {
       // Filtros para vista "Todos"
       if (params.from) query = query.gte('expense_date', params.from);

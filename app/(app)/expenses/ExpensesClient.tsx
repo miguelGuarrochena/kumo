@@ -114,8 +114,10 @@ export function ExpensesClient({
     const previewUrl = URL.createObjectURL(file);
     setOcrPreviewUrl(previewUrl);
     setOcrLoading(true);
+    const { resizeImage } = await import('@/lib/image');
+    const compressed = await resizeImage(file);
     const fd = new FormData();
-    fd.set('image', file);
+    fd.set('image', compressed, 'ticket.jpg');
     try {
       const res = await fetch('/api/ocr', { method: 'POST', body: fd });
       const data = await res.json();

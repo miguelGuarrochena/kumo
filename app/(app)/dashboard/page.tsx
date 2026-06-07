@@ -8,10 +8,12 @@ import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { getMessages } from '@/lib/i18n/server';
 import { getRates, formatMoney, type Currency } from '@/lib/currency';
 import { todayKey, parseLocalDate, daysBetween } from '@/lib/date';
+import { getCurrentWorkspace } from '@/lib/workspace';
 
 const DashboardPage = async () => {
   const supabase = await createClient();
   const t = await getMessages();
+  const ctx = await getCurrentWorkspace();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -38,38 +40,38 @@ const DashboardPage = async () => {
     { data: recentExpenses },
     rates,
   ] = await Promise.all([
-    supabase.from('expenses').select('*', { count: 'exact', head: true }),
-    supabase.from('reminders').select('*', { count: 'exact', head: true }),
-    supabase.from('shopping_items').select('*', { count: 'exact', head: true }).eq('bought', false),
+    supabase.from('expenses').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
+    supabase.from('reminders').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
+    supabase.from('shopping_items').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId).eq('bought', false),
     supabase.from('user_settings').select('onboarded, whatsapp_number, default_currency').eq('user_id', user?.id ?? '').maybeSingle(),
-    supabase.from('notification_contacts').select('phone').eq('user_id', user?.id ?? '').eq('is_self', true).maybeSingle(),
-    // Total gastado en el mes actual
+    supabase.from('notification_contacts').select('phone').eq('workspace_id', ctx.workspaceId).eq('is_self', true).maybeSingle(),
     supabase
       .from('expenses')
       .select('amount, currency')
+      .eq('workspace_id', ctx.workspaceId)
       .gte('expense_date', monthStart),
-    // Vencimientos próximos (gastos con due_date pendientes en los próximos 7 días)
     supabase
       .from('expenses')
       .select('id, description, amount, currency, due_date, categories(name, color)')
+      .eq('workspace_id', ctx.workspaceId)
       .not('due_date', 'is', null)
       .eq('paid', false)
       .gte('due_date', today)
       .lte('due_date', in7Days)
       .order('due_date', { ascending: true })
       .limit(5),
-    // Recordatorios próximos 7 días
     supabase
       .from('reminders')
       .select('id, title, reminder_date, reminder_time, reminder_type')
+      .eq('workspace_id', ctx.workspaceId)
       .gte('reminder_date', today)
       .lte('reminder_date', in7Days)
       .order('reminder_date', { ascending: true })
       .limit(5),
-    // Últimos 5 gastos cargados
     supabase
       .from('expenses')
       .select('id, description, amount, currency, expense_date, categories(name, color)')
+      .eq('workspace_id', ctx.workspaceId)
       .order('expense_date', { ascending: false })
       .limit(5),
     getRates().catch(() => ({ rates: {} as Partial<Record<Currency, number>>, base: 'USD' as Currency, fetchedAt: 0 })),

@@ -11,7 +11,8 @@
 //
 // Cierre por click-fuera, Escape, o tap en la opción.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search as SearchIcon, X } from 'lucide-react';
 import { useClickOutside } from '@/lib/useClickOutside';
 
@@ -66,7 +67,41 @@ export const Select = ({
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  const recalcPos = () => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const panelH = Math.min(288, vh * 0.7);
+    const spaceBelow = vh - r.bottom;
+    const openUp = spaceBelow < panelH + 16 && r.top > spaceBelow;
+    setPos({
+      top: openUp ? Math.max(8, r.top - panelH - 4) : r.bottom + 4,
+      left: r.left,
+      width: r.width,
+      openUp,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    recalcPos();
+    const onScroll = () => recalcPos();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [open]);
 
   const allOptions = useMemo(() => flattenOptions(options, groups), [options, groups]);
   const current = allOptions.find((o) => o.value === value) ?? null;
@@ -79,7 +114,24 @@ export const Select = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  useClickOutside(containerRef, open, () => setOpen(false));
+  // Click fuera del trigger Y del panel cierra (panel está en portal, fuera del container).
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+    };
+  }, [open]);
+  // Mantenemos el hook para retrocompatibilidad (no-op cuando portal está activo).
+  useClickOutside(containerRef, false, () => setOpen(false));
 
   // Reset query cuando se cierra
   useEffect(() => {
@@ -119,6 +171,7 @@ export const Select = ({
     <div ref={containerRef} className={`relative ${className}`}>
       {renderTrigger ? (
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => !disabled && setOpen((v) => !v)}
           disabled={disabled}
@@ -159,14 +212,19 @@ export const Select = ({
         </button>
       )}
 
-      {open && (
+      {open && mounted && pos && createPortal(
         <div
+          ref={panelRef}
           role="listbox"
-          className={`absolute z-50 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-[18rem] flex flex-col ${
-            renderTrigger
-              ? 'left-0 min-w-[12rem]' // trigger custom: ancla a la izquierda con min-width
-              : 'left-0 right-0'        // trigger default: estira al ancho del botón
-          }`}
+          style={{
+            position: 'fixed',
+            top: pos.top,
+            left: pos.left,
+            width: renderTrigger ? undefined : pos.width,
+            minWidth: renderTrigger ? '12rem' : pos.width,
+            zIndex: 9999,
+          }}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-[18rem] flex flex-col"
         >
             {searchable && (
               <div className="p-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0">
@@ -241,7 +299,8 @@ export const Select = ({
                 ))
               )}
             </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
