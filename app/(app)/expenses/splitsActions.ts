@@ -76,7 +76,7 @@ export const saveSplits = async (params: {
   }
 
   revalidatePath('/expenses');
-  revalidatePath('/balances');
+  revalidatePath('/dividir');
   return { ok: true };
 };
 
@@ -104,7 +104,7 @@ export const recordPayment = async (params: {
   });
 
   if (error) return { ok: false, error: error.message };
-  revalidatePath('/balances');
+  revalidatePath('/dividir');
   return { ok: true };
 };
 
@@ -113,6 +113,6 @@ export const deletePayment = async (paymentId: string): Promise<Result> => {
   const supabase = await createClient();
   const { error } = await supabase.from('payments').delete().eq('id', paymentId);
   if (error) return { ok: false, error: error.message };
-  revalidatePath('/balances');
+  revalidatePath('/dividir');
   return { ok: true };
 };

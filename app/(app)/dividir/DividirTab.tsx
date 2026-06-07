@@ -7,6 +7,7 @@ import { upsertExpense } from '../expenses/actions';
 import { saveSplits } from '../expenses/splitsActions';
 import { resizeImage } from '@/lib/image';
 import { useClickOutside } from '@/lib/useClickOutside';
+import { useT } from '@/lib/i18n/client';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import type { ContactLite } from './types';
 
@@ -24,8 +25,11 @@ type Props = {
 };
 
 export const DividirTab = ({ contacts, isPro }: Props) => {
+  const { t } = useT();
   const [total, setTotal] = useState('');
-  const [tipPct, setTipPct] = useState('');
+  // Propina puede ser porcentaje o monto fijo, con toggle.
+  const [tipMode, setTipMode] = useState<'percent' | 'amount'>('percent');
+  const [tipValue, setTipValue] = useState('');
   const [currency, setCurrency] = useState('ARS');
   const [mode, setMode] = useState<Mode>('equal');
   const [parts, setParts] = useState<Participant[]>([]);
@@ -39,8 +43,62 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
     const v = (text ?? partInput).trim();
     if (!v) return;
     const existing = contacts.find((c) => c.name.toLowerCase() === v.toLowerCase());
-    setParts((p) => [...p, { name: existing?.name ?? v, contactId: existing?.id ?? null }]);
+    setParts((p) => {
+      const next = [...p, { name: existing?.name ?? v, contactId: existing?.id ?? null }];
+      // Autocompletar valor del nuevo participante con el remaining para que
+      // el total cierre solo. En % → 100 menos lo que ya tienen los otros.
+      // En monto fijo → totalNum menos lo que ya tienen los otros.
+      if (mode === 'percentage' || mode === 'fixed') {
+        const cap = mode === 'percentage' ? 100 : totalNum;
+        const sumOthers = p.reduce(
+          (s, _, idx) => s + (parseFloat(values[idx] ?? '0') || 0),
+          0,
+        );
+        const remaining = Math.max(0, cap - sumOthers);
+        if (remaining > 0) {
+          setValues((prev) => ({ ...prev, [next.length - 1]: trimNumber(remaining) }));
+        }
+      }
+      return next;
+    });
     setPartInput('');
+  };
+
+  // Cambiar de modo limpia los valores específicos del modo previo así no
+  // se arrastran porcentajes cuando paso a monto fijo y viceversa.
+  const changeMode = (next: Mode) => {
+    setMode(next);
+    setValues({});
+    if (next !== 'items') setItems([]);
+  };
+
+  // En porcentaje, cuando el user edita un valor redistribuimos lo que falta
+  // proporcionalmente entre los otros participantes para que sume 100. En
+  // monto fijo el user es responsable de hacer cuadrar el total.
+  const updateValue = (i: number, v: string) => {
+    setValues((prev) => {
+      const next: Record<number, string> = { ...prev, [i]: v };
+      if (mode !== 'percentage') return next;
+      const editedNum = parseFloat(v) || 0;
+      const remaining = Math.max(0, 100 - editedNum);
+      const otherIdxs = parts.map((_, idx) => idx).filter((idx) => idx !== i);
+      if (otherIdxs.length === 0) return next;
+      const sumOthers = otherIdxs.reduce(
+        (s, idx) => s + (parseFloat(prev[idx] ?? '0') || 0),
+        0,
+      );
+      if (sumOthers === 0) {
+        const each = remaining / otherIdxs.length;
+        for (const idx of otherIdxs) next[idx] = trimNumber(each);
+      } else {
+        const scale = remaining / sumOthers;
+        for (const idx of otherIdxs) {
+          const cur = parseFloat(prev[idx] ?? '0') || 0;
+          next[idx] = trimNumber(cur * scale);
+        }
+      }
+      return next;
+    });
   };
 
   const removeParticipant = (i: number) => {
@@ -63,8 +121,8 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
   };
 
   const baseTotal = parseFloat(total) || 0;
-  const tipNum = parseFloat(tipPct) || 0;
-  const tipAmount = baseTotal * (tipNum / 100);
+  const tipNum = parseFloat(tipValue) || 0;
+  const tipAmount = tipMode === 'percent' ? baseTotal * (tipNum / 100) : tipNum;
   const totalNum = baseTotal + tipAmount;
   const N = parts.length;
 
@@ -104,7 +162,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
     if (!file) return;
     e.target.value = '';
     if (!isPro) {
-      toast.error('Escanear tickets es Pro. Suscribite desde Configuración.');
+      toast.error(t.split.scan_pro_required);
       return;
     }
     setOcrLoading(true);
@@ -115,7 +173,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
       const res = await fetch('/api/ocr', { method: 'POST', body: fd });
       const data: ExtractedExpense & { error?: string } = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? 'No se pudo procesar la imagen');
+        toast.error(data.error ?? t.split.ticket_failed);
         return;
       }
       if (data.total) setTotal(String(data.total));
@@ -124,18 +182,18 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
         setItems(data.items.map((it) => ({ name: it.name, price: String(it.price), participantIdx: [] })));
         setMode('items');
       }
-      toast.success('Ticket procesado');
+      toast.success(t.split.ticket_processed);
     } catch {
-      toast.error('Error al procesar la imagen');
+      toast.error(t.split.ticket_error);
     } finally {
       setOcrLoading(false);
     }
   };
 
   const buildShareText = (): string => {
-    const lines = [`💵 División de la cuenta — Total: ${formatMoney(totalNum, currency)}`];
+    const lines = [t.split.share_text_header.replace('{total}', formatMoney(totalNum, currency))];
     parts.forEach((p, i) => {
-      lines.push(`• ${p.name}: ${formatMoney(computed[i] ?? 0, currency)}`);
+      lines.push(t.split.share_text_line.replace('{name}', p.name).replace('{amount}', formatMoney(computed[i] ?? 0, currency)));
     });
     return lines.join('\n');
   };
@@ -143,9 +201,9 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(buildShareText());
-      toast.success('Copiado al portapapeles');
+      toast.success(t.split.copied);
     } catch {
-      toast.error('No se pudo copiar');
+      toast.error(t.split.copy_failed);
     }
   };
 
@@ -156,7 +214,8 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
 
   const reset = () => {
     setTotal('');
-    setTipPct('');
+    setTipValue('');
+    setTipMode('percent');
     setCurrency('ARS');
     setMode('equal');
     setParts([]);
@@ -168,11 +227,11 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
   const [saving, setSaving] = useState(false);
   const onSaveAsExpense = async () => {
     if (totalNum === 0 || N === 0) {
-      toast.error('Cargá monto y participantes');
+      toast.error(t.split.missing_data);
       return;
     }
     if (!sumOk) {
-      toast.error('La suma no coincide con el total');
+      toast.error(t.split.sum_mismatch);
       return;
     }
     setSaving(true);
@@ -180,7 +239,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
       const fd = new FormData();
       fd.set('amount', String(totalNum));
       fd.set('currency', currency);
-      fd.set('description', 'Cuenta dividida');
+      fd.set('description', t.split.default_description);
       fd.set('expense_date', new Date().toISOString().slice(0, 10));
       fd.set('paid', 'true');
       fd.set('is_recurring', 'false');
@@ -204,7 +263,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
           splits,
         });
       }
-      toast.success('Gasto guardado');
+      toast.success(t.split.expense_saved);
       // Limpiar form
       setTotal(''); setParts([]); setValues({}); setItems([]);
     } finally {
@@ -226,7 +285,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
         <div className="col-span-2">
           <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-            Monto total
+            {t.split.amount_total}
           </label>
           <input
             type="number"
@@ -240,29 +299,63 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-            Propina %
+            {t.split.tip}
           </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.1"
-            value={tipPct}
-            onChange={(e) => setTipPct(e.target.value)}
-            placeholder="0"
-            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base tabular-nums"
-          />
+          <div className="flex items-stretch gap-1">
+            <input
+              type="number"
+              inputMode="decimal"
+              step={tipMode === 'percent' ? '0.1' : '0.01'}
+              value={tipValue}
+              onChange={(e) => setTipValue(e.target.value)}
+              placeholder={tipMode === 'percent' ? '10' : '0'}
+              className="flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base tabular-nums"
+            />
+            <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1 text-sm font-semibold shrink-0">
+              <button
+                type="button"
+                onClick={() => setTipMode('percent')}
+                aria-pressed={tipMode === 'percent'}
+                aria-label={t.split.tip_pct_aria}
+                className={`px-3 rounded-md ${
+                  tipMode === 'percent'
+                    ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-400 dark:text-slate-500'
+                }`}
+              >
+                %
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipMode('amount')}
+                aria-pressed={tipMode === 'amount'}
+                aria-label={t.split.tip_amount_aria}
+                className={`px-3 rounded-md ${
+                  tipMode === 'amount'
+                    ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-400 dark:text-slate-500'
+                }`}
+              >
+                $
+              </button>
+            </div>
+          </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-            Moneda
+            {t.expenses.currency}
           </label>
           <CurrencyPicker value={currency} onChange={setCurrency} />
         </div>
       </div>
 
-      {tipNum > 0 && baseTotal > 0 && (
+      {tipAmount > 0 && baseTotal > 0 && (
         <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2">
-          Subtotal: {formatMoney(baseTotal, currency)} + propina {formatMoney(tipAmount, currency)} = <strong>{formatMoney(totalNum, currency)}</strong>
+          {(tipMode === 'percent' ? t.split.subtotal_breakdown_pct : t.split.subtotal_breakdown)
+            .replace('{base}', formatMoney(baseTotal, currency))
+            .replace('{tip}', formatMoney(tipAmount, currency))
+            .replace('{pct}', String(tipNum))}
+          {' = '}<strong>{formatMoney(totalNum, currency)}</strong>
         </p>
       )}
 
@@ -273,13 +366,13 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-sky-300 dark:hover:border-sky-500 text-sm font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50"
       >
         {ocrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-        {ocrLoading ? 'Procesando ticket...' : 'O escaneá un ticket'}
-        {!isPro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">Pro</span>}
+        {ocrLoading ? t.split.scanning_ticket : t.split.scan_ticket}
+        {!isPro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">{t.split.scan_pro}</span>}
       </button>
 
       <div>
         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-          Participantes
+          {t.split.participants}
         </label>
         <div className="flex flex-wrap gap-1.5 mb-2">
           {parts.map((p, i) => (
@@ -311,7 +404,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
                 addParticipant();
               }
             }}
-            placeholder="Nombre y enter (ej: Juan, María)"
+            placeholder={t.split.participants_placeholder}
             className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
           />
           <datalist id="contacts-list">
@@ -328,44 +421,66 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
           </button>
         </div>
         <p className="text-[11px] text-slate-400 mt-1">
-          Podés escribir cualquier nombre o elegir uno de tus contactos.
+          {t.split.participants_hint}
         </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Modo</label>
-        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
-          {(['equal', 'percentage', 'fixed', 'items'] as const).map((m) => (
+        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t.split.mode}</label>
+        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+          {([
+            { v: 'equal' as const,      label: t.split.mode_equal },
+            { v: 'percentage' as const, label: t.split.mode_percentage },
+            { v: 'fixed' as const,      label: t.split.mode_fixed },
+            { v: 'items' as const,      label: t.split.mode_items },
+          ]).map((m) => (
             <button
-              key={m}
+              key={m.v}
               type="button"
-              onClick={() => setMode(m)}
-              className={`flex-1 px-2 py-1.5 rounded text-xs font-medium ${
-                mode === m
+              onClick={() => changeMode(m.v)}
+              className={`px-1.5 py-1.5 rounded text-[11px] sm:text-xs font-medium text-center leading-tight ${
+                mode === m.v
                   ? 'bg-white dark:bg-slate-700 shadow-sm'
                   : 'text-slate-500 dark:text-slate-400'
               }`}
             >
-              {m === 'equal' ? 'Igual' : m === 'percentage' ? '%' : m === 'fixed' ? 'Monto' : 'Items'}
+              {m.label}
             </button>
           ))}
         </div>
+        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+          {mode === 'equal' && N > 0 && totalNum > 0
+            ? t.split.mode_equal_each.replace('{amount}', formatMoney(totalNum / N, currency))
+            : mode === 'equal'      ? t.split.mode_equal_hint
+            : mode === 'percentage' ? t.split.mode_percentage_hint
+            : mode === 'fixed'      ? t.split.mode_fixed_hint
+            : t.split.mode_items_hint}
+        </p>
       </div>
 
       {N > 0 && mode !== 'items' && mode !== 'equal' && (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-1.5">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            {(mode === 'percentage' ? t.split.values_pct_helper : t.split.values_fixed_helper)
+              .replace('{total}', formatMoney(totalNum, currency))}
+          </p>
           {parts.map((p, i) => (
             <div key={i} className="flex items-center justify-between gap-2">
-              <span className="text-sm truncate">{p.name}</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={values[i] ?? ''}
-                onChange={(e) => setValues((v) => ({ ...v, [i]: e.target.value }))}
-                placeholder={mode === 'percentage' ? '%' : '$'}
-                className="w-24 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-right tabular-nums"
-              />
+              <span className="text-sm truncate flex-1">{p.name}</span>
+              <div className="relative w-32">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step={mode === 'percentage' ? '0.1' : '0.01'}
+                  value={values[i] ?? ''}
+                  onChange={(e) => updateValue(i, e.target.value)}
+                  placeholder="0"
+                  className="w-full pl-3 pr-10 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-right tabular-nums"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none">
+                  {mode === 'percentage' ? '%' : currency}
+                </span>
+              </div>
             </div>
           ))}
         </div>
@@ -383,12 +498,12 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
       {N > 0 && totalNum > 0 && (
         <div className="kumo-card p-4 space-y-2">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold">Cada uno paga</h3>
+            <h3 className="text-sm font-semibold">{t.split.preview_each_pays}</h3>
             {!sumOk && (() => {
               const diff = totalNum - sumComputed;
               const label = diff > 0
-                ? `Falta ${formatMoney(diff, currency)}`
-                : `Sobra ${formatMoney(Math.abs(diff), currency)}`;
+                ? t.split.preview_missing.replace('{amount}', formatMoney(diff, currency))
+                : t.split.preview_extra.replace('{amount}', formatMoney(Math.abs(diff), currency));
               return <span className="text-[11px] text-rose-500">{label}</span>;
             })()}
           </div>
@@ -399,7 +514,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
             </div>
           ))}
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/50">
-            <span>Suma</span>
+            <span>{t.split.preview_total}</span>
             <span className="tabular-nums">{formatMoney(sumComputed, currency)} / {formatMoney(totalNum, currency)}</span>
           </div>
 
@@ -410,7 +525,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <Copy className="w-3.5 h-3.5" />
-              Copiar
+              {t.split.copy}
             </button>
             <button
               type="button"
@@ -418,17 +533,17 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-mint-200 dark:border-mint-500/30 text-mint-700 dark:text-mint-300 text-xs font-medium hover:bg-mint-50 dark:hover:bg-mint-500/10"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              WhatsApp
+              {t.split.whatsapp}
             </button>
             <button
               type="button"
               onClick={onSaveAsExpense}
               disabled={saving || !sumOk}
-              title={!sumOk ? 'La suma debe coincidir con el total para guardar' : 'Guardar como gasto del espacio'}
+              title={!sumOk ? t.split.save_disabled_sum : t.split.save_as_expense_title}
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg kumo-gradient text-white text-xs font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              Guardar
+              {t.split.save_as_expense}
             </button>
             <button
               type="button"
@@ -436,7 +551,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Reset
+              {t.split.reset}
             </button>
           </div>
         </div>
@@ -453,6 +568,7 @@ const ItemsEditor = ({
   parts: Participant[];
   totalAmount: number;
 }) => {
+  const { t } = useT();
   const updateItem = (i: number, patch: Partial<ItemRow>) =>
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
@@ -473,70 +589,99 @@ const ItemsEditor = ({
   const matches = totalAmount === 0 || Math.abs(itemsTotal - totalAmount) < 0.01;
 
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-2">
-      <p className="text-xs text-slate-500 dark:text-slate-400">
-        Asigná cada item a quien lo consumió. Si lo comparten, se divide entre ellos.
-      </p>
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-3">
+      <div className="bg-sky-50/60 dark:bg-sky-900/15 border border-sky-100 dark:border-sky-800/40 rounded-lg p-2.5 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+        <p className="font-semibold text-slate-700 dark:text-slate-200 mb-0.5">{t.split.items_how_to_title}</p>
+        {t.split.items_how_to_body}
+      </div>
+
+      {items.length === 0 && (
+        <div className="text-center py-3 text-xs text-slate-400 dark:text-slate-500 italic">
+          {t.split.items_empty}
+        </div>
+      )}
+
       {items.map((it, i) => (
-        <div key={i} className="rounded-lg bg-slate-50 dark:bg-slate-800/40 p-2 space-y-2">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={it.name}
-              onChange={(e) => updateItem(i, { name: e.target.value })}
-              placeholder="Item"
-              className="flex-1 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
-            />
-            <input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              value={it.price}
-              onChange={(e) => updateItem(i, { price: e.target.value })}
-              placeholder="$"
-              className="w-20 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-right tabular-nums"
-            />
+        <div key={i} className="rounded-lg bg-slate-50 dark:bg-slate-800/40 p-2.5 space-y-2">
+          <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-end">
+            <div>
+              <label className="block text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
+                {t.split.items_item_label}
+              </label>
+              <input
+                type="text"
+                value={it.name}
+                onChange={(e) => updateItem(i, { name: e.target.value })}
+                placeholder={t.split.items_item_placeholder}
+                className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
+                {t.split.items_price_label}
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={it.price}
+                onChange={(e) => updateItem(i, { price: e.target.value })}
+                placeholder="0"
+                className="w-24 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-right tabular-nums"
+              />
+            </div>
             <button
               type="button"
               onClick={() => removeItem(i)}
-              className="p-1 text-slate-400 hover:text-rose-500"
-              aria-label="Borrar"
+              className="p-1.5 text-slate-400 hover:text-rose-500 self-end"
+              aria-label={t.split.items_delete}
+              title={t.split.items_delete}
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {parts.length === 0 && <span className="text-[11px] text-slate-400 italic">Agregá participantes primero</span>}
-            {parts.map((p, pIdx) => {
-              const on = it.participantIdx.includes(pIdx);
-              return (
-                <button
-                  key={pIdx}
-                  type="button"
-                  onClick={() => toggle(i, pIdx)}
-                  className={`px-2 py-0.5 rounded-full text-[11px] border ${
-                    on
-                      ? 'bg-sky-500 text-white border-sky-500'
-                      : 'border-slate-200 dark:border-slate-600 text-slate-500'
-                  }`}
-                >
-                  {p.name}
-                </button>
-              );
-            })}
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
+              {t.split.items_who_consumed}
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {parts.length === 0 ? (
+                <span className="text-[11px] text-slate-400 italic">{t.split.items_add_first_participants}</span>
+              ) : (
+                parts.map((p, pIdx) => {
+                  const on = it.participantIdx.includes(pIdx);
+                  return (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => toggle(i, pIdx)}
+                      className={`px-2 py-0.5 rounded-full text-[11px] border ${
+                        on
+                          ? 'bg-sky-500 text-white border-sky-500'
+                          : 'border-slate-200 dark:border-slate-600 text-slate-500'
+                      }`}
+                    >
+                      {p.name}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       ))}
       <button
         type="button"
         onClick={addItem}
-        className="text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
+        className="w-full flex items-center justify-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/20 py-1.5 rounded-md"
       >
-        + Agregar item
+        <Plus className="w-3.5 h-3.5" />
+        {t.split.items_add}
       </button>
       {items.length > 0 && (
-        <div className={`text-xs ${matches ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500'}`}>
-          Items: {itemsTotal.toFixed(2)} / Total {totalAmount.toFixed(2)}
+        <div className={`text-xs ${matches ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500'} flex items-center justify-between`}>
+          <span>{t.split.items_sum}</span>
+          <span className="tabular-nums">{itemsTotal.toFixed(2)} / {totalAmount.toFixed(2)}</span>
         </div>
       )}
     </div>
@@ -549,6 +694,14 @@ const formatMoney = (n: number, ccy: string): string => {
   } catch {
     return `${ccy} ${n.toFixed(2)}`;
   }
+};
+
+// Redondea a 2 decimales y devuelve string sin trailing zeros
+// (15.50 → "15.5", 33.333... → "33.33").
+const trimNumber = (n: number): string => {
+  if (!isFinite(n)) return '0';
+  const rounded = Math.round(n * 100) / 100;
+  return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(2);
 };
 
 // Dropdown simple para moneda — 5 opciones cortas, no necesita portal ni búsqueda.

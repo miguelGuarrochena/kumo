@@ -19,6 +19,14 @@ import type { ExtractedExpense } from '@/lib/ocr/types';
 import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
 import { Archive } from 'lucide-react';
 import { track } from '@/lib/analytics';
+import {
+  SplitEditor,
+  emptySplitState,
+  computeSplits,
+  isSumOk,
+  type SplitState,
+} from './SplitEditor';
+import { saveSplits } from './splitsActions';
 
 type CategoryLite = {
   id: string;
@@ -152,6 +160,19 @@ export function ExpensesClient({
     (sum, e) => sum + convertToDisplay(Number(e.amount), e.currency),
     0,
   );
+
+  // Breakdown de cantidad de gastos por moneda original. Solo lo mostramos
+  // cuando hay más de una moneda mezclada, como hint sutil de que el total
+  // está convertido. Ordenamos descendente por cantidad.
+  const currencyBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of expenses) {
+      counts.set(e.currency, (counts.get(e.currency) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([currency, count]) => ({ currency, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [expenses]);
 
   const [year, month] = monthStr.split('-').map(Number) as [number, number];
   const prevMonth = monthShift(year, month, -1);
@@ -337,6 +358,16 @@ export function ExpensesClient({
                   onChange={(v) => setUrlParam('asCurrency', v)}
                 />
               </div>
+              {currencyBreakdown.length > 1 && (
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+                  {currencyBreakdown.map((b, i) => (
+                    <span key={b.currency}>
+                      {i > 0 && <span className="opacity-50"> · </span>}
+                      {b.count} en {b.currency}
+                    </span>
+                  ))}
+                </p>
+              )}
             </div>
           </div>
         </>
@@ -431,16 +462,26 @@ export function ExpensesClient({
           {expenses.length > 0 && (
             <div className="kumo-card p-4 flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
-                  {expenses.length} {expenses.length === 1 ? 'gasto' : 'gastos'} · en
+                <div className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+                  <span>{expenses.length} {expenses.length === 1 ? 'gasto' : 'gastos'} · en</span>
                   <CurrencyInlineSelect
                     value={displayCurrency}
                     onChange={(v) => setUrlParam('asCurrency', v)}
                   />
-                </p>
+                </div>
                 <p className="text-xl font-bold kumo-gradient-text">
                   {formatMoney(totalInDisplay, displayCurrency)}
                 </p>
+                {currencyBreakdown.length > 1 && (
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    {currencyBreakdown.map((b, i) => (
+                      <span key={b.currency}>
+                        {i > 0 && <span className="opacity-50"> · </span>}
+                        {b.count} en {b.currency}
+                      </span>
+                    ))}
+                  </p>
+                )}
               </div>
               <Select
                 value={filters.sort}
@@ -526,6 +567,7 @@ export function ExpensesClient({
         description={`¿Borrar "${toDelete?.description ?? toDelete?.categories?.name ?? 'este gasto'}"? No se puede deshacer.`}
       />
 
+
       {ocrLoading && ocrPreviewUrl && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm grid place-items-center p-6">
           <div className="max-w-sm w-full text-center space-y-4">
@@ -595,9 +637,14 @@ function ExpenseRow({
             </span>
           )}
           {((expense as Expense & { _splits?: SplitDetail[] })._splits?.length ?? 0) > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 font-medium">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 font-medium hover:bg-sky-200 dark:hover:bg-sky-500/30 cursor-pointer"
+              title="Editar gasto y división"
+            >
               Compartido · {(expense as Expense & { _splits?: SplitDetail[] })._splits!.length}
-            </span>
+            </button>
           )}
         </div>
         <p className="text-xs text-slate-500 mt-0.5 truncate">
@@ -652,10 +699,10 @@ function ExpenseRow({
             <Check className="w-4 h-4" />
           </button>
         )}
-        <button onClick={onEdit} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
+        <button onClick={onEdit} aria-label="Editar gasto" title="Editar gasto" className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
           <Pencil className="w-4 h-4" />
         </button>
-        <button onClick={onDelete} className="p-2 rounded-lg hover:bg-rose-100 text-rose-500">
+        <button onClick={onDelete} aria-label="Borrar gasto" title="Borrar gasto" className="p-2 rounded-lg hover:bg-rose-100 text-rose-500">
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
@@ -683,7 +730,6 @@ function ExpenseSheet({
   rates: Partial<Record<Currency, number>>;
   onClose: () => void;
 }) {
-  type SplitMode = 'equal' | 'percentage' | 'fixed' | 'items' | null;
   const router = useRouter();
   const { t } = useT();
   const [pending, startTransition] = useTransition();
@@ -700,12 +746,9 @@ function ExpenseSheet({
   const [recurrenceType, setRecurrenceType] = useState<string>('monthly');
   const [notifyContactIds, setNotifyContactIds] = useState<string[]>([]);
 
-  // Split
-  const [splitMode, setSplitMode] = useState<SplitMode>(null);
-  const [paidByContactId, setPaidByContactId] = useState<string | null>(null);
-  const [splitContactIds, setSplitContactIds] = useState<string[]>([]);
-  const [splitValues, setSplitValues] = useState<Record<string, string>>({});
-  const [splitItems, setSplitItems] = useState<SplitItem[]>([]);
+  // Split inline: toggle + state controlado pasado al SplitEditor
+  const [splitOn, setSplitOn] = useState(false);
+  const [splitState, setSplitState] = useState<SplitState>(emptySplitState);
 
   useEffect(() => {
     if (!open) return;
@@ -723,14 +766,6 @@ function ExpenseSheet({
       setIsRecurring(expense.is_recurring ?? false);
       setRecurrenceType(expense.recurrence_type ?? 'monthly');
       setNotifyContactIds(expense.notify_contact_ids ?? []);
-      const e2 = expense as Expense & {
-        split_mode?: SplitMode;
-        paid_by_contact_id?: string | null;
-        items_breakdown?: SplitItem[] | null;
-      };
-      setSplitMode(e2.split_mode ?? null);
-      setPaidByContactId(e2.paid_by_contact_id ?? null);
-      setSplitItems(e2.items_breakdown ?? []);
     } else if (aiSuggestion) {
       // Creación con datos extraídos del ticket
       setAmount(aiSuggestion.total ? aiSuggestion.total.toString() : '');
@@ -756,17 +791,6 @@ function ExpenseSheet({
       setCategoryId(matched?.id ?? '');
       const selfId = contacts.find((c) => c.is_self)?.id;
       setNotifyContactIds(selfId ? [selfId] : []);
-      setPaidByContactId(selfId ?? null);
-      setSplitContactIds([]);
-      setSplitValues({});
-      // Si el OCR detectó items, los pre-cargamos vacíos de asignación.
-      // El user decide después si los quiere usar marcando "Dividir" + modo "Items".
-      if (aiSuggestion.items && aiSuggestion.items.length > 0) {
-        setSplitItems(aiSuggestion.items.map((it) => ({ name: it.name, price: it.price, contact_ids: [] })));
-      } else {
-        setSplitItems([]);
-      }
-      setSplitMode(null);
     } else {
       // Creación vacía
       setAmount('');
@@ -781,39 +805,58 @@ function ExpenseSheet({
       setRecurrenceType('monthly');
       const selfId = contacts.find((c) => c.is_self)?.id;
       setNotifyContactIds(selfId ? [selfId] : []);
-      setSplitMode(null);
-      setPaidByContactId(null);
-      setSplitContactIds([]);
-      setSplitValues({});
-      setSplitItems([]);
     }
+    // Reset del split state al abrir un form nuevo / cambiar de gasto
+    setSplitOn(false);
+    setSplitState(emptySplitState());
   }, [open, expense?.id, aiSuggestion, defaultCurrency, contacts, categories]);
 
-  // Si estoy editando un expense con splits, los cargo asincrónicamente.
+  // Cargar split existente cuando se edita un gasto con splits
   useEffect(() => {
     if (!open || !expense?.id) return;
     let cancelled = false;
     (async () => {
       const { createClient: createCli } = await import('@/lib/supabase/client');
       const supabase = createCli();
-      const { data } = await supabase
-        .from('expense_splits')
-        .select('contact_id, amount, percentage')
-        .eq('expense_id', expense.id);
-      if (cancelled || !data) return;
+      const [{ data: splitRows }, { data: expenseRow }] = await Promise.all([
+        supabase
+          .from('expense_splits')
+          .select('contact_id, amount, percentage')
+          .eq('expense_id', expense.id),
+        supabase
+          .from('expenses')
+          .select('split_mode, paid_by_contact_id, items_breakdown')
+          .eq('id', expense.id)
+          .single(),
+      ]);
+      if (cancelled) return;
+      const e2 = expenseRow as {
+        split_mode?: SplitState['mode'];
+        paid_by_contact_id?: string | null;
+        items_breakdown?: SplitState['items'] | null;
+      } | null;
       const ids: string[] = [];
       const vals: Record<string, string> = {};
       type Row = { contact_id: string; amount: number | null; percentage: number | null };
-      for (const s of data as Row[]) {
+      for (const s of ((splitRows ?? []) as Row[])) {
         ids.push(s.contact_id);
         if (s.percentage != null) vals[s.contact_id] = String(s.percentage);
         else if (s.amount != null) vals[s.contact_id] = String(s.amount);
       }
-      setSplitContactIds(ids);
-      setSplitValues(vals);
+      const hasSplit = ids.length > 0 || !!e2?.split_mode;
+      if (hasSplit) {
+        setSplitOn(true);
+        setSplitState({
+          mode: e2?.split_mode ?? 'equal',
+          paidById: e2?.paid_by_contact_id ?? contacts.find((c) => c.is_self)?.id ?? null,
+          participantIds: ids,
+          values: vals,
+          items: e2?.items_breakdown ?? [],
+        });
+      }
     })();
     return () => { cancelled = true; };
-  }, [open, expense?.id]);
+  }, [open, expense?.id, contacts]);
 
   const toggleContact = (id: string) => {
     setNotifyContactIds((prev) =>
@@ -829,6 +872,15 @@ function ExpenseSheet({
     if (!fromRate || !toRate) return null;
     return (amt / fromRate) * toRate;
   }, [amount, currency, defaultCurrency, rates]);
+
+  // Validación del split inline para bloquear el submit cuando no cuadra.
+  const splitTotalNum = parseFloat(amount) || 0;
+  const splitComputed = useMemo(
+    () => (splitOn ? computeSplits(splitState, splitTotalNum) : {}),
+    [splitOn, splitState, splitTotalNum],
+  );
+  const splitSum = Object.values(splitComputed).reduce((s, v) => s + v, 0);
+  const splitSumOk = !splitOn || isSumOk(splitState, splitSum, splitTotalNum);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -852,36 +904,36 @@ function ExpenseSheet({
       const result = await upsertExpense({ ok: false }, fd);
       if (result.ok) {
         const expenseId = result.expenseId ?? expense?.id;
-        if (expenseId && splitMode === 'items' && splitItems.length > 0) {
-          const { saveSplits } = await import('./splitsActions');
-          const sr = await saveSplits({
-            expenseId,
-            mode: 'items',
-            paidByContactId,
-            splits: [],
-            items: splitItems,
-          });
-          if (!sr.ok) toast.error(sr.error ?? 'Split no guardado');
-        } else if (expenseId && splitMode && splitMode !== 'items' && splitContactIds.length > 0) {
-          const { saveSplits } = await import('./splitsActions');
-          const splits = splitContactIds.map((cid) => {
-            const v = parseFloat(splitValues[cid] ?? '0');
-            if (splitMode === 'percentage') return { contactId: cid, percentage: v };
-            if (splitMode === 'fixed')      return { contactId: cid, amount: v };
-            return { contactId: cid };
-          });
-          const sr = await saveSplits({
-            expenseId,
-            mode: splitMode,
-            paidByContactId,
-            splits,
-          });
-          if (!sr.ok) toast.error(sr.error ?? 'Split no guardado');
-        } else if (expenseId && !splitMode) {
-          const { saveSplits } = await import('./splitsActions');
-          await saveSplits({ expenseId, mode: null, paidByContactId, splits: [] });
+        // Si está activo el split, guardarlo también.
+        if (expenseId) {
+          if (splitOn && splitState.mode) {
+            const splits =
+              splitState.mode === 'items'
+                ? []
+                : splitState.participantIds.map((cid) => {
+                    const v = parseFloat(splitState.values[cid] ?? '0') || 0;
+                    if (splitState.mode === 'percentage') return { contactId: cid, percentage: v };
+                    if (splitState.mode === 'fixed') return { contactId: cid, amount: v };
+                    return { contactId: cid };
+                  });
+            const sr = await saveSplits({
+              expenseId,
+              mode: splitState.mode,
+              paidByContactId: splitState.paidById,
+              splits,
+              items: splitState.mode === 'items' ? splitState.items : undefined,
+            });
+            if (!sr.ok) toast.error(sr.error ?? 'División no guardada');
+          } else if (!splitOn && expense?.id) {
+            // El user destildó la división: si había una, la borramos.
+            await saveSplits({
+              expenseId,
+              mode: null,
+              paidByContactId: null,
+              splits: [],
+            });
+          }
         }
-
         toast.success(expense ? 'Gasto actualizado' : 'Gasto creado');
         if (!expense) {
           track('expense_created', { currency, has_due_date: hasDueDate, via: aiSuggestion ? 'ocr' : 'manual' });
@@ -1114,20 +1166,41 @@ function ExpenseSheet({
           </div>
         )}
 
-        <SplitSection
-          totalAmount={parseFloat(amount) || 0}
-          contacts={contacts}
-          mode={splitMode}
-          setMode={setSplitMode}
-          paidByContactId={paidByContactId}
-          setPaidByContactId={setPaidByContactId}
-          splitContactIds={splitContactIds}
-          setSplitContactIds={setSplitContactIds}
-          splitValues={splitValues}
-          setSplitValues={setSplitValues}
-          items={splitItems}
-          setItems={setSplitItems}
-        />
+        {/* Split inline: checkbox + editor desplegable */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={splitOn}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setSplitOn(on);
+                if (on) {
+                  // Inicializar con modo "Partes iguales" + Yo como pagador
+                  setSplitState((s) => ({
+                    ...s,
+                    mode: s.mode ?? 'equal',
+                    paidById: s.paidById ?? contacts.find((c) => c.is_self)?.id ?? null,
+                  }));
+                }
+              }}
+              className="rounded text-sky-600 w-4 h-4"
+            />
+            <span className="text-sm font-medium">{t.split.divide_this_expense}</span>
+            <span className="ml-auto text-[11px] text-slate-400 dark:text-slate-500">
+              {t.split.between_people}
+            </span>
+          </label>
+          {splitOn && (
+            <SplitEditor
+              totalAmount={parseFloat(amount) || 0}
+              currency={currency}
+              contacts={contacts.map((c) => ({ id: c.id, name: c.name, is_self: c.is_self }))}
+              state={splitState}
+              setState={setSplitState}
+            />
+          )}
+        </div>
 
         <div className="flex gap-2 pt-2 sticky bottom-0 bg-white dark:bg-slate-800 pb-1">
           <button
@@ -1139,8 +1212,9 @@ function ExpenseSheet({
           </button>
           <button
             type="submit"
-            disabled={pending || !amount}
-            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
+            disabled={pending || !amount || (splitOn && !splitSumOk)}
+            title={splitOn && !splitSumOk ? t.split.save_disabled_sum_no_match : undefined}
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {pending ? t.common.saving : expense ? t.common.save : t.common.new}
           </button>
@@ -1232,10 +1306,10 @@ function ArchiveView({
     <div className="space-y-4">
       <div className="kumo-card p-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
-            Histórico total · en
+          <div className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+            <span>Histórico total · en</span>
             <CurrencyInlineSelect value={displayCurrency} onChange={onChangeCurrency} />
-          </p>
+          </div>
           <p className="text-2xl font-bold kumo-gradient-text">
             {formatMoney(grandTotal, displayCurrency)}
           </p>
@@ -1366,358 +1440,6 @@ function ExportMenu({ filters, label }: { filters: Filters; label: string }) {
             <span className="text-xs font-mono font-bold text-sky-600 dark:text-sky-400 w-9">CSV</span>
             CSV plano
           </a>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ===================================================================
-// Split section: dividir un gasto entre varios contactos.
-// 4 modos: equal, percentage, fixed, items (por item del ticket).
-type SplitMode = 'equal' | 'percentage' | 'fixed' | 'items' | null;
-
-export type SplitItem = { name: string; price: number; contact_ids: string[] };
-
-function SplitSection({
-  totalAmount,
-  contacts,
-  mode,
-  setMode,
-  paidByContactId,
-  setPaidByContactId,
-  splitContactIds,
-  setSplitContactIds,
-  splitValues,
-  setSplitValues,
-  items,
-  setItems,
-}: {
-  totalAmount: number;
-  contacts: ContactLite[];
-  mode: SplitMode;
-  setMode: (m: SplitMode) => void;
-  paidByContactId: string | null;
-  setPaidByContactId: (id: string | null) => void;
-  splitContactIds: string[];
-  setSplitContactIds: React.Dispatch<React.SetStateAction<string[]>>;
-  splitValues: Record<string, string>;
-  setSplitValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  items: SplitItem[];
-  setItems: React.Dispatch<React.SetStateAction<SplitItem[]>>;
-}) {
-  if (contacts.length < 2) return null;
-
-  const enabled = mode !== null;
-
-  const toggleContactInSplit = (id: string) => {
-    setSplitContactIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
-
-  const sumValues = splitContactIds.reduce((s, cid) => s + (parseFloat(splitValues[cid] ?? '0') || 0), 0);
-  const expectedSum = mode === 'percentage' ? 100 : mode === 'fixed' ? totalAmount : 0;
-  const sumOk = mode === 'equal' || Math.abs(sumValues - expectedSum) < 0.01;
-
-  const setValue = (cid: string, v: string) => {
-    setSplitValues((prev) => ({ ...prev, [cid]: v }));
-  };
-
-  const selfContact = contacts.find((c) => c.is_self);
-
-  return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-3">
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => {
-            if (e.target.checked) {
-              setMode('equal');
-              if (!paidByContactId && selfContact) setPaidByContactId(selfContact.id);
-            } else {
-              setMode(null);
-              setSplitContactIds([]);
-              setSplitValues({});
-            }
-          }}
-          className="rounded text-sky-600"
-        />
-        <span className="text-sm font-medium">Dividir este gasto</span>
-      </label>
-
-      {enabled && (
-        <>
-          <div>
-            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Pagó</label>
-            <Select
-              value={paidByContactId ?? ''}
-              onChange={(v) => setPaidByContactId(v || null)}
-              options={contacts.map((c) => ({
-                value: c.id,
-                label: c.name + (c.is_self ? ' (Vos)' : ''),
-              }))}
-              placeholder="Elegí quién pagó"
-              ariaLabel="Quién pagó"
-              buttonClassName="py-2 text-sm"
-            />
-          </div>
-
-          <AddPersonInline contacts={contacts} splitContactIds={splitContactIds} setSplitContactIds={setSplitContactIds} />
-
-          <div>
-            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Modo</label>
-            <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
-              {(['equal', 'percentage', 'fixed', 'items'] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={`flex-1 px-2 py-1.5 rounded text-xs font-medium ${
-                    mode === m
-                      ? 'bg-white dark:bg-slate-700 shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400'
-                  }`}
-                >
-                  {m === 'equal' ? 'Igual' : m === 'percentage' ? '%' : m === 'fixed' ? 'Monto' : 'Items'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {mode === 'items' && (
-            <ItemsSplit items={items} setItems={setItems} contacts={contacts} totalAmount={totalAmount} />
-          )}
-
-          {mode !== 'items' && (
-          <div>
-            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-              Entre {splitContactIds.length} {splitContactIds.length === 1 ? 'persona' : 'personas'}
-            </label>
-            <div className="space-y-2">
-              {contacts.map((c) => {
-                const included = splitContactIds.includes(c.id);
-                return (
-                  <div key={c.id} className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={included}
-                        onChange={() => toggleContactInSplit(c.id)}
-                        className="rounded text-sky-600"
-                      />
-                      <span className="text-sm truncate">{c.name}{c.is_self ? ' (Vos)' : ''}</span>
-                    </label>
-                    {included && mode !== 'equal' && (
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        value={splitValues[c.id] ?? ''}
-                        onChange={(e) => setValue(c.id, e.target.value)}
-                        placeholder={mode === 'percentage' ? '%' : '$'}
-                        className="w-20 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-right tabular-nums"
-                      />
-                    )}
-                    {included && mode === 'equal' && splitContactIds.length > 0 && totalAmount > 0 && (
-                      <span className="text-xs text-slate-500 tabular-nums">
-                        {(totalAmount / splitContactIds.length).toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {mode !== 'equal' && splitContactIds.length > 0 && (
-              <div className={`text-xs mt-2 ${sumOk ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500'}`}>
-                Suma: {sumValues.toFixed(2)} / {expectedSum.toFixed(2)}
-                {!sumOk && ' ← debe coincidir'}
-              </div>
-            )}
-          </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// Permite agregar una persona al split escribiendo el nombre. Si no existe
-// como contacto del workspace, se crea automáticamente como contacto sin teléfono.
-function AddPersonInline({
-  contacts,
-  splitContactIds,
-  setSplitContactIds,
-}: {
-  contacts: ContactLite[];
-  splitContactIds: string[];
-  setSplitContactIds: React.Dispatch<React.SetStateAction<string[]>>;
-}) {
-  const router = useRouter();
-  const [text, setText] = useState('');
-  const [creating, setCreating] = useState(false);
-
-  const tryAdd = async () => {
-    const v = text.trim();
-    if (!v) return;
-    const match = contacts.find((c) => c.name.toLowerCase() === v.toLowerCase());
-    if (match) {
-      if (!splitContactIds.includes(match.id)) {
-        setSplitContactIds((prev) => [...prev, match.id]);
-      }
-      setText('');
-      return;
-    }
-    // No existe — lo creamos ad-hoc
-    setCreating(true);
-    try {
-      const { createAdHocContact } = await import('../settings/contactsActions');
-      const r = await createAdHocContact(v);
-      if (r.ok && r.id) {
-        setSplitContactIds((prev) => [...prev, r.id as string]);
-        setText('');
-        toast.success(`"${v}" agregado como contacto`);
-        router.refresh();
-      } else {
-        toast.error(r.error ?? 'No se pudo crear el contacto');
-      }
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  return (
-    <div>
-      <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-        Agregar persona
-      </label>
-      <div className="flex gap-1">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              tryAdd();
-            }
-          }}
-          placeholder="Nombre + Enter (Juan, María, etc.)"
-          className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
-        />
-        <button
-          type="button"
-          onClick={tryAdd}
-          disabled={creating || !text.trim()}
-          className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50"
-        >
-          {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-        </button>
-      </div>
-      <p className="text-[11px] text-slate-400 mt-1">
-        Si no existe, lo creo como contacto del espacio automáticamente.
-      </p>
-    </div>
-  );
-}
-
-function ItemsSplit({
-  items,
-  setItems,
-  contacts,
-  totalAmount,
-}: {
-  items: SplitItem[];
-  setItems: React.Dispatch<React.SetStateAction<SplitItem[]>>;
-  contacts: ContactLite[];
-  totalAmount: number;
-}) {
-  const updateItem = (i: number, patch: Partial<SplitItem>) =>
-    setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
-  const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
-  const addItem = () => setItems((prev) => [...prev, { name: '', price: 0, contact_ids: [] }]);
-  const toggleContact = (i: number, cid: string) => {
-    setItems((prev) =>
-      prev.map((it, idx) => {
-        if (idx !== i) return it;
-        const has = it.contact_ids.includes(cid);
-        return { ...it, contact_ids: has ? it.contact_ids.filter((c) => c !== cid) : [...it.contact_ids, cid] };
-      }),
-    );
-  };
-
-  const itemsTotal = items.reduce((s, it) => s + (Number(it.price) || 0), 0);
-  const matches = totalAmount === 0 || Math.abs(itemsTotal - totalAmount) < 0.01;
-
-  return (
-    <div className="space-y-2">
-      <p className="text-xs text-slate-500 dark:text-slate-400">
-        Asigná cada item a quien lo consumió. Si varios comparten un item, se divide entre ellos.
-      </p>
-      <div className="space-y-2">
-        {items.map((it, i) => (
-          <div key={i} className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={it.name}
-                onChange={(e) => updateItem(i, { name: e.target.value })}
-                placeholder="Nombre"
-                className="flex-1 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
-              />
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={it.price || ''}
-                onChange={(e) => updateItem(i, { price: parseFloat(e.target.value) || 0 })}
-                placeholder="$"
-                className="w-20 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-right tabular-nums"
-              />
-              <button
-                type="button"
-                onClick={() => removeItem(i)}
-                className="p-1 rounded text-slate-400 hover:text-rose-500"
-                aria-label="Borrar item"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {contacts.map((c) => {
-                const on = it.contact_ids.includes(c.id);
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => toggleContact(i, c.id)}
-                    className={`px-2 py-0.5 rounded-full text-[11px] border ${
-                      on
-                        ? 'bg-sky-500 text-white border-sky-500'
-                        : 'border-slate-200 dark:border-slate-600 text-slate-500'
-                    }`}
-                  >
-                    {c.name}{c.is_self ? ' (Vos)' : ''}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={addItem}
-        className="text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline"
-      >
-        + Agregar item
-      </button>
-      {items.length > 0 && (
-        <div className={`text-xs ${matches ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500'}`}>
-          Items: {itemsTotal.toFixed(2)} / Total {totalAmount.toFixed(2)}
-          {!matches && ' ← no coincide con el total del gasto'}
         </div>
       )}
     </div>

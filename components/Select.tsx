@@ -67,13 +67,17 @@ export const Select = ({
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [mounted, setMounted] = useState(false);
+  // Inicializamos `mounted` con `typeof document !== 'undefined'`. En SSR es
+  // false (no renderizamos el portal en server), en cliente es true desde el
+  // primer render. Antes usábamos un useEffect para setearlo a true, pero
+  // cuando este Select se renderiza dentro de un Sheet (mount con animación),
+  // el useEffect podía no llegar a correr antes del próximo unmount y el
+  // portal nunca se mostraba.
+  const [mounted] = useState(typeof document !== 'undefined');
   const [pos, setPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => { setMounted(true); }, []);
 
   const recalcPos = () => {
     const el = triggerRef.current;

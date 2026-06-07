@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-// Página renombrada a /compartir.
+// Página renombrada a /dividir.
 export default function BalancesRedirect(): never {
-  redirect('/compartir' as never);
+  redirect('/dividir' as never);
 }
