@@ -127,6 +127,31 @@ export default async function ExpensesPage({
 
     const { data } = await query;
     expenses = data ?? [];
+
+    // Cargo splits + nombres de contactos para los expenses visibles.
+    const expIds = (expenses as Array<{ id: string }>).map((e) => e.id);
+    if (expIds.length > 0) {
+      const { data: splitRows } = await supabase
+        .from('expense_splits')
+        .select('expense_id, contact_id, amount, percentage, notification_contacts(name)')
+        .in('expense_id', expIds);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows = ((splitRows ?? []) as any[]);
+      const map = new Map<string, Array<{ contact_id: string; contact_name: string; amount: number | null; percentage: number | null }>>();
+      for (const r of rows) {
+        const list = map.get(r.expense_id) ?? [];
+        list.push({
+          contact_id: r.contact_id,
+          contact_name: r.notification_contacts?.name ?? '—',
+          amount: r.amount,
+          percentage: r.percentage,
+        });
+        map.set(r.expense_id, list);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expenses = (expenses as any[]).map((e) => ({ ...e, _splits: map.get(e.id) ?? [] }));
+    }
   }
 
   return (

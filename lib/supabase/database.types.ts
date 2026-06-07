@@ -49,8 +49,44 @@ type ExpensesRow = {
   notify_contact_ids: string[];
   next_occurrence: string | null;
   parent_id: string | null;
+  split_mode: 'equal' | 'percentage' | 'fixed' | 'items' | null;
+  paid_by_contact_id: string | null;
+  items_breakdown: Array<{ name: string; price: number; contact_ids: string[] }> | null;
   created_at: string;
 };
+
+type ExpenseSplitsRow = {
+  id: string;
+  expense_id: string;
+  contact_id: string;
+  amount: number | null;
+  percentage: number | null;
+  created_at: string;
+};
+type ExpenseSplitsInsert = Partial<ExpenseSplitsRow> & {
+  expense_id: string;
+  contact_id: string;
+};
+type ExpenseSplitsUpdate = Partial<ExpenseSplitsRow>;
+
+type PaymentsRow = {
+  id: string;
+  workspace_id: string;
+  from_contact_id: string;
+  to_contact_id: string;
+  amount: number;
+  currency: string;
+  note: string | null;
+  paid_at: string;
+  created_at: string;
+};
+type PaymentsInsert = Partial<PaymentsRow> & {
+  workspace_id: string;
+  from_contact_id: string;
+  to_contact_id: string;
+  amount: number;
+};
+type PaymentsUpdate = Partial<PaymentsRow>;
 type ExpensesInsert = {
   id?: string;
   user_id: string;
@@ -432,6 +468,18 @@ export type Database = {
         Update: PushSubscriptionsUpdate;
         Relationships: [];
       };
+      expense_splits: {
+        Row: ExpenseSplitsRow;
+        Insert: ExpenseSplitsInsert;
+        Update: ExpenseSplitsUpdate;
+        Relationships: [];
+      };
+      payments: {
+        Row: PaymentsRow;
+        Insert: PaymentsInsert;
+        Update: PaymentsUpdate;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -472,6 +520,15 @@ export type Database = {
       increment_ocr_usage: {
         Args: Record<string, never>;
         Returns: number;
+      };
+      workspace_balances: {
+        Args: { ws_id: string };
+        Returns: {
+          contact_id: string;
+          contact_name: string;
+          net_amount: number;
+          currency: string;
+        }[];
       };
       generate_recurring_expenses: {
         Args: Record<string, never>;

@@ -142,7 +142,7 @@ export default async function HomePage() {
           Empezás con 90 días gratis del plan Pro. Después elegís.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
           <PricingCard
             title="Free"
             price="$0"
@@ -155,7 +155,7 @@ export default async function HomePage() {
             ]}
           />
           <PricingCard
-            title="Pro"
+            title="Pro Mensual"
             price={getPricing().monthly}
             period="/ mes"
             badge="90 días gratis"
@@ -165,6 +165,17 @@ export default async function HomePage() {
               'OCR de tickets desde foto (Gemini)',
               'Espacios compartidos ilimitados',
               'Sin límite de historial',
+            ]}
+          />
+          <PricingCard
+            title="Pro Anual"
+            price={getPricing().yearly}
+            period="/ año"
+            badge={`Ahorrás ${getPricing().yearlyPct}%`}
+            features={[
+              'Lo mismo que mensual',
+              'Pagás 1 vez al año',
+              'Mejor relación precio',
             ]}
           />
         </div>

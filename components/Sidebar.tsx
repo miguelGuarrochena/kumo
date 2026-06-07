@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   CalendarDays,
   BarChart3,
+  Scale,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ export const Sidebar = ({ userEmail, workspaces, activeWorkspaceId }: Props) => 
     { href: '/metrics',    label: t.nav.metrics,      icon: BarChart3 },
     { href: '/calendar',   label: t.nav.calendar,     icon: CalendarDays },
     { href: '/shopping',   label: t.nav.shopping,     icon: ShoppingCart },
+    { href: '/compartir',  label: 'Compartir',        icon: Scale },
     { href: '/categories', label: t.nav.categories,   icon: Tags },
     { href: '/settings',   label: t.nav.settings,     icon: Settings },
   ] as const;
@@ -64,7 +66,7 @@ export const Sidebar = ({ userEmail, workspaces, activeWorkspaceId }: Props) => 
           return (
             <Link
               key={href}
-              href={href}
+              href={href as never}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 active
                   ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300'

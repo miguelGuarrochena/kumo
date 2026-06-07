@@ -25,6 +25,7 @@ const expenseSchema = z.object({
 export type ExpenseFormState = {
   ok: boolean;
   error?: string;
+  expenseId?: string;
 };
 
 export async function upsertExpense(
@@ -60,17 +61,26 @@ export async function upsertExpense(
   const supabase = await createClient();
   const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
-  const { error } = parsed.data.id
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? await (supabase.from('expenses') as any).update(payload).eq('id', parsed.data.id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    : await (supabase.from('expenses') as any).insert(payload);
+  let expenseId = parsed.data.id ?? null;
 
-  if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+  if (parsed.data.id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('expenses') as any).update(payload).eq('id', parsed.data.id);
+    if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: created, error } = await (supabase.from('expenses') as any)
+      .insert(payload)
+      .select('id')
+      .single();
+    if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+    expenseId = (created as { id: string }).id;
+  }
 
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
-  return { ok: true };
+  revalidatePath('/balances');
+  return { ok: true, expenseId: expenseId ?? undefined };
 }
 
 export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: string }> {

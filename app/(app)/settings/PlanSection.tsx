@@ -19,6 +19,7 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
   const tb = t.billing;
   const [loading, setLoading] = useState<'monthly' | 'yearly' | 'cancel' | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [showPlansDuringTrial, setShowPlansDuringTrial] = useState(false);
 
   const openCheckout = async (interval: 'monthly' | 'yearly') => {
     setLoading(interval);
@@ -63,7 +64,7 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
   const now = Date.now();
   const isCanceledWithAccess =
     sub.status === 'canceled' && sub.currentPeriodEnd !== null && sub.currentPeriodEnd.getTime() > now;
-  const showCheckout = !isPaying && !isCanceledWithAccess && (!isInTrial || trialDaysLeft <= 7);
+  const showCheckout = !isPaying && !isCanceledWithAccess && (!isInTrial || trialDaysLeft <= 7 || showPlansDuringTrial);
   const dateFmt = (d: Date) => d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR');
 
   return (
@@ -204,6 +205,13 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
             <Feature>{tb.feature_spaces}</Feature>
             <Feature>{tb.feature_history}</Feature>
           </ul>
+          <button
+            type="button"
+            onClick={() => setShowPlansDuringTrial(true)}
+            className="text-xs text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 underline-offset-2 hover:underline"
+          >
+            Ver planes y precios →
+          </button>
         </div>
       )}
 

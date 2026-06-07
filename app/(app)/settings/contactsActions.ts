@@ -103,6 +103,43 @@ export async function deleteContact(id: string): Promise<ContactFormState> {
   return { ok: true };
 }
 
+/**
+ * Crea un contacto rápido sólo con nombre (sin teléfono). Útil para splits
+ * donde el user escribe un nombre libre que no existe como contacto todavía.
+ * Devuelve el id del contacto creado (o el existente si ya hay uno con ese nombre).
+ */
+export async function createAdHocContact(name: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, error: 'Nombre vacío' };
+
+  let ctx;
+  try { ctx = await requireAdmin(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from('notification_contacts')
+    .select('id')
+    .eq('workspace_id', ctx.workspaceId)
+    .ilike('name', trimmed)
+    .maybeSingle();
+  if (existing) return { ok: true, id: (existing as { id: string }).id };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: created, error } = await (supabase.from('notification_contacts') as any)
+    .insert({
+      workspace_id: ctx.workspaceId,
+      user_id: ctx.userId,
+      name: trimmed,
+      relationship: 'other',
+    })
+    .select('id')
+    .single();
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/settings');
+  revalidatePath('/expenses');
+  return { ok: true, id: (created as { id: string }).id };
+}
+
 export async function cleanupDuplicateSelfContacts(): Promise<{ ok: boolean; deleted?: number; error?: string }> {
   let ctx;
   try {
