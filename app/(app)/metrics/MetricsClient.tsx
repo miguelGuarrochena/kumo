@@ -46,6 +46,8 @@ type Props = {
   defaultCurrency: Currency;
   displayCurrency: Currency;
   rates: Partial<Record<Currency, number>>;
+  scope: 'current' | 'all';
+  showScopeToggle: boolean;
 };
 
 const COLOR_HEX: Record<string, string> = {
@@ -69,6 +71,8 @@ export function MetricsClient({
   defaultCurrency,
   displayCurrency,
   rates,
+  scope,
+  showScopeToggle,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -148,11 +152,36 @@ export function MetricsClient({
 
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.metrics.title}</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          {t.metrics.subtitle}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.metrics.title}</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+            {t.metrics.subtitle}
+          </p>
+        </div>
+        {showScopeToggle && (
+          <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl shrink-0">
+            {(['current', 'all'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (s === 'all') params.set('scope', 'all');
+                  else params.delete('scope');
+                  router.push(`/metrics?${params.toString()}`);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  scope === s
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                {s === 'current' ? 'Este espacio' : 'Todos'}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Toggle de período */}

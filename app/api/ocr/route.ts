@@ -31,6 +31,27 @@ export async function POST(request: Request) {
     );
   }
 
+  // Caps mensuales: trial = 50, Pro pago = 500. Lifetime/courtesy = 500.
+  const TRIAL_CAP = 50;
+  const PRO_CAP = 500;
+  const cap = sub.status === 'trialing' ? TRIAL_CAP : PRO_CAP;
+
+  const { data: usedRaw } = await supabase.rpc('current_month_ocr_count');
+  const used = (usedRaw as number | null) ?? 0;
+  if (used >= cap) {
+    return NextResponse.json(
+      {
+        error: sub.status === 'trialing'
+          ? `Llegaste al límite de ${cap} escaneos en el trial gratis. Pasate a Pro o esperá al próximo mes.`
+          : `Llegaste al límite de ${cap} escaneos este mes.`,
+        code: 'CAP_REACHED',
+        used,
+        cap,
+      },
+      { status: 429 },
+    );
+  }
+
   // --- Validación ----------------------------------------------------
   let formData: FormData;
   try {
@@ -63,6 +84,7 @@ export async function POST(request: Request) {
     const provider = getOcrProvider();
     const buffer = await file.arrayBuffer();
     const result = await provider.extractFromImage(buffer, file.type);
+    await supabase.rpc('increment_ocr_usage');
     return NextResponse.json(result);
   } catch (error) {
     console.error('[OCR] error:', error);

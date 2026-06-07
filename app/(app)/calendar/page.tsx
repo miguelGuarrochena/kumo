@@ -22,6 +22,25 @@ const CalendarPage = async ({
   const ctx = await getCurrentWorkspace();
   const params = await searchParams;
 
+  // Lista de workspaces del user (para el selector multi).
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: memberships } = await supabase
+    .from('workspace_members')
+    .select('workspace_id, workspaces(*)')
+    .eq('user_id', user?.id ?? '');
+
+  type WsRow = { name: string; icon: string; color: string };
+  const rawMemberships = (memberships ?? []) as unknown as { workspace_id: string; workspaces: WsRow | null }[];
+  const workspaces = rawMemberships
+    .filter((m) => m.workspaces !== null)
+    .map((m) => ({
+      id: m.workspace_id,
+      name: m.workspaces!.name,
+      icon: m.workspaces!.icon,
+      color: m.workspaces!.color,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   const now = new Date();
   const fallbackMonth = localKey(now.getFullYear(), now.getMonth(), 1).slice(0, 7);
   const monthStr = params.month ?? fallbackMonth;
@@ -47,9 +66,10 @@ const CalendarPage = async ({
     return localKey(d.getFullYear(), d.getMonth(), d.getDate());
   })();
 
-  const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id ?? '';
 
+  // Calendar trae eventos de TODOS los workspaces del user (filtra RLS).
+  // El cliente decide qué workspaces mostrar con checkboxes; default: solo el activo.
   const [
     { data: expenses },
     { data: reminders },
@@ -57,25 +77,20 @@ const CalendarPage = async ({
     { data: settings },
     { data: contacts },
   ] = await Promise.all([
-    // En el calendario solo mostramos gastos que tienen fecha de vencimiento;
-    // los gastos sin due_date no son eventos calendáricos.
     supabase
       .from('expenses')
-      .select('id, description, amount, currency, due_date, expense_date, paid, categories(name, color)')
-      .eq('workspace_id', ctx.workspaceId)
+      .select('id, workspace_id, description, amount, currency, due_date, expense_date, paid, categories(name, color)')
       .not('due_date', 'is', null)
       .gte('due_date', queryStart)
       .lte('due_date', queryEnd),
     supabase
       .from('reminders')
-      .select('id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
-      .eq('workspace_id', ctx.workspaceId)
+      .select('id, workspace_id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
       .gte('reminder_date', queryStart)
       .lte('reminder_date', queryEnd),
     supabase
       .from('reminders')
-      .select('id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
-      .eq('workspace_id', ctx.workspaceId)
+      .select('id, workspace_id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
       .order('reminder_date', { ascending: true }),
     supabase.from('user_settings').select('default_currency, timezone').eq('user_id', userId).maybeSingle(),
     supabase
@@ -104,6 +119,8 @@ const CalendarPage = async ({
       defaultCurrency={defaultCurrency}
       initialView={initialView}
       country={country}
+      workspaces={workspaces}
+      activeWorkspaceId={ctx.workspaceId}
     />
   );
 };

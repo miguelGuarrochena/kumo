@@ -465,6 +465,14 @@ export type Database = {
         Args: { uid?: string };
         Returns: boolean;
       };
+      current_month_ocr_count: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      increment_ocr_usage: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
       generate_recurring_expenses: {
         Args: Record<string, never>;
         Returns: number;

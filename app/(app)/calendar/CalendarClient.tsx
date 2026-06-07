@@ -48,6 +48,13 @@ type ContactLite = {
   phone: string | null;
 };
 
+export type WorkspaceLite = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+};
+
 type Props = {
   year: number;
   month: number;
@@ -60,6 +67,8 @@ type Props = {
   defaultCurrency: Currency;
   initialView?: ViewMode;
   country?: Country;
+  workspaces: WorkspaceLite[];
+  activeWorkspaceId: string;
 };
 
 type ViewMode = 'month' | 'year' | 'upcoming' | 'past';
@@ -94,17 +103,81 @@ const todayKey = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+const WS_VISIBILITY_KEY = 'kumo-calendar-ws';
+
+const WS_COLOR_DOT: Record<string, string> = {
+  sky:      'bg-sky-500',
+  lavender: 'bg-lavender-500',
+  peach:    'bg-peach-400',
+  mint:     'bg-mint-500',
+  rose:     'bg-rose-400',
+  amber:    'bg-amber-400',
+  fuchsia:  'bg-fuchsia-500',
+  emerald:  'bg-emerald-500',
+  indigo:   'bg-indigo-500',
+  slate:    'bg-slate-400',
+};
+
 export const CalendarClient = ({
   year,
   month,
-  expenses,
-  reminders,
-  allReminders,
+  expenses: expensesRaw,
+  reminders: remindersRaw,
+  allReminders: allRemindersRaw,
   contacts,
   defaultCurrency,
   initialView = 'month',
   country = 'AR',
+  workspaces,
+  activeWorkspaceId,
 }: Props) => {
+  const [visibleWs, setVisibleWs] = useState<Set<string>>(() => new Set([activeWorkspaceId]));
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(WS_VISIBILITY_KEY);
+      if (stored) {
+        const ids = JSON.parse(stored) as string[];
+        const valid = ids.filter((id) => workspaces.some((w) => w.id === id));
+        if (valid.length > 0) {
+          setVisibleWs(new Set(valid));
+          return;
+        }
+      }
+    } catch {}
+    setVisibleWs(new Set([activeWorkspaceId]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggleWs = (id: string) => {
+    setVisibleWs((curr) => {
+      const next = new Set(curr);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      if (next.size === 0) next.add(activeWorkspaceId);
+      try { localStorage.setItem(WS_VISIBILITY_KEY, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
+  const expenses = useMemo(
+    () => expensesRaw.filter((e) => visibleWs.has((e as ExpenseCal & { workspace_id: string }).workspace_id)),
+    [expensesRaw, visibleWs],
+  );
+  const reminders = useMemo(
+    () => remindersRaw.filter((r) => visibleWs.has((r as ReminderCal & { workspace_id: string }).workspace_id)),
+    [remindersRaw, visibleWs],
+  );
+  const allReminders = useMemo(
+    () => allRemindersRaw.filter((r) => visibleWs.has((r as ReminderCal & { workspace_id: string }).workspace_id)),
+    [allRemindersRaw, visibleWs],
+  );
+
+  const wsById = useMemo(() => {
+    const m = new Map<string, WorkspaceLite>();
+    for (const w of workspaces) m.set(w.id, w);
+    return m;
+  }, [workspaces]);
   const router = useRouter();
   const { t } = useT();
   const [view, setView] = useState<ViewMode>(initialView);
@@ -194,7 +267,32 @@ export const CalendarClient = ({
         </button>
       </header>
 
-      {/* Tabs Mes / Año / Próximos / Pasados */}
+      {workspaces.length > 1 && (
+        <div className="kumo-card p-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1">Mostrar:</span>
+          {workspaces.map((w) => {
+            const checked = visibleWs.has(w.id);
+            const dotClass = WS_COLOR_DOT[w.color] ?? 'bg-slate-400';
+            return (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => toggleWs(w.id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors ${
+                  checked
+                    ? 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${dotClass} ${checked ? '' : 'opacity-40'}`} />
+                {w.name}
+                {checked && <Check className="w-3 h-3 ml-0.5" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-x-auto">
         <TabButton active={view === 'month'}    onClick={() => setView('month')}>{t.calendar.tab_month}</TabButton>
         <TabButton active={view === 'year'}     onClick={() => setView('year')}>{t.calendar.tab_year}</TabButton>

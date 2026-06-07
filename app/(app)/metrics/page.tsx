@@ -7,8 +7,9 @@ export type MetricsPeriod = 'day' | 'week' | 'month' | 'year';
 
 type SearchParams = {
   period?: string;
-  date?: string; // YYYY-MM-DD — fecha de referencia, default hoy
+  date?: string;
   asCurrency?: string;
+  scope?: 'current' | 'all';
 };
 
 export default async function MetricsPage({
@@ -19,6 +20,15 @@ export default async function MetricsPage({
   const supabase = await createClient();
   const ctx = await getCurrentWorkspace();
   const params = await searchParams;
+
+  const scope = params.scope === 'all' ? 'all' : 'current';
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Cuántos espacios tiene este user (para mostrar el toggle solo si hay >1).
+  const { count: workspaceCount } = await supabase
+    .from('workspace_members')
+    .select('workspace_id', { count: 'exact', head: true })
+    .eq('user_id', user?.id ?? '');
 
   const period: MetricsPeriod = (['day', 'week', 'month', 'year'].includes(params.period ?? '')
     ? (params.period as MetricsPeriod)
@@ -38,25 +48,36 @@ export default async function MetricsPage({
     { data: settings },
     rates,
   ] = await Promise.all([
-    supabase
-      .from('expenses')
-      .select('id, amount, currency, expense_date, description, category_id, categories(name, color)')
-      .eq('workspace_id', ctx.workspaceId)
-      .gte('expense_date', start)
-      .lte('expense_date', end),
-    supabase
-      .from('expenses')
-      .select('id, amount, currency, expense_date')
-      .eq('workspace_id', ctx.workspaceId)
-      .gte('expense_date', prevStart)
-      .lte('expense_date', prevEnd),
-    supabase
-      .from('expenses')
-      .select('id, amount, currency, expense_date')
-      .eq('workspace_id', ctx.workspaceId)
-      .gte('expense_date', trailStart)
-      .lte('expense_date', end),
-    supabase.from('categories').select('*').eq('workspace_id', ctx.workspaceId),
+    (() => {
+      let q = supabase
+        .from('expenses')
+        .select('id, amount, currency, expense_date, description, category_id, categories(name, color)')
+        .gte('expense_date', start)
+        .lte('expense_date', end);
+      if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
+      return q;
+    })(),
+    (() => {
+      let q = supabase
+        .from('expenses')
+        .select('id, amount, currency, expense_date')
+        .gte('expense_date', prevStart)
+        .lte('expense_date', prevEnd);
+      if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
+      return q;
+    })(),
+    (() => {
+      let q = supabase
+        .from('expenses')
+        .select('id, amount, currency, expense_date')
+        .gte('expense_date', trailStart)
+        .lte('expense_date', end);
+      if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
+      return q;
+    })(),
+    scope === 'current'
+      ? supabase.from('categories').select('*').eq('workspace_id', ctx.workspaceId)
+      : supabase.from('categories').select('*'),
     supabase.from('user_settings').select('default_currency').single(),
     getRates(),
   ]);
@@ -76,6 +97,8 @@ export default async function MetricsPage({
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}
       rates={rates.rates}
+      scope={scope}
+      showScopeToggle={(workspaceCount ?? 1) > 1}
     />
   );
 }
