@@ -256,13 +256,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
           <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
             Moneda
           </label>
-          <Select
-            value={currency}
-            onChange={setCurrency}
-            options={CURRENCY_OPTIONS}
-            ariaLabel="Moneda"
-            buttonClassName="py-2.5 text-base"
-          />
+          <CurrencyPicker value={currency} onChange={setCurrency} />
         </div>
       </div>
 
@@ -555,4 +549,40 @@ const formatMoney = (n: number, ccy: string): string => {
   } catch {
     return `${ccy} ${n.toFixed(2)}`;
   }
+};
+
+// Dropdown simple para moneda — 5 opciones cortas, no necesita portal ni búsqueda.
+const CurrencyPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useClickOutside(containerRef, open, () => setOpen(false));
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base"
+      >
+        <span className="font-medium">{value}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden">
+          {CURRENCIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => { onChange(c); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 ${
+                value === c ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 font-medium' : ''
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
