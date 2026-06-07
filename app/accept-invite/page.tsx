@@ -67,6 +67,26 @@ const AcceptInvitePage = async ({
     return <ErrorScreen title="Error" message={insErr.message} />;
   }
 
+  // Crear un contacto "Yo" para el invitee en el workspace compartido. Esto
+  // hace que aparezca en el dropdown de "Pagó" y en la lista de participantes
+  // al dividir un gasto. Si ya existe (porque aceptaron antes y reintentaron)
+  // el unique constraint (workspace_id, user_id) where is_self=true lo evita.
+  // El nombre lo derivamos del display name del user o del email.
+  const inviteeName =
+    user.user_metadata?.full_name?.split(' ')[0] ??
+    user.user_metadata?.name?.split(' ')[0] ??
+    user.email?.split('@')[0] ??
+    'Yo';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('notification_contacts') as any)
+    .insert({
+      workspace_id: inv.workspace_id,
+      user_id: user.id,
+      name: inviteeName,
+      relationship: 'self',
+      is_self: true,
+    });
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.from('workspace_invites') as any)
     .update({ accepted_at: new Date().toISOString() })

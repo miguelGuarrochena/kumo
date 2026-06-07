@@ -431,7 +431,7 @@
     "values_fixed_helper": "La suma debe ser {total}",
     "values_no_participants": "Agregá al menos un participante arriba.",
     "items_how_to_title": "Cómo dividir por items",
-    "items_how_to_body": "Cargá cada plato/bebida con su precio y tocá los chips de quién lo consumió. Si Martín se comió una milanesa de $300 él solo, paga los $300; si la comparte con María, son $150 cada uno.",
+    "items_how_to_body": "Cargá cada plato/bebida con su precio y tocá los chips de quién lo consumió.",
     "items_empty": "Sin items todavía. Tocá \"Agregar item\" abajo.",
     "items_item_label": "Item",
     "items_item_placeholder": "Ej: Milanesa",
@@ -482,6 +482,10 @@
     "split_pick_item": "Cargá al menos un item",
     "remove_split": "Quitar división",
     "dividing_action": "Dividir",
-    "updating_action": "Actualizar"
+    "updating_action": "Actualizar",
+    "participants_tap_hint": "Tocá un chip para sumarlo · ✕ para quitarlo",
+    "participants_others": "Otros contactos",
+    "participants_remove": "Quitar del split",
+    "participants_each_amount": "{amount} cada uno"
   }
 }

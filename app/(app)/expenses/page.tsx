@@ -47,17 +47,31 @@ export default async function ExpensesPage({
 
   const ctx = await getCurrentWorkspace();
 
-  const [{ data: categories }, { data: settings }, { data: contacts }, rates, subscription] = await Promise.all([
+  const [{ data: categories }, { data: settings }, { data: contactsRaw }, rates, subscription] = await Promise.all([
     supabase.from('categories').select('*').eq('workspace_id', ctx.workspaceId).order('name'),
     supabase.from('user_settings').select('default_currency').single(),
     supabase
       .from('notification_contacts')
-      .select('id, name, relationship, is_self, phone')
+      .select('id, name, relationship, is_self, phone, user_id')
       .eq('workspace_id', ctx.workspaceId)
       .order('created_at'),
     getRates(),
     getSubscription(),
   ]);
+
+  // Calculamos `is_self` desde la perspectiva del viewer: solo es "Yo" si
+  // el contacto pertenece al user actual. Los selfs de otros miembros del
+  // workspace aparecen como contactos normales (sin el sufijo "(Vos)").
+  type RawContact = { id: string; name: string; relationship: string; is_self: boolean; phone: string | null; user_id: string | null };
+  const contacts = ((contactsRaw ?? []) as RawContact[])
+    .map((c) => ({
+      ...c,
+      is_self: !!c.is_self && c.user_id === ctx.userId,
+    }))
+    .sort((a, b) => {
+      if (a.is_self !== b.is_self) return a.is_self ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
 
   const userCurrency = ((settings as { default_currency?: string } | null)?.default_currency ?? 'ARS') as Currency;
   const displayCurrency = (params.asCurrency ?? userCurrency) as Currency;

@@ -482,6 +482,10 @@
     "split_pick_item": "Add at least one item",
     "remove_split": "Remove split",
     "dividing_action": "Split",
-    "updating_action": "Update"
+    "updating_action": "Update",
+    "participants_tap_hint": "Tap a chip to add · ✕ to remove",
+    "participants_others": "Other contacts",
+    "participants_remove": "Remove from split",
+    "participants_each_amount": "{amount} each"
   }
 }
