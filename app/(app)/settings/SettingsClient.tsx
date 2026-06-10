@@ -16,6 +16,7 @@ import { CURRENCY_OPTIONS, TIMEZONE_GROUPS } from './settingsConstants';
 import { Section, DonateSection, LanguageSection } from './SettingsSections';
 import { ProfileSection } from './ProfileSection';
 import { DeleteAccountSection } from './DeleteAccountSection';
+import { OnboardingResetSection } from './OnboardingResetSection';
 
 type Settings = Database['public']['Tables']['user_settings']['Row'];
 
@@ -27,12 +28,14 @@ export const SettingsClient = ({
   initialDisplayName,
   vapidPublicKey,
   isAdmin = false,
+  isOnboarded = true,
 }: {
   initialSettings: Settings | null;
   userEmail: string;
   initialDisplayName: string;
   vapidPublicKey: string;
   isAdmin?: boolean;
+  isOnboarded?: boolean;
 }) => {
   const router = useRouter();
   const { t } = useT();
@@ -212,6 +215,8 @@ export const SettingsClient = ({
       </div>
 
       <DonateSection />
+
+      {isOnboarded && <OnboardingResetSection />}
 
       <DeleteAccountSection userEmail={userEmail} />
 

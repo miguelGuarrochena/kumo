@@ -49,6 +49,9 @@ NEXT_PUBLIC_DONATE_URL=https://cafecito.app/miguelguarrochena
 # Cron + feeds firmados
 CRON_SECRET=<algo-largo-aleatorio>
 
+# WhatsApp: mostrar banner "en revisión" aunque tengas credenciales (hasta aprobación Meta)
+NEXT_PUBLIC_WHATSAPP_PENDING=true
+
 # Monitoring (opcional)
 SENTRY_DSN=...
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
@@ -58,7 +61,7 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0023_no_auto_ocr_trial.sql`:
+Aplicar todas en orden hasta `0024_calendar_feed_version.sql`:
 
 ```bash
 supabase db push

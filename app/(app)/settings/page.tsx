@@ -10,14 +10,22 @@ import { getPricing } from '@/lib/pricing';
 import { isAdmin } from '@/lib/admin';
 import { buildCalendarFeedUrl } from '@/lib/calendar/feedToken';
 import { CalendarFeedSection } from './CalendarFeedSection';
+import { getMessages } from '@/lib/i18n/server';
+import { isWhatsAppConfigured } from '@/lib/notifications/whatsapp';
+import { WhatsAppPendingBanner } from './WhatsAppPendingBanner';
 
 const SettingsPage = async () => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const ctx = await getCurrentWorkspace();
-  const subscription = await getSubscription();
-  const pricing = getPricing();
+  const [subscription, pricing, t] = await Promise.all([
+    getSubscription(),
+    getPricing(),
+    getMessages(),
+  ]);
+  const whatsappPending =
+    !isWhatsAppConfigured() || process.env.NEXT_PUBLIC_WHATSAPP_PENDING === 'true';
 
   // Limpieza silenciosa: si quedaron contactos "Yo" duplicados por bugs viejos,
   // los borramos sin mostrar nada al user. El unique de DB previene futuros.
@@ -84,13 +92,14 @@ const SettingsPage = async () => {
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'kumo-app.com';
   const proto = h.get('x-forwarded-proto') ?? 'https';
   const origin = `${proto}://${host}`;
+  const feedVersion = (settings as { calendar_feed_version?: number } | null)?.calendar_feed_version ?? 0;
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Configuración</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.settings.title}</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          Contactos, moneda, zona horaria, tema y preferencias de notificación.
+          {t.settings.subtitle}
         </p>
       </header>
 
@@ -114,9 +123,14 @@ const SettingsPage = async () => {
         totalSpaces={spacesCount ?? 1}
       />
 
+      {whatsappPending && <WhatsAppPendingBanner />}
+
       <ContactsSection contacts={contacts ?? []} />
 
-      <CalendarFeedSection feedUrl={buildCalendarFeedUrl(user!.id, origin)} />
+      <CalendarFeedSection
+        feedUrl={buildCalendarFeedUrl(user!.id, origin, feedVersion)}
+        feedVersion={feedVersion}
+      />
 
       <SettingsClient
         initialSettings={settings}
@@ -124,6 +138,7 @@ const SettingsPage = async () => {
         initialDisplayName={user?.user_metadata?.full_name ?? ''}
         vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
         isAdmin={isAdmin(user?.email)}
+        isOnboarded={(settings as { onboarded?: boolean } | null)?.onboarded ?? false}
       />
     </div>
   );

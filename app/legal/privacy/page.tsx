@@ -38,7 +38,7 @@ const PrivacyPage = () => {
           los datos. <strong>No guardamos la foto</strong>: una vez procesada, se descarta.
         </li>
         <li>
-          <strong>Datos de pago</strong>: si te suscribís al plan Pro, MercadoPago procesa el pago. Nosotros guardamos
+          <strong>Datos de pago</strong>: si activás el complemento OCR, MercadoPago procesa el pago. Nosotros guardamos
           solo el ID de tu suscripción y el estado (activa, cancelada, etc.) — no vemos ni almacenamos tu tarjeta.
         </li>
         <li>
@@ -56,7 +56,7 @@ const PrivacyPage = () => {
         <li>Mostrarte tu información dentro de la app.</li>
         <li>Enviar recordatorios por push notifications y WhatsApp.</li>
         <li>Procesar tickets con OCR.</li>
-        <li>Cobrar la suscripción Pro vía MercadoPago.</li>
+        <li>Cobrar el complemento OCR vía MercadoPago.</li>
         <li>Detectar errores y mejorar la app con datos anónimos agregados.</li>
       </ul>
 
@@ -79,7 +79,7 @@ const PrivacyPage = () => {
           destinatarios.
         </li>
         <li>
-          <strong>MercadoPago</strong> — procesa pagos de la suscripción Pro. Aplica su propia política de privacidad.
+          <strong>MercadoPago</strong> — procesa pagos del complemento OCR. Aplica su propia política de privacidad.
         </li>
         <li>
           <strong>Resend</strong> — envía emails transaccionales (magic link de login, invitaciones a espacios).
@@ -101,7 +101,7 @@ const PrivacyPage = () => {
           inmediata y borra todos tus datos asociados (gastos, contactos, espacios donde sos dueño).
         </li>
         <li>Exportar tus gastos a CSV o Excel desde la pantalla de Gastos.</li>
-        <li>Cancelar tu suscripción Pro en cualquier momento desde Configuración → Plan.</li>
+        <li>Cancelar el complemento OCR en cualquier momento desde Configuración → Plan.</li>
       </ul>
 
       <h2 className="text-xl font-bold mt-8 mb-3">5. Seguridad</h2>

@@ -15,8 +15,8 @@ export const GET = async (req: Request) => {
     return NextResponse.json({ error: 'Token requerido' }, { status: 400 });
   }
 
-  const userId = verifyCalendarFeedToken(token);
-  if (!userId) {
+  const parsed = verifyCalendarFeedToken(token);
+  if (!parsed) {
     return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
   }
 
@@ -24,6 +24,21 @@ export const GET = async (req: Request) => {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
+
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('calendar_feed_version')
+    .eq('user_id', parsed.userId)
+    .maybeSingle();
+
+  const currentVersion =
+    (settingsRow as { calendar_feed_version?: number } | null)?.calendar_feed_version ?? 0;
+
+  if (parsed.version !== currentVersion) {
+    return NextResponse.json({ error: 'Token revocado' }, { status: 401 });
+  }
+
+  const userId = parsed.userId;
 
   const start = new Date();
   start.setDate(start.getDate() - pastDays);

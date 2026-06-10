@@ -70,16 +70,16 @@ const TermsPage = () => {
           tarjeta.
         </li>
         <li>
-          La suscripción Pro se renueva automáticamente al final de cada período (mensual o anual) hasta que la
-          canceles.
+          El <strong>complemento OCR</strong> se renueva automáticamente al final de cada período (mensual o anual)
+          hasta que lo canceles.
         </li>
         <li>
           Podés <strong>cancelar en cualquier momento</strong> desde Configuración → Plan → Cancelar suscripción.
-          Mantenés acceso a Pro hasta el final del período ya pagado.
+          Mantenés acceso al escaneo hasta el final del período ya pagado.
         </li>
         <li>
-          <strong>No hacemos reembolsos por períodos parciales</strong>. Si cancelás a la mitad del mes, mantenés Pro
-          hasta el final del mes y no se renueva.
+          <strong>No hacemos reembolsos por períodos parciales</strong>. Si cancelás a la mitad del mes, mantenés el
+          complemento OCR hasta el final del mes y no se renueva.
         </li>
         <li>
           Si tenés un problema con un cobro, escribinos a <a href="mailto:info@kumo-app.com">info@kumo-app.com</a> y
@@ -113,7 +113,7 @@ const TermsPage = () => {
 
       <h2 className="text-xl font-bold mt-8 mb-3">9. Datos al cancelar o eliminar</h2>
       <p>
-        Al cancelar la suscripción mantenés tus datos y seguís usando el plan Free. Al{' '}
+        Al cancelar el complemento OCR mantenés tus datos y seguís usando Kumo gratis. Al{' '}
         <strong>eliminar tu cuenta</strong>, todos tus datos asociados (gastos, contactos, recordatorios, espacios
         donde sos dueño) se borran permanentemente. Esta acción no es reversible.
       </p>

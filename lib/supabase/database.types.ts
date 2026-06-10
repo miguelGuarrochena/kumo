@@ -216,6 +216,7 @@ type UserSettingsRow = {
   default_currency: string;
   timezone: string;
   onboarded: boolean;
+  calendar_feed_version: number;
   updated_at: string;
 };
 type UserSettingsInsert = {
@@ -228,6 +229,7 @@ type UserSettingsInsert = {
   default_currency?: string;
   timezone?: string;
   onboarded?: boolean;
+  calendar_feed_version?: number;
   updated_at?: string;
 };
 type UserSettingsUpdate = {
@@ -240,6 +242,7 @@ type UserSettingsUpdate = {
   default_currency?: string;
   timezone?: string;
   onboarded?: boolean;
+  calendar_feed_version?: number;
   updated_at?: string;
 };
 

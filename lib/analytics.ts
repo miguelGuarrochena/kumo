@@ -15,6 +15,7 @@ export type AnalyticsEvent =
   | { name: 'onboarding_skipped' }
   | { name: 'calendar_feed_subscribe' }
   | { name: 'calendar_feed_share' }
+  | { name: 'calendar_feed_rotated' }
   | { name: 'shopping_item_added' }
   | { name: 'whatsapp_configured' }
   | { name: 'pwa_install_dismissed' }
