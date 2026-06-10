@@ -7,13 +7,35 @@ export const GOOGLE_CALENDAR_ADD_URL =
 export const toWebcalUrl = (httpsUrl: string): string =>
   httpsUrl.replace(/^https:\/\//i, 'webcal://');
 
-export const copyFeedUrl = async (url: string): Promise<boolean> => {
+const copyWithFallback = (url: string): boolean => {
+  const ta = document.createElement('textarea');
+  ta.value = url;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, url.length);
+  let ok = false;
   try {
-    await navigator.clipboard.writeText(url);
-    return true;
+    ok = document.execCommand('copy');
   } catch {
-    return false;
+    ok = false;
   }
+  document.body.removeChild(ta);
+  return ok;
+};
+
+export const copyFeedUrl = async (url: string): Promise<boolean> => {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      /* fallback below */
+    }
+  }
+  return copyWithFallback(url);
 };
 
 export const markCalendarFeedDone = (): void => {
