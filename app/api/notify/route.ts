@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getWhatsAppAdapter } from '@/lib/notifications/whatsapp';
 import { sendPush, type PushSubscriptionRow } from '@/lib/push/server';
+import { todayKey, toIsoLocal, daysBetween, dayKey } from '@/lib/date';
 import type { Database } from '@/lib/supabase/database.types';
 
 type Contact = Database['public']['Tables']['notification_contacts']['Row'];
@@ -28,12 +29,16 @@ export async function POST(request: Request) {
   let failed = 0;
   let skipped = 0;
 
-  const today = new Date().toISOString().slice(0, 10);
-  const in3Days = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
+  const today = todayKey();
+  const in3Days = toIsoLocal((() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    return d;
+  })());
 
   const { data: dueExpensesRaw } = await supabase
     .from('expenses')
-    .select('id, user_id, amount, currency, description, due_date, notify_contact_ids')
+    .select('id, user_id, workspace_id, amount, currency, description, due_date, notify_contact_ids')
     .eq('paid', false)
     .gte('due_date', today)
     .lte('due_date', in3Days);
@@ -41,7 +46,7 @@ export async function POST(request: Request) {
 
   const { data: remindersRaw } = await supabase
     .from('reminders')
-    .select('id, user_id, title, reminder_date, reminder_type, notify_days_before, last_notified_at, notify_contact_ids')
+    .select('id, user_id, workspace_id, title, reminder_date, reminder_type, notify_days_before, last_notified_at, notify_contact_ids')
     .gte('reminder_date', today);
   const reminders = (remindersRaw ?? []) as Reminder[];
 
@@ -89,13 +94,16 @@ export async function POST(request: Request) {
 
   const contactsById = new Map<string, Contact>(contacts.map((c) => [c.id, c]));
   const settingsByUser = new Map<string, Settings>(settings.map((s) => [s.user_id, s]));
+  // Indexamos el contacto "Yo" por (user_id, workspace_id): un mismo usuario puede
+  // tener varios workspaces, cada uno con su propio self contact.
+  const selfKey = (userId: string, workspaceId: string) => `${userId}::${workspaceId}`;
   const selfContactByUser = new Map<string, Contact>(
-    contacts.filter((c) => c.is_self).map((c) => [c.user_id, c]),
+    contacts.filter((c) => c.is_self).map((c) => [selfKey(c.user_id, c.workspace_id), c]),
   );
 
   const wa = getWhatsAppAdapter();
 
-  function resolveRecipients(userId: string, contactIds: string[]): { id: string; name: string; phone: string }[] {
+  function resolveRecipients(userId: string, workspaceId: string, contactIds: string[]): { id: string; name: string; phone: string }[] {
     let pool: Contact[] = [];
 
     if (contactIds.length > 0) {
@@ -103,7 +111,7 @@ export async function POST(request: Request) {
         .map((id) => contactsById.get(id))
         .filter((c): c is Contact => !!c);
     } else {
-      const self = selfContactByUser.get(userId);
+      const self = selfContactByUser.get(selfKey(userId, workspaceId));
       const settingsRow = settingsByUser.get(userId);
       if (self?.phone) {
         pool = [self];
@@ -116,6 +124,7 @@ export async function POST(request: Request) {
           phone: settingsRow.whatsapp_number,
           relationship: 'self',
           is_self: true,
+          is_split_only: false,
           verified: false,
           created_at: new Date().toISOString(),
         }];
@@ -139,7 +148,7 @@ export async function POST(request: Request) {
 
     await pushToUser(exp.user_id, { title, body, url: '/expenses', tag: `exp-${exp.id}` });
 
-    const recipients = resolveRecipients(exp.user_id, exp.notify_contact_ids ?? []);
+    const recipients = resolveRecipients(exp.user_id, exp.workspace_id, exp.notify_contact_ids ?? []);
     for (const r of recipients) {
       const result = await wa.send({
         to: r.phone,
@@ -158,8 +167,9 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const reminderDate = new Date(rem.reminder_date);
-    const diffDays = Math.ceil((reminderDate.getTime() - Date.now()) / 86400_000);
+    // Comparamos como fechas calendario (YYYY-MM-DD) para evitar el off-by-one
+    // que produce parsear la fecha como UTC midnight y restar Date.now().
+    const diffDays = daysBetween(today, dayKey(rem.reminder_date));
     if (diffDays > rem.notify_days_before) {
       skipped++;
       continue;
@@ -182,7 +192,7 @@ export async function POST(request: Request) {
       tag: `rem-${rem.id}`,
     });
 
-    const recipients = resolveRecipients(rem.user_id, rem.notify_contact_ids ?? []);
+    const recipients = resolveRecipients(rem.user_id, rem.workspace_id, rem.notify_contact_ids ?? []);
     if (recipients.length === 0) {
       skipped++;
       continue;
@@ -195,7 +205,7 @@ export async function POST(request: Request) {
 
     let anyOk = false;
     for (const r of recipients) {
-      const selfPhone = selfContactByUser.get(rem.user_id)?.phone;
+      const selfPhone = selfContactByUser.get(selfKey(rem.user_id, rem.workspace_id))?.phone;
       const isOwner = r.phone === selfPhone;
       const greeting = isOwner ? '' : `Hola ${r.name}, te aviso de parte de Kumo: `;
 

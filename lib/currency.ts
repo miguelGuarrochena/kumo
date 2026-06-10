@@ -88,7 +88,28 @@ export async function getRates(): Promise<RatesSnapshot> {
 }
 
 // ---------------------------------------------------------------------
-// Convertir un monto entre dos monedas
+// Convertir un monto entre dos monedas con un snapshot de tasas ya cargado.
+// Sync: pensado para client/server components que reciben `rates` como prop.
+// Devuelve null si falta alguna tasa — el caller decide qué hacer (no sumar
+// como 0, mostrar warning, etc.).
+// ---------------------------------------------------------------------
+export function convertAmount(
+  amount: number,
+  from: Currency,
+  to: Currency,
+  rates: Partial<Record<Currency, number>>,
+): number | null {
+  if (from === to) return amount;
+  const fromRate = rates[from];
+  const toRate = rates[to];
+  if (!fromRate || !toRate) return null;
+  // amount está en `from`. Convertimos a USD primero, después a `to`.
+  const inUsd = amount / fromRate;
+  return inUsd * toRate;
+}
+
+// ---------------------------------------------------------------------
+// Convertir un monto entre dos monedas (async, carga las tasas)
 // ---------------------------------------------------------------------
 export async function convert(
   amount: number,
@@ -97,12 +118,7 @@ export async function convert(
 ): Promise<number | null> {
   if (from === to) return amount;
   const { rates } = await getRates();
-  const fromRate = rates[from];
-  const toRate = rates[to];
-  if (!fromRate || !toRate) return null;
-  // amount está en `from`. Convertimos a USD primero, después a `to`.
-  const inUsd = amount / fromRate;
-  return inUsd * toRate;
+  return convertAmount(amount, from, to, rates);
 }
 
 // ---------------------------------------------------------------------

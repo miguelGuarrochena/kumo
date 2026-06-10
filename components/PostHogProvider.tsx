@@ -31,7 +31,7 @@ if (typeof window !== 'undefined' && KEY) {
   });
 }
 
-export function PostHogProvider({ children }: { children: React.ReactNode }) {
+export const PostHogProvider = ({ children }: { children: React.ReactNode }) => {
   if (!KEY) return <>{children}</>;
   return (
     <Provider client={posthog}>
@@ -41,9 +41,9 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       {children}
     </Provider>
   );
-}
+};
 
-function PageviewTracker() {
+const PageviewTracker = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -56,4 +56,4 @@ function PageviewTracker() {
   }, [pathname, searchParams]);
 
   return null;
-}
+};

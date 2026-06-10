@@ -2,22 +2,19 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Camera, ChevronDown, Copy, MessageCircle, Plus, RotateCcw, Save, X, Loader2 } from 'lucide-react';
+import { Camera, Copy, MessageCircle, Plus, RotateCcw, Save, X, Loader2 } from 'lucide-react';
 import { upsertExpense } from '../expenses/actions';
 import { saveSplits } from '../expenses/splitsActions';
+import { createAdHocContact } from '../settings/contactsActions';
 import { resizeImage } from '@/lib/image';
-import { useClickOutside } from '@/lib/useClickOutside';
+import { todayKey } from '@/lib/date';
 import { useT } from '@/lib/i18n/client';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import type { ContactLite } from './types';
-
-const CURRENCIES = ['ARS', 'USD', 'EUR', 'MXN', 'CLP'];
-
-type Mode = 'equal' | 'percentage' | 'fixed' | 'items';
-
-type Participant = { name: string; contactId: string | null };
-
-type ItemRow = { name: string; price: string; participantIdx: number[] };
+import type { Mode, Participant, ItemRow } from './dividirTypes';
+import { formatMoney, trimNumber, newId } from './dividirUtils';
+import { CurrencyPicker } from './CurrencyPicker';
+import { ItemsEditor } from './ItemsEditor';
 
 type Props = {
   contacts: ContactLite[];
@@ -34,7 +31,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
   const [mode, setMode] = useState<Mode>('equal');
   const [parts, setParts] = useState<Participant[]>([]);
   const [partInput, setPartInput] = useState('');
-  const [values, setValues] = useState<Record<number, string>>({});
+  const [values, setValues] = useState<Record<string, string>>({});
   const [items, setItems] = useState<ItemRow[]>([]);
   const [ocrLoading, setOcrLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -43,24 +40,22 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
     const v = (text ?? partInput).trim();
     if (!v) return;
     const existing = contacts.find((c) => c.name.toLowerCase() === v.toLowerCase());
-    setParts((p) => {
-      const next = [...p, { name: existing?.name ?? v, contactId: existing?.id ?? null }];
-      // Autocompletar valor del nuevo participante con el remaining para que
-      // el total cierre solo. En % → 100 menos lo que ya tienen los otros.
-      // En monto fijo → totalNum menos lo que ya tienen los otros.
-      if (mode === 'percentage' || mode === 'fixed') {
-        const cap = mode === 'percentage' ? 100 : totalNum;
-        const sumOthers = p.reduce(
-          (s, _, idx) => s + (parseFloat(values[idx] ?? '0') || 0),
-          0,
-        );
-        const remaining = Math.max(0, cap - sumOthers);
-        if (remaining > 0) {
-          setValues((prev) => ({ ...prev, [next.length - 1]: trimNumber(remaining) }));
-        }
+    const id = newId();
+    setParts((p) => [...p, { id, name: existing?.name ?? v, contactId: existing?.id ?? null }]);
+    // Autocompletar valor del nuevo participante con el remaining para que
+    // el total cierre solo. En % → 100 menos lo que ya tienen los otros.
+    // En monto fijo → totalNum menos lo que ya tienen los otros.
+    if (mode === 'percentage' || mode === 'fixed') {
+      const cap = mode === 'percentage' ? 100 : totalNum;
+      const sumOthers = parts.reduce(
+        (s, p) => s + (parseFloat(values[p.id] ?? '0') || 0),
+        0,
+      );
+      const remaining = Math.max(0, cap - sumOthers);
+      if (remaining > 0) {
+        setValues((prev) => ({ ...prev, [id]: trimNumber(remaining) }));
       }
-      return next;
-    });
+    }
     setPartInput('');
   };
 
@@ -75,47 +70,43 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
   // En porcentaje, cuando el user edita un valor redistribuimos lo que falta
   // proporcionalmente entre los otros participantes para que sume 100. En
   // monto fijo el user es responsable de hacer cuadrar el total.
-  const updateValue = (i: number, v: string) => {
+  const updateValue = (id: string, v: string) => {
     setValues((prev) => {
-      const next: Record<number, string> = { ...prev, [i]: v };
+      const next: Record<string, string> = { ...prev, [id]: v };
       if (mode !== 'percentage') return next;
       const editedNum = parseFloat(v) || 0;
       const remaining = Math.max(0, 100 - editedNum);
-      const otherIdxs = parts.map((_, idx) => idx).filter((idx) => idx !== i);
-      if (otherIdxs.length === 0) return next;
-      const sumOthers = otherIdxs.reduce(
-        (s, idx) => s + (parseFloat(prev[idx] ?? '0') || 0),
+      const otherIds = parts.map((p) => p.id).filter((pid) => pid !== id);
+      if (otherIds.length === 0) return next;
+      const sumOthers = otherIds.reduce(
+        (s, pid) => s + (parseFloat(prev[pid] ?? '0') || 0),
         0,
       );
       if (sumOthers === 0) {
-        const each = remaining / otherIdxs.length;
-        for (const idx of otherIdxs) next[idx] = trimNumber(each);
+        const each = remaining / otherIds.length;
+        for (const pid of otherIds) next[pid] = trimNumber(each);
       } else {
         const scale = remaining / sumOthers;
-        for (const idx of otherIdxs) {
-          const cur = parseFloat(prev[idx] ?? '0') || 0;
-          next[idx] = trimNumber(cur * scale);
+        for (const pid of otherIds) {
+          const cur = parseFloat(prev[pid] ?? '0') || 0;
+          next[pid] = trimNumber(cur * scale);
         }
       }
       return next;
     });
   };
 
-  const removeParticipant = (i: number) => {
-    setParts((p) => p.filter((_, idx) => idx !== i));
+  const removeParticipant = (id: string) => {
+    setParts((p) => p.filter((part) => part.id !== id));
     setValues((prev) => {
-      const next: Record<number, string> = {};
-      Object.entries(prev).forEach(([k, val]) => {
-        const idx = Number(k);
-        if (idx < i) next[idx] = val;
-        else if (idx > i) next[idx - 1] = val;
-      });
+      const next = { ...prev };
+      delete next[id];
       return next;
     });
     setItems((arr) =>
       arr.map((it) => ({
         ...it,
-        participantIdx: it.participantIdx.filter((p) => p !== i).map((p) => (p > i ? p - 1 : p)),
+        participantIds: it.participantIds.filter((pid) => pid !== id),
       })),
     );
   };
@@ -126,31 +117,37 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
   const totalNum = baseTotal + tipAmount;
   const N = parts.length;
 
+  // computed[participantId] = monto que le toca. Keyed por id para no depender
+  // del orden del array.
   const computed = useMemo(() => {
-    const out = new Array<number>(N).fill(0);
+    const out: Record<string, number> = {};
+    for (const p of parts) out[p.id] = 0;
     if (N === 0 || totalNum === 0) return out;
     if (mode === 'equal') {
       const each = totalNum / N;
-      for (let i = 0; i < N; i++) out[i] = each;
+      for (const p of parts) out[p.id] = each;
     } else if (mode === 'percentage') {
-      for (let i = 0; i < N; i++) {
-        const p = parseFloat(values[i] ?? '0') || 0;
-        out[i] = (totalNum * p) / 100;
+      for (const p of parts) {
+        const pct = parseFloat(values[p.id] ?? '0') || 0;
+        out[p.id] = (totalNum * pct) / 100;
       }
     } else if (mode === 'fixed') {
-      for (let i = 0; i < N; i++) out[i] = parseFloat(values[i] ?? '0') || 0;
+      for (const p of parts) out[p.id] = parseFloat(values[p.id] ?? '0') || 0;
     } else if (mode === 'items') {
       for (const it of items) {
         const price = parseFloat(it.price) || 0;
-        if (it.participantIdx.length === 0) continue;
-        const portion = price / it.participantIdx.length;
-        for (const pIdx of it.participantIdx) out[pIdx] = (out[pIdx] ?? 0) + portion;
+        if (it.participantIds.length === 0) continue;
+        const portion = price / it.participantIds.length;
+        for (const pid of it.participantIds) {
+          if (pid in out) out[pid] = (out[pid] ?? 0) + portion;
+        }
       }
     }
-    return out.map((v) => Math.round(v * 100) / 100);
-  }, [N, totalNum, mode, values, items]);
+    for (const k of Object.keys(out)) out[k] = Math.round((out[k] ?? 0) * 100) / 100;
+    return out;
+  }, [parts, N, totalNum, mode, values, items]);
 
-  const sumComputed = computed.reduce((s, v) => s + v, 0);
+  const sumComputed = parts.reduce((s, p) => s + (computed[p.id] ?? 0), 0);
   const sumOk =
     mode === 'equal' ||
     (mode === 'percentage' && N > 0 && Math.abs(sumComputed - totalNum) < 0.5) ||
@@ -179,7 +176,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
       if (data.total) setTotal(String(data.total));
       if (data.currency) setCurrency(data.currency.toUpperCase());
       if (data.items && data.items.length > 0) {
-        setItems(data.items.map((it) => ({ name: it.name, price: String(it.price), participantIdx: [] })));
+        setItems(data.items.map((it) => ({ id: newId(), name: it.name, price: String(it.price), participantIds: [] })));
         setMode('items');
       }
       toast.success(t.split.ticket_processed);
@@ -192,8 +189,8 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
 
   const buildShareText = (): string => {
     const lines = [t.split.share_text_header.replace('{total}', formatMoney(totalNum, currency))];
-    parts.forEach((p, i) => {
-      lines.push(t.split.share_text_line.replace('{name}', p.name).replace('{amount}', formatMoney(computed[i] ?? 0, currency)));
+    parts.forEach((p) => {
+      lines.push(t.split.share_text_line.replace('{name}', p.name).replace('{amount}', formatMoney(computed[p.id] ?? 0, currency)));
     });
     return lines.join('\n');
   };
@@ -240,19 +237,34 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
       fd.set('amount', String(totalNum));
       fd.set('currency', currency);
       fd.set('description', t.split.default_description);
-      fd.set('expense_date', new Date().toISOString().slice(0, 10));
+      fd.set('expense_date', todayKey());
       fd.set('paid', 'true');
       fd.set('is_recurring', 'false');
       const r = await upsertExpense({ ok: false }, fd);
       if (!r.ok || !r.expenseId) {
-        toast.error(r.error ?? 'No se pudo crear el gasto');
+        toast.error(r.error ?? t.common.error);
         return;
       }
 
-      // Splits — solo los participantes que matchean contactos del workspace
-      const splits = parts
-        .map((p, i) => ({ contactId: p.contactId, amount: computed[i] ?? 0 }))
-        .filter((s) => s.contactId !== null) as { contactId: string; amount: number }[];
+      // Resolvemos los participantes a contactos. Los que tienen nombre libre
+      // (sin contactId) se crean como contactos ad-hoc para no perder su parte
+      // del split, igual que hace SplitEditor en Gastos.
+      const splits: { contactId: string; amount: number }[] = [];
+      for (const p of parts) {
+        const amount = computed[p.id] ?? 0;
+        let contactId = p.contactId;
+        if (!contactId) {
+          const name = p.name.trim();
+          if (!name) continue; // participante sin nombre ni contacto → se ignora
+          const created = await createAdHocContact(name);
+          if (!created.ok || !created.id) {
+            toast.error(created.error ?? t.common.error);
+            continue;
+          }
+          contactId = created.id;
+        }
+        splits.push({ contactId, amount });
+      }
 
       if (splits.length > 0) {
         const selfContact = contacts.find((c) => c.is_self);
@@ -375,16 +387,16 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
           {t.split.participants}
         </label>
         <div className="flex flex-wrap gap-1.5 mb-2">
-          {parts.map((p, i) => (
+          {parts.map((p) => (
             <span
-              key={i}
+              key={p.id}
               className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 text-xs font-medium"
             >
               {p.name}{p.contactId ? '' : ' ✎'}
               <button
                 type="button"
-                onClick={() => removeParticipant(i)}
-                aria-label="Quitar"
+                onClick={() => removeParticipant(p.id)}
+                aria-label={t.split.participants_remove}
                 className="hover:text-rose-500"
               >
                 <X className="w-3 h-3" />
@@ -464,16 +476,16 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
             {(mode === 'percentage' ? t.split.values_pct_helper : t.split.values_fixed_helper)
               .replace('{total}', formatMoney(totalNum, currency))}
           </p>
-          {parts.map((p, i) => (
-            <div key={i} className="flex items-center justify-between gap-2">
+          {parts.map((p) => (
+            <div key={p.id} className="flex items-center justify-between gap-2">
               <span className="text-sm truncate flex-1">{p.name}</span>
               <div className="relative w-32">
                 <input
                   type="number"
                   inputMode="decimal"
                   step={mode === 'percentage' ? '0.1' : '0.01'}
-                  value={values[i] ?? ''}
-                  onChange={(e) => updateValue(i, e.target.value)}
+                  value={values[p.id] ?? ''}
+                  onChange={(e) => updateValue(p.id, e.target.value)}
                   placeholder="0"
                   className="w-full pl-3 pr-10 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-right tabular-nums"
                 />
@@ -507,10 +519,10 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
               return <span className="text-[11px] text-rose-500">{label}</span>;
             })()}
           </div>
-          {parts.map((p, i) => (
-            <div key={i} className="flex items-center justify-between text-sm">
+          {parts.map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-sm">
               <span className="truncate">{p.name}</span>
-              <span className="font-semibold tabular-nums">{formatMoney(computed[i] ?? 0, currency)}</span>
+              <span className="font-semibold tabular-nums">{formatMoney(computed[p.id] ?? 0, currency)}</span>
             </div>
           ))}
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/50">
@@ -554,186 +566,6 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
               {t.split.reset}
             </button>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const ItemsEditor = ({
-  items, setItems, parts, totalAmount,
-}: {
-  items: ItemRow[];
-  setItems: React.Dispatch<React.SetStateAction<ItemRow[]>>;
-  parts: Participant[];
-  totalAmount: number;
-}) => {
-  const { t } = useT();
-  const updateItem = (i: number, patch: Partial<ItemRow>) =>
-    setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
-  const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
-  const addItem = () => setItems((prev) => [...prev, { name: '', price: '', participantIdx: [] }]);
-  const toggle = (i: number, pIdx: number) => {
-    setItems((prev) =>
-      prev.map((it, idx) => {
-        if (idx !== i) return it;
-        const has = it.participantIdx.includes(pIdx);
-        return {
-          ...it,
-          participantIdx: has ? it.participantIdx.filter((p) => p !== pIdx) : [...it.participantIdx, pIdx],
-        };
-      }),
-    );
-  };
-  const itemsTotal = items.reduce((s, it) => s + (parseFloat(it.price) || 0), 0);
-  const matches = totalAmount === 0 || Math.abs(itemsTotal - totalAmount) < 0.01;
-
-  return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-3">
-      <div className="bg-sky-50/60 dark:bg-sky-900/15 border border-sky-100 dark:border-sky-800/40 rounded-lg p-2.5 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-        <p className="font-semibold text-slate-700 dark:text-slate-200 mb-0.5">{t.split.items_how_to_title}</p>
-        {t.split.items_how_to_body}
-      </div>
-
-      {items.length === 0 && (
-        <div className="text-center py-3 text-xs text-slate-400 dark:text-slate-500 italic">
-          {t.split.items_empty}
-        </div>
-      )}
-
-      {items.map((it, i) => (
-        <div key={i} className="rounded-lg bg-slate-50 dark:bg-slate-800/40 p-2.5 space-y-2">
-          <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-end">
-            <div>
-              <label className="block text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
-                {t.split.items_item_label}
-              </label>
-              <input
-                type="text"
-                value={it.name}
-                onChange={(e) => updateItem(i, { name: e.target.value })}
-                placeholder={t.split.items_item_placeholder}
-                className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">
-                {t.split.items_price_label}
-              </label>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={it.price}
-                onChange={(e) => updateItem(i, { price: e.target.value })}
-                placeholder="0"
-                className="w-24 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-right tabular-nums"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => removeItem(i)}
-              className="p-1.5 text-slate-400 hover:text-rose-500 self-end"
-              aria-label={t.split.items_delete}
-              title={t.split.items_delete}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
-              {t.split.items_who_consumed}
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {parts.length === 0 ? (
-                <span className="text-[11px] text-slate-400 italic">{t.split.items_add_first_participants}</span>
-              ) : (
-                parts.map((p, pIdx) => {
-                  const on = it.participantIdx.includes(pIdx);
-                  return (
-                    <button
-                      key={pIdx}
-                      type="button"
-                      onClick={() => toggle(i, pIdx)}
-                      className={`px-2 py-0.5 rounded-full text-[11px] border ${
-                        on
-                          ? 'bg-sky-500 text-white border-sky-500'
-                          : 'border-slate-200 dark:border-slate-600 text-slate-500'
-                      }`}
-                    >
-                      {p.name}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={addItem}
-        className="w-full flex items-center justify-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/20 py-1.5 rounded-md"
-      >
-        <Plus className="w-3.5 h-3.5" />
-        {t.split.items_add}
-      </button>
-      {items.length > 0 && (
-        <div className={`text-xs ${matches ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500'} flex items-center justify-between`}>
-          <span>{t.split.items_sum}</span>
-          <span className="tabular-nums">{itemsTotal.toFixed(2)} / {totalAmount.toFixed(2)}</span>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const formatMoney = (n: number, ccy: string): string => {
-  try {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: ccy, maximumFractionDigits: 2 }).format(n);
-  } catch {
-    return `${ccy} ${n.toFixed(2)}`;
-  }
-};
-
-// Redondea a 2 decimales y devuelve string sin trailing zeros
-// (15.50 → "15.5", 33.333... → "33.33").
-const trimNumber = (n: number): string => {
-  if (!isFinite(n)) return '0';
-  const rounded = Math.round(n * 100) / 100;
-  return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(2);
-};
-
-// Dropdown simple para moneda — 5 opciones cortas, no necesita portal ni búsqueda.
-const CurrencyPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  useClickOutside(containerRef, open, () => setOpen(false));
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base"
-      >
-        <span className="font-medium">{value}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden">
-          {CURRENCIES.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => { onChange(c); setOpen(false); }}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 ${
-                value === c ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 font-medium' : ''
-              }`}
-            >
-              {c}
-            </button>
-          ))}
         </div>
       )}
     </div>

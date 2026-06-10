@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 
 // Página renombrada a /dividir.
-export default function BalancesRedirect(): never {
+const BalancesRedirect = (): never => {
   redirect('/dividir' as never);
-}
+};
+
+export default BalancesRedirect;

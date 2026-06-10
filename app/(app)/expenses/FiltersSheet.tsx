@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sheet } from '@/components/Sheet';
 import { Select } from '@/components/Select';
@@ -34,17 +34,14 @@ const COLOR_DOT: Record<string, string> = {
   rose: 'bg-rose-300',
 };
 
-export function FiltersSheet({
-  open,
-  onClose,
-  filters,
-  categories,
-}: {
+type FiltersSheetProps = {
   open: boolean;
   onClose: () => void;
   filters: Filters;
   categories: CategoryLite[];
-}) {
+};
+
+export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersSheetProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useT();
@@ -57,6 +54,22 @@ export function FiltersSheet({
   const [paid, setPaid] = useState(filters.paid);
   const [rec, setRec] = useState(filters.rec);
   const [cur, setCur] = useState(filters.cur);
+
+  // Re-sincronizamos el estado local con los filtros de la URL cada vez que se
+  // abre el sheet. Sin esto, borrar chips en la lista y reabrir mostraba valores
+  // viejos (el useState solo corre en el mount inicial).
+  useEffect(() => {
+    if (!open) return;
+    setCats(filters.cat);
+    setFrom(filters.from);
+    setTo(filters.to);
+    setMin(filters.min);
+    setMax(filters.max);
+    setPaid(filters.paid);
+    setRec(filters.rec);
+    setCur(filters.cur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, filters]);
 
   const toggleCat = (id: string) => {
     setCats((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
@@ -228,26 +241,26 @@ export function FiltersSheet({
       </div>
     </Sheet>
   );
-}
+};
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+type SectionProps = { title: string; children: React.ReactNode };
+
+const Section = ({ title, children }: SectionProps) => {
   return (
     <div>
       <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">{title}</h3>
       {children}
     </div>
   );
-}
+};
 
-function Segments<T extends string>({
-  value,
-  onChange,
-  options,
-}: {
+type SegmentsProps<T extends string> = {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
-}) {
+};
+
+const Segments = <T extends string>({ value, onChange, options }: SegmentsProps<T>) => {
   return (
     <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
       {options.map((opt) => (
@@ -264,7 +277,7 @@ function Segments<T extends string>({
       ))}
     </div>
   );
-}
+};
 
 function setOrDelete(params: URLSearchParams, key: string, value: string) {
   if (value) params.set(key, value);

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { ExpensesClient } from './ExpensesClient';
-import { getRates, type Currency } from '@/lib/currency';
+import { getRates, convertAmount, type Currency } from '@/lib/currency';
 import { getSubscription } from '@/lib/subscription';
 import { getCurrentWorkspace } from '@/lib/workspace';
 
@@ -28,11 +28,11 @@ type SearchParams = {
   sort?: string;
 };
 
-export default async function ExpensesPage({
+const ExpensesPage = async ({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
-}) {
+}) => {
   const supabase = await createClient();
   const params = await searchParams;
   const view: ExpensesView =
@@ -89,9 +89,11 @@ export default async function ExpensesPage({
     for (const e of (all ?? []) as Mini[]) {
       const year = Number(e.expense_date.slice(0, 4));
       const amount = Number(e.amount);
-      const converted = convertCurrency(amount, e.currency as Currency, displayCurrency, rates.rates);
+      const converted = convertAmount(amount, e.currency as Currency, displayCurrency, rates.rates);
       const entry = byYear.get(year) ?? { total: 0, count: 0 };
-      entry.total += converted;
+      // Si falta la tasa, no sumamos 0: ignoramos el monto del total pero
+      // seguimos contando el gasto.
+      if (converted !== null) entry.total += converted;
       entry.count += 1;
       byYear.set(year, entry);
     }
@@ -194,17 +196,6 @@ export default async function ExpensesPage({
       }}
     />
   );
-}
+};
 
-function convertCurrency(
-  amount: number,
-  from: Currency,
-  to: Currency,
-  rates: Partial<Record<Currency, number>>,
-): number {
-  if (from === to) return amount;
-  const fromRate = rates[from];
-  const toRate = rates[to];
-  if (!fromRate || !toRate) return 0;
-  return (amount / fromRate) * toRate;
-}
+export default ExpensesPage;

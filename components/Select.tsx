@@ -187,6 +187,7 @@ export const Select = ({
         </button>
       ) : (
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => !disabled && setOpen((v) => !v)}
           disabled={disabled}

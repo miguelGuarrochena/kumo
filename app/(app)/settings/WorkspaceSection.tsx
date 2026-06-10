@@ -3,39 +3,18 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Users, Plus, Shield, Eye, Trash2, Copy, Check, AlertTriangle, Pencil } from 'lucide-react';
+import { Plus, Shield, Eye, Trash2, Copy, Check, AlertTriangle, Pencil } from 'lucide-react';
 import { createInvite, revokeInvite, removeMember, changeMemberRole, deleteWorkspace, updateWorkspaceMeta } from './workspaceActions';
 import { Select } from '@/components/Select';
-import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
 import { useT } from '@/lib/i18n/client';
-import {
-  WORKSPACE_ICON_KEYS,
-  WORKSPACE_COLORS,
-  WORKSPACE_COLOR_DOT,
-  getWorkspaceIcon,
-  getWorkspaceColorClass,
-} from '@/lib/workspaceTheme';
+import { getWorkspaceIcon, getWorkspaceColorClass } from '@/lib/workspaceTheme';
+import type { Member, Invite } from './workspaceSectionTypes';
+import { EditWorkspaceSheet } from './EditWorkspaceSheet';
+import { DeleteWorkspaceSheet } from './DeleteWorkspaceSheet';
 
-export type Member = {
-  user_id: string;
-  role: WorkspaceRole;
-  joined_at: string;
-  email: string | null;
-  full_name: string | null;
-  is_owner: boolean;
-  is_me: boolean;
-};
-
-export type Invite = {
-  id: string;
-  email: string;
-  role: WorkspaceRole;
-  expires_at: string;
-  token: string;
-  created_at: string;
-};
+export type { Member, Invite } from './workspaceSectionTypes';
 
 type Props = {
   members: Member[];
@@ -71,25 +50,17 @@ export const WorkspaceSection = ({
   const [linkJustCreated, setLinkJustCreated] = useState<string | null>(null);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const [emailErrorMsg, setEmailErrorMsg] = useState<string | null>(null);
   const [lastInvitedEmail, setLastInvitedEmail] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
-  const [editName, setEditName] = useState(workspaceName);
-  const [editIcon, setEditIcon] = useState(workspaceIcon);
-  const [editColor, setEditColor] = useState(workspaceColor);
 
   // El owner siempre puede borrar — si es el único espacio, queda en Setup
   const isLastSpace = totalSpaces <= 1;
 
-  const onSaveMeta = () => {
+  const onSaveMeta = (values: { name: string; icon: string; color: string }) => {
     startTransition(async () => {
-      const result = await updateWorkspaceMeta({
-        name: editName.trim() || workspaceName,
-        icon: editIcon,
-        color: editColor,
-      });
+      const result = await updateWorkspaceMeta(values);
       if (result.ok) {
         toast.success('Espacio actualizado');
         setEditOpen(false);
@@ -102,13 +73,11 @@ export const WorkspaceSection = ({
   };
 
   const onDelete = () => {
-    if (deleteConfirmText !== workspaceName) return;
     startTransition(async () => {
       const result = await deleteWorkspace(workspaceId);
       if (result.ok) {
         toast.success(t.workspace.deleted);
         setDeleteOpen(false);
-        setDeleteConfirmText('');
         // Hard navigation así el layout vuelve a evaluar findCurrentWorkspace.
         // Si era el único, va a aterrizar en la pantalla de Setup.
         window.location.href = isLastSpace ? '/dashboard' : '/settings';
@@ -193,12 +162,7 @@ export const WorkspaceSection = ({
           {isAdmin && (
             <button
               type="button"
-              onClick={() => {
-                setEditName(workspaceName);
-                setEditIcon(workspaceIcon);
-                setEditColor(workspaceColor);
-                setEditOpen(true);
-              }}
+              onClick={() => setEditOpen(true)}
               className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
               aria-label={t.common.edit}
               title={t.common.edit}
@@ -434,153 +398,22 @@ export const WorkspaceSection = ({
         )}
       />
 
-      {/* Sheet de editar espacio: nombre + icono + color */}
-      <Sheet
+      <EditWorkspaceSheet
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        title={t.common.edit}
-        footer={
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setEditOpen(false)}
-              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-            >
-              {t.common.cancel}
-            </button>
-            <button
-              type="button"
-              onClick={onSaveMeta}
-              disabled={!editName.trim()}
-              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
-            >
-              {t.common.save}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {/* Preview */}
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40">
-            <div className={`w-11 h-11 rounded-xl ${getWorkspaceColorClass(editColor)} grid place-items-center shrink-0`}>
-              {(() => {
-                const PreviewIcon = getWorkspaceIcon(editIcon);
-                return <PreviewIcon className="w-5 h-5" />;
-              })()}
-            </div>
-            <p className="font-medium truncate">{editName || workspaceName}</p>
-          </div>
+        workspaceName={workspaceName}
+        workspaceIcon={workspaceIcon}
+        workspaceColor={workspaceColor}
+        onSave={onSaveMeta}
+      />
 
-          {/* Nombre */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Nombre</label>
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              maxLength={60}
-              autoFocus
-              className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
-            />
-          </div>
-
-          {/* Color */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Color</label>
-            <div className="grid grid-cols-9 gap-2">
-              {WORKSPACE_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setEditColor(c)}
-                  className={`aspect-square rounded-lg ${WORKSPACE_COLOR_DOT[c]} grid place-items-center transition-all active:scale-90 ${
-                    editColor === c
-                      ? 'ring-2 ring-offset-2 ring-slate-900 dark:ring-offset-slate-800 dark:ring-white'
-                      : ''
-                  }`}
-                  aria-label={c}
-                >
-                  {editColor === c && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Icono */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Ícono</label>
-            <div className="grid grid-cols-6 gap-2">
-              {WORKSPACE_ICON_KEYS.map((iconKey) => {
-                const Icon = getWorkspaceIcon(iconKey);
-                const active = editIcon === iconKey;
-                return (
-                  <button
-                    key={iconKey}
-                    type="button"
-                    onClick={() => setEditIcon(iconKey)}
-                    className={`p-2.5 rounded-xl border-2 transition-colors ${
-                      active
-                        ? 'border-sky-400 bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
-                    } active:scale-95`}
-                    aria-label={iconKey}
-                  >
-                    <Icon className="w-4 h-4 mx-auto" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </Sheet>
-
-      {/* Sheet de confirmación de borrado con typing del nombre */}
-      <Sheet
+      <DeleteWorkspaceSheet
         open={deleteOpen}
-        onClose={() => { setDeleteOpen(false); setDeleteConfirmText(''); }}
-        title={t.workspace.delete_title}
-        footer={
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => { setDeleteOpen(false); setDeleteConfirmText(''); }}
-              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-            >
-              {t.common.cancel}
-            </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={deleteConfirmText !== workspaceName}
-              className="flex-1 px-4 py-3 rounded-xl text-sm font-medium bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {t.workspace.delete}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/40">
-            <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-rose-700 dark:text-rose-200">
-              {t.workspace.delete_confirm.replace('{name}', workspaceName)}
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              {t.workspace.delete_confirm_text}
-            </label>
-            <input
-              type="text"
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder={workspaceName}
-              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-400 text-base"
-              autoFocus
-            />
-          </div>
-        </div>
-      </Sheet>
+        onClose={() => setDeleteOpen(false)}
+        workspaceName={workspaceName}
+        isLastSpace={isLastSpace}
+        onConfirm={onDelete}
+      />
     </div>
   );
 };

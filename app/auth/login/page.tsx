@@ -271,10 +271,12 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export default function LoginPage() {
+const LoginPage = () => {
   return (
     <Suspense fallback={null}>
       <LoginInner />
     </Suspense>
   );
-}
+};
+
+export default LoginPage;

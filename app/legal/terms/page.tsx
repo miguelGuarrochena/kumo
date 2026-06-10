@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 const UPDATED = '6 de junio de 2026';
 
-export default function TermsPage() {
+const TermsPage = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold tracking-tight mb-2">Términos y condiciones</h1>
@@ -142,4 +142,6 @@ export default function TermsPage() {
       </p>
     </div>
   );
-}
+};
+
+export default TermsPage;

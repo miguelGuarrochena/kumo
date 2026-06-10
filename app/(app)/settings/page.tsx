@@ -33,6 +33,9 @@ const SettingsPage = async () => {
       .from('notification_contacts')
       .select('*')
       .eq('workspace_id', ctx.workspaceId)
+      // Excluimos los contactos creados al vuelo desde el editor de split:
+      // esos sólo se usan para asignar montos, no para mandar WhatsApp.
+      .eq('is_split_only', false)
       .order('created_at', { ascending: true }),
     // RPC con SECURITY DEFINER que trae emails reales de auth.users
     supabase.rpc('get_workspace_members', { ws_id: ctx.workspaceId }),

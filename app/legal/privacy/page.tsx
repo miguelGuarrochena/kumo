@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 const UPDATED = '6 de junio de 2026';
 
-export default function PrivacyPage() {
+const PrivacyPage = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold tracking-tight mb-2">Política de privacidad</h1>
@@ -139,4 +139,6 @@ export default function PrivacyPage() {
       </p>
     </div>
   );
-}
+};
+
+export default PrivacyPage;

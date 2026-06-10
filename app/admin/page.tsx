@@ -9,7 +9,7 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminPage() {
+const AdminPage = async () => {
   const supabase = createServiceClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: usersResp } = await (supabase as any).auth.admin.listUsers({ page: 1, perPage: 200 });
@@ -48,4 +48,6 @@ export default async function AdminPage() {
     .sort((a, b) => new Date(b.signupAt).getTime() - new Date(a.signupAt).getTime());
 
   return <AdminClient rows={rows} totalUsers={rows.length} />;
-}
+};
+
+export default AdminPage;

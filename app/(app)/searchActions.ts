@@ -39,7 +39,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
       supabase
         .from('expenses')
         .select('id, description, amount, currency, expense_date, categories(name, color)')
-        .or(`description.ilike.${pattern}`)
+        .ilike('description', pattern)
         .order('expense_date', { ascending: false })
         .limit(LIMIT_PER_TYPE),
       supabase

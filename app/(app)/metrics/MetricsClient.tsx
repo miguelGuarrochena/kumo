@@ -7,9 +7,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
+import { CURRENCIES, formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { Select } from '@/components/Select';
 import { useT } from '@/lib/i18n/client';
+import { localeTag } from '@/lib/i18n/locale';
+import { formatDate as formatExpenseDate } from '../expenses/utils';
 import type { MetricsPeriod } from './page';
 
 type ExpenseFull = {
@@ -29,12 +31,6 @@ type ExpenseLite = {
   expense_date: string;
 };
 
-type Category = {
-  id: string;
-  name: string;
-  color: string;
-};
-
 type Props = {
   period: MetricsPeriod;
   refDate: string;
@@ -42,7 +38,6 @@ type Props = {
   currentExpenses: ExpenseFull[];
   previousExpenses: ExpenseLite[];
   trailExpenses: ExpenseLite[];
-  categories: Category[];
   defaultCurrency: Currency;
   displayCurrency: Currency;
   rates: Partial<Record<Currency, number>>;
@@ -60,40 +55,39 @@ const COLOR_HEX: Record<string, string> = {
 
 const FALLBACK_COLORS = ['#38bdf8', '#c084fc', '#fb923c', '#34d399', '#fb7185', '#facc15', '#22d3ee'];
 
-export function MetricsClient({
+export const MetricsClient = ({
   period,
   refDate,
   range,
   currentExpenses,
   previousExpenses,
   trailExpenses,
-  categories,
   defaultCurrency,
   displayCurrency,
   rates,
   scope,
   showScopeToggle,
-}: Props) {
+}: Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useT();
+  const { t, locale } = useT();
+  const tag = localeTag(locale);
 
-  // Helper: convertir cualquier monto a displayCurrency
+  // Helper: convertir cualquier monto a displayCurrency.
+  // Devuelve null si falta la tasa para no sumar 0 silenciosamente.
   const convert = useMemo(() => {
-    return (amount: number, currency: string): number => {
-      if (currency === displayCurrency) return amount;
-      const fromRate = rates[currency as Currency];
-      const toRate = rates[displayCurrency];
-      if (!fromRate || !toRate) return 0;
-      return (amount / fromRate) * toRate;
-    };
+    return (amount: number, currency: string): number | null =>
+      convertAmount(amount, currency as Currency, displayCurrency, rates);
   }, [displayCurrency, rates]);
 
-  const total = currentExpenses.reduce((s, e) => s + convert(Number(e.amount), e.currency), 0);
-  const previousTotal = previousExpenses.reduce(
-    (s, e) => s + convert(Number(e.amount), e.currency),
-    0,
-  );
+  const total = currentExpenses.reduce((s, e) => {
+    const c = convert(Number(e.amount), e.currency);
+    return c === null ? s : s + c;
+  }, 0);
+  const previousTotal = previousExpenses.reduce((s, e) => {
+    const c = convert(Number(e.amount), e.currency);
+    return c === null ? s : s + c;
+  }, 0);
 
   const diff = total - previousTotal;
   const diffPct = previousTotal > 0 ? (diff / previousTotal) * 100 : null;
@@ -103,30 +97,31 @@ export function MetricsClient({
     const map = new Map<string, { id: string; name: string; color: string; total: number }>();
     for (const e of currentExpenses) {
       const id = e.category_id ?? '__none__';
-      const name = e.categories?.name ?? 'Sin categoría';
+      const name = e.categories?.name ?? t.expenses.no_category;
       const color = e.categories?.color ?? 'sky';
       const existing = map.get(id);
-      const amount = convert(Number(e.amount), e.currency);
+      const amount = convert(Number(e.amount), e.currency) ?? 0;
       if (existing) existing.total += amount;
       else map.set(id, { id, name, color, total: amount });
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
-  }, [currentExpenses, convert]);
+  }, [currentExpenses, convert, t.expenses.no_category]);
 
   // Top 5 gastos individuales
   const topExpenses = useMemo(() => {
     return [...currentExpenses]
-      .map((e) => ({ ...e, normalized: convert(Number(e.amount), e.currency) }))
+      .map((e) => ({ ...e, normalized: convert(Number(e.amount), e.currency) ?? 0 }))
       .sort((a, b) => b.normalized - a.normalized)
       .slice(0, 5);
   }, [currentExpenses, convert]);
 
   // Trail temporal: agrupar trailExpenses según el período activo
-  const trailData = useMemo(() => buildTrail(period, refDate, trailExpenses, convert), [
+  const trailData = useMemo(() => buildTrail(period, refDate, trailExpenses, convert, tag), [
     period,
     refDate,
     trailExpenses,
     convert,
+    tag,
   ]);
 
   // ---- Navegación de período ----
@@ -177,7 +172,7 @@ export function MetricsClient({
                     : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                {s === 'current' ? 'Este espacio' : 'Todos'}
+                {s === 'current' ? t.metrics.scope_current : t.metrics.scope_all}
               </button>
             ))}
           </div>
@@ -207,17 +202,17 @@ export function MetricsClient({
           <button
             onClick={() => navigate(-1)}
             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
-            aria-label="Anterior"
+            aria-label={t.metrics.prev}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <h2 className="font-semibold capitalize text-center text-sm sm:text-base">
-            {formatRangeLabel(period, range.start, range.end)}
+            {formatRangeLabel(period, range.start, range.end, tag)}
           </h2>
           <button
             onClick={() => navigate(1)}
             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
-            aria-label="Siguiente"
+            aria-label={t.metrics.next}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -341,10 +336,10 @@ export function MetricsClient({
                       <span className="w-2 h-8 rounded-full shrink-0" style={{ background: color }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">
-                          {e.description || cat?.name || 'Gasto'}
+                          {e.description || cat?.name || t.expenses.default_name}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                          {cat?.name ?? 'Sin categoría'} · {formatDate(e.expense_date)}
+                          {cat?.name ?? t.expenses.no_category} · {formatExpenseDate(e.expense_date, locale)}
                         </p>
                       </div>
                       <p className="font-semibold text-sm tabular-nums whitespace-nowrap">
@@ -393,39 +388,25 @@ export function MetricsClient({
       )}
     </div>
   );
-}
+};
 
 // =====================================================================
 // Helpers
 // =====================================================================
 
-const PERIOD_LABELS: Record<MetricsPeriod, string> = {
-  day: 'Día',
-  week: 'Semana',
-  month: 'Mes',
-  year: 'Año',
-};
-
-const PERIOD_PLURAL: Record<MetricsPeriod, string> = {
-  day: 'días',
-  week: 'semanas',
-  month: 'meses',
-  year: 'años',
-};
-
-function formatRangeLabel(period: MetricsPeriod, start: string, end: string): string {
+function formatRangeLabel(period: MetricsPeriod, start: string, end: string, locale: string): string {
   const s = new Date(start + 'T12:00:00');
   const e = new Date(end + 'T12:00:00');
   if (period === 'day') {
-    return s.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+    return s.toLocaleDateString(locale, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
   }
   if (period === 'week') {
-    return `${s.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })} — ${e.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+    return `${s.toLocaleDateString(locale, { day: '2-digit', month: 'short' })} — ${e.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}`;
   }
   if (period === 'month') {
-    return s.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    return s.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   }
-  return s.toLocaleDateString('es-AR', { year: 'numeric' });
+  return s.toLocaleDateString(locale, { year: 'numeric' });
 }
 
 function shiftRefDate(period: MetricsPeriod, refDate: string, delta: number): string {
@@ -441,7 +422,8 @@ function buildTrail(
   period: MetricsPeriod,
   refDate: string,
   expenses: ExpenseLite[],
-  convert: (amt: number, cur: string) => number,
+  convert: (amt: number, cur: string) => number | null,
+  locale: string,
 ): { label: string; total: number }[] {
   const count = 12;
   const buckets: { key: string; label: string; total: number }[] = [];
@@ -455,7 +437,7 @@ function buildTrail(
       d = new Date(ref);
       d.setDate(d.getDate() - i);
       key = d.toISOString().slice(0, 10);
-      label = d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+      label = d.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
     } else if (period === 'week') {
       d = new Date(ref);
       d.setDate(d.getDate() - i * 7);
@@ -463,11 +445,11 @@ function buildTrail(
       const day = d.getDay() || 7;
       d.setDate(d.getDate() - (day - 1));
       key = d.toISOString().slice(0, 10);
-      label = d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+      label = d.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
     } else if (period === 'month') {
       d = new Date(ref.getFullYear(), ref.getMonth() - i, 1);
       key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      label = d.toLocaleDateString('es-AR', { month: 'short' });
+      label = d.toLocaleDateString(locale, { month: 'short' });
     } else {
       d = new Date(ref.getFullYear() - i, 0, 1);
       key = String(d.getFullYear());
@@ -496,7 +478,7 @@ function buildTrail(
     const idx = bucketIndex.get(key);
     if (idx !== undefined) {
       const bucket = buckets[idx]!;
-      bucket.total += convert(Number(e.amount), e.currency);
+      bucket.total += convert(Number(e.amount), e.currency) ?? 0;
     }
   }
 
@@ -509,9 +491,3 @@ function abbreviateNumber(n: number): string {
   return String(n);
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'short',
-  });
-}

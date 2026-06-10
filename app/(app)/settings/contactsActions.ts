@@ -49,6 +49,24 @@ export async function upsertContact(
   }
 
   const supabase = await createClient();
+
+  // El contacto "Yo" (is_self) lo gestiona el sistema. No permitimos crear ni
+  // convertir contactos a relationship 'self' a mano: la lógica de splits y
+  // notificaciones asume un único self real por (workspace, user).
+  if (parsed.data.relationship === 'self') {
+    if (!parsed.data.id) {
+      return { ok: false, error: 'No podés crear un contacto "Yo" manualmente.' };
+    }
+    const { data: existing } = await supabase
+      .from('notification_contacts')
+      .select('is_self')
+      .eq('id', parsed.data.id)
+      .single();
+    if (!(existing as { is_self?: boolean } | null)?.is_self) {
+      return { ok: false, error: 'No podés marcar este contacto como "Yo".' };
+    }
+  }
+
   const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
   const { error } = parsed.data.id
@@ -131,6 +149,9 @@ export async function createAdHocContact(name: string): Promise<{ ok: boolean; i
       user_id: ctx.userId,
       name: trimmed,
       relationship: 'other',
+      // Marcado como sólo-split: no aparece en Settings > Contactos hasta que
+      // el user lo "promueva" agregándole teléfono manualmente.
+      is_split_only: true,
     })
     .select('id')
     .single();

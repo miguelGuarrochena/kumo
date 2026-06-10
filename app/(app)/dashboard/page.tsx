@@ -5,14 +5,16 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
-import { getMessages } from '@/lib/i18n/server';
-import { getRates, formatMoney, type Currency } from '@/lib/currency';
+import { getLocale, getMessages } from '@/lib/i18n/server';
+import { localeTag } from '@/lib/i18n/locale';
+import { getRates, formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { todayKey, parseLocalDate, daysBetween } from '@/lib/date';
 import { getCurrentWorkspace } from '@/lib/workspace';
 
 const DashboardPage = async () => {
   const supabase = await createClient();
-  const t = await getMessages();
+  const [t, locale] = await Promise.all([getMessages(), getLocale()]);
+  const dateLocale = localeTag(locale);
   const ctx = await getCurrentWorkspace();
   const {
     data: { user },
@@ -44,7 +46,8 @@ const DashboardPage = async () => {
     supabase.from('reminders').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
     supabase.from('shopping_items').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId).eq('bought', false),
     supabase.from('user_settings').select('onboarded, whatsapp_number, default_currency').eq('user_id', user?.id ?? '').maybeSingle(),
-    supabase.from('notification_contacts').select('phone').eq('workspace_id', ctx.workspaceId).eq('is_self', true).maybeSingle(),
+    // En workspaces compartidos hay un is_self por miembro: filtramos por user_id para traer el del viewer
+    supabase.from('notification_contacts').select('phone').eq('workspace_id', ctx.workspaceId).eq('is_self', true).eq('user_id', user?.id ?? '').maybeSingle(),
     supabase
       .from('expenses')
       .select('amount, currency')
@@ -89,21 +92,17 @@ const DashboardPage = async () => {
 
   const displayCurrency = (settingsTyped?.default_currency ?? 'ARS') as Currency;
 
-  // Calculo total del mes convertido a moneda preferida
-  const convert = (amount: number, currency: string): number => {
-    if (currency === displayCurrency) return amount;
-    const from = rates.rates[currency as Currency];
-    const to = rates.rates[displayCurrency];
-    if (!from || !to) return 0;
-    return (amount / from) * to;
-  };
+  // Calculo total del mes convertido a moneda preferida.
+  // Si falta la tasa, no sumamos 0: ignoramos ese monto del total.
+  const convert = (amount: number, currency: string): number | null =>
+    convertAmount(amount, currency as Currency, displayCurrency, rates.rates);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const monthExpensesArr = (monthExpenses ?? []) as any[];
-  const monthTotal = monthExpensesArr.reduce(
-    (sum, e) => sum + convert(Number(e.amount), e.currency),
-    0,
-  );
+  const monthTotal = monthExpensesArr.reduce((sum, e) => {
+    const c = convert(Number(e.amount), e.currency);
+    return c === null ? sum : sum + c;
+  }, 0);
   const monthCount = monthExpensesArr.length;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,7 +187,7 @@ const DashboardPage = async () => {
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-peach-400" />
-              Próximos 7 días
+              {t.dashboard.upcoming_7_days}
             </h3>
             <Link
               href="/calendar?view=upcoming"
@@ -201,7 +200,7 @@ const DashboardPage = async () => {
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
             {dueExpensesArr.map((e) => {
               const days = daysBetween(today, e.due_date);
-              const label = days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `En ${days} días`;
+              const label = relLabel(t, days);
               return (
                 <div key={e.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                   <div className="w-8 h-8 rounded-lg bg-peach-100 dark:bg-peach-500/20 text-peach-400 grid place-items-center shrink-0">
@@ -209,11 +208,11 @@ const DashboardPage = async () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {e.description || e.categories?.name || 'Gasto'}
+                      {e.description || e.categories?.name || t.expenses.default_name}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       <span className={days === 0 ? 'text-rose-500 font-medium' : ''}>{label}</span>
-                      {' · '}vence {formatShortDate(e.due_date)}
+                      {' · '}{t.expenses.due_short} {formatShortDate(e.due_date, dateLocale)}
                     </p>
                   </div>
                   <p className="text-sm font-semibold tabular-nums whitespace-nowrap">
@@ -230,7 +229,7 @@ const DashboardPage = async () => {
                   ? 'bg-lavender-100 dark:bg-lavender-500/20 text-lavender-500'
                   : 'bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300';
               const days = daysBetween(today, r.reminder_date);
-              const label = days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `En ${days} días`;
+              const label = relLabel(t, days);
               return (
                 <div key={r.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                   <div className={`w-8 h-8 rounded-lg ${tone} grid place-items-center shrink-0`}>
@@ -240,7 +239,7 @@ const DashboardPage = async () => {
                     <p className="text-sm font-medium truncate">{r.title}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       <span className={days === 0 ? 'text-rose-500 font-medium' : ''}>{label}</span>
-                      {' · '}{formatShortDate(r.reminder_date)}
+                      {' · '}{formatShortDate(r.reminder_date, dateLocale)}
                       {r.reminder_time && ` · ${String(r.reminder_time).slice(0, 5)}`}
                     </p>
                   </div>
@@ -257,7 +256,7 @@ const DashboardPage = async () => {
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold flex items-center gap-2">
               <Wallet className="w-4 h-4 text-sky-500" />
-              Últimos gastos
+              {t.dashboard.recent_expenses}
             </h3>
             <Link
               href="/expenses?view=all"
@@ -275,10 +274,10 @@ const DashboardPage = async () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {e.description || e.categories?.name || 'Gasto'}
+                    {e.description || e.categories?.name || t.expenses.default_name}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    {e.categories?.name ?? 'Sin categoría'} · {formatShortDate(e.expense_date)}
+                    {e.categories?.name ?? t.expenses.no_category} · {formatShortDate(e.expense_date, dateLocale)}
                   </p>
                 </div>
                 <p className="text-sm font-semibold tabular-nums whitespace-nowrap">
@@ -298,7 +297,7 @@ const DashboardPage = async () => {
         >
           <CalendarDays className="w-8 h-8 mx-auto mb-2 text-slate-400 dark:text-slate-500" />
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Cuando cargues gastos o recordatorios, te los mostramos acá.
+            {t.dashboard.empty_hint}
           </p>
         </Link>
       )}
@@ -310,10 +309,16 @@ const DashboardPage = async () => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const formatShortDate = (dateStr: string): string => {
+const relLabel = (t: Awaited<ReturnType<typeof getMessages>>, days: number): string => {
+  if (days === 0) return t.calendar.rel_today;
+  if (days === 1) return t.calendar.rel_tomorrow;
+  return t.calendar.rel_in_days.replace('{n}', String(days));
+};
+
+const formatShortDate = (dateStr: string, locale: string): string => {
   const d = parseLocalDate(dateStr);
   if (!d) return dateStr;
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+  return d.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
 };
 
 const MiniStat = ({

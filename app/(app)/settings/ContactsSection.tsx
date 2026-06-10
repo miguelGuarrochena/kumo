@@ -27,7 +27,7 @@ const RELATIONSHIP_LABEL: Record<string, string> = Object.fromEntries(
   RELATIONSHIP_OPTIONS.map((o) => [o.value, o.label]),
 );
 
-export function ContactsSection({ contacts }: { contacts: Contact[] }) {
+export const ContactsSection = ({ contacts }: { contacts: Contact[] }) => {
   const router = useRouter();
   const [editing, setEditing] = useState<Contact | null>(null);
   const [creating, setCreating] = useState(false);
@@ -107,17 +107,15 @@ export function ContactsSection({ contacts }: { contacts: Contact[] }) {
       />
     </div>
   );
-}
+};
 
-function ContactRow({
-  contact,
-  onEdit,
-  onDelete,
-}: {
+type ContactRowProps = {
   contact: Contact;
   onEdit: () => void;
   onDelete: () => void;
-}) {
+};
+
+const ContactRow = ({ contact, onEdit, onDelete }: ContactRowProps) => {
   const relMeta = RELATIONSHIP_OPTIONS.find((r) => r.value === contact.relationship);
   const Icon = relMeta?.icon ?? User;
 
@@ -165,17 +163,15 @@ function ContactRow({
       </div>
     </div>
   );
-}
+};
 
-function ContactSheet({
-  open,
-  contact,
-  onClose,
-}: {
+type ContactSheetProps = {
   open: boolean;
   contact: Contact | null;
   onClose: () => void;
-}) {
+};
+
+const ContactSheet = ({ open, contact, onClose }: ContactSheetProps) => {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -294,7 +290,7 @@ function ContactSheet({
       </form>
     </Sheet>
   );
-}
+};
 
 function formatPhone(digits: string): string {
   // Simple: agrega "+" al principio. Más sofisticación después si querés.

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ShoppingClient } from './ShoppingClient';
 import { getCurrentWorkspace } from '@/lib/workspace';
 
-export default async function ShoppingPage() {
+const ShoppingPage = async () => {
   const supabase = await createClient();
   const ctx = await getCurrentWorkspace();
   const { data: items } = await supabase
@@ -12,4 +12,6 @@ export default async function ShoppingPage() {
     .order('position', { ascending: true });
 
   return <ShoppingClient initialItems={items ?? []} />;
-}
+};
+
+export default ShoppingPage;

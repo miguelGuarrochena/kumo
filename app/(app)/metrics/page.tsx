@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { MetricsClient } from './MetricsClient';
 import { getRates, type Currency } from '@/lib/currency';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import { todayKey } from '@/lib/date';
 
 export type MetricsPeriod = 'day' | 'week' | 'month' | 'year';
 
@@ -12,11 +13,11 @@ type SearchParams = {
   scope?: 'current' | 'all';
 };
 
-export default async function MetricsPage({
+const MetricsPage = async ({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
-}) {
+}) => {
   const supabase = await createClient();
   const ctx = await getCurrentWorkspace();
   const params = await searchParams;
@@ -34,7 +35,7 @@ export default async function MetricsPage({
     ? (params.period as MetricsPeriod)
     : 'month');
 
-  const refDate = params.date ?? new Date().toISOString().slice(0, 10);
+  const refDate = params.date ?? todayKey();
   const { start, end, prevStart, prevEnd } = computeRange(period, refDate);
 
   // Para "evolución temporal" cargamos hasta 12 períodos hacia atrás (sin filtrar paid)
@@ -44,7 +45,6 @@ export default async function MetricsPage({
     { data: currentExpenses },
     { data: previousExpenses },
     { data: trailExpenses },
-    { data: categories },
     { data: settings },
     rates,
   ] = await Promise.all([
@@ -75,9 +75,6 @@ export default async function MetricsPage({
       if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
       return q;
     })(),
-    scope === 'current'
-      ? supabase.from('categories').select('*').eq('workspace_id', ctx.workspaceId)
-      : supabase.from('categories').select('*'),
     supabase.from('user_settings').select('default_currency').single(),
     getRates(),
   ]);
@@ -93,7 +90,6 @@ export default async function MetricsPage({
       currentExpenses={(currentExpenses ?? []) as never}
       previousExpenses={(previousExpenses ?? []) as never}
       trailExpenses={(trailExpenses ?? []) as never}
-      categories={categories ?? []}
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}
       rates={rates.rates}
@@ -101,7 +97,9 @@ export default async function MetricsPage({
       showScopeToggle={(workspaceCount ?? 1) > 1}
     />
   );
-}
+};
+
+export default MetricsPage;
 
 // ---------------------------------------------------------------------
 // Cálculo de rangos

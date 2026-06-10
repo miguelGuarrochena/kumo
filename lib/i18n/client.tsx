@@ -18,19 +18,18 @@ type Ctx = { locale: Locale; t: Messages };
 
 const I18nContext = createContext<Ctx>({ locale: 'es', t: esMessages });
 
-export function I18nProvider({
-  locale,
-  children,
-}: {
+type I18nProviderProps = {
   locale: Locale;
   children: React.ReactNode;
-}) {
+};
+
+export const I18nProvider = ({ locale, children }: I18nProviderProps) => {
   return (
     <I18nContext.Provider value={{ locale, t: DICTIONARIES[locale] }}>
       {children}
     </I18nContext.Provider>
   );
-}
+};
 
 /**
  * Hook para acceder a las traducciones desde un client component.
@@ -38,14 +37,14 @@ export function I18nProvider({
  *   const { t } = useT();
  *   t.common.save  // "Guardar" o "Save" según locale
  */
-export function useT(): Ctx {
+export const useT = (): Ctx => {
   return useContext(I18nContext);
-}
+};
 
 /**
  * Cambia el locale del usuario (lo persiste en cookie y recarga la página).
  */
-export async function setLocale(locale: Locale) {
+export const setLocale = async (locale: Locale) => {
   await fetch('/api/locale', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -53,4 +52,4 @@ export async function setLocale(locale: Locale) {
   });
   // Forzar reload para que server components vuelvan a leer
   if (typeof window !== 'undefined') window.location.reload();
-}
+};

@@ -77,12 +77,15 @@ const CalendarPage = async ({
     { data: settings },
     { data: contacts },
   ] = await Promise.all([
+    // El cliente ubica cada gasto por `due_date ?? expense_date`, así que traemos
+    // tanto los que vencen en el rango como los gastos normales (solo expense_date).
     supabase
       .from('expenses')
       .select('id, workspace_id, description, amount, currency, due_date, expense_date, paid, categories(name, color)')
-      .not('due_date', 'is', null)
-      .gte('due_date', queryStart)
-      .lte('due_date', queryEnd),
+      .or(
+        `and(due_date.gte.${queryStart},due_date.lte.${queryEnd}),` +
+        `and(due_date.is.null,expense_date.gte.${queryStart},expense_date.lte.${queryEnd})`,
+      ),
     supabase
       .from('reminders')
       .select('id, workspace_id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
@@ -95,10 +98,21 @@ const CalendarPage = async ({
     supabase.from('user_settings').select('default_currency, timezone').eq('user_id', userId).maybeSingle(),
     supabase
       .from('notification_contacts')
-      .select('id, name, relationship, is_self, phone')
+      .select('id, name, relationship, is_self, phone, user_id')
       .eq('workspace_id', ctx.workspaceId)
       .order('created_at'),
   ]);
+
+  // is_self desde la perspectiva del viewer (igual que expenses/dividir):
+  // en un workspace compartido, "Yo" es solo el contacto del usuario actual.
+  type RawCalContact = {
+    id: string; name: string; relationship: string | null;
+    is_self: boolean; phone: string | null; user_id: string | null;
+  };
+  const contactsForViewer = ((contacts ?? []) as RawCalContact[]).map((c) => ({
+    ...c,
+    is_self: !!c.is_self && c.user_id === ctx.userId,
+  }));
 
   const settingsTyped = settings as { default_currency?: string; timezone?: string } | null;
   const defaultCurrency = (settingsTyped?.default_currency ?? 'ARS') as Currency;
@@ -115,7 +129,7 @@ const CalendarPage = async ({
       expenses={(expenses ?? []) as never}
       reminders={(reminders ?? []) as never}
       allReminders={(allReminders ?? []) as never}
-      contacts={(contacts ?? []) as never}
+      contacts={contactsForViewer as never}
       defaultCurrency={defaultCurrency}
       initialView={initialView}
       country={country}

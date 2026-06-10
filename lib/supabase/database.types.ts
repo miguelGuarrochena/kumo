@@ -252,6 +252,7 @@ type ContactsRow = {
   phone: string | null;
   relationship: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
   is_self: boolean;
+  is_split_only: boolean;
   verified: boolean;
   created_at: string;
 };
@@ -263,6 +264,7 @@ type ContactsInsert = {
   phone?: string | null;
   relationship?: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
   is_self?: boolean;
+  is_split_only?: boolean;
   verified?: boolean;
   created_at?: string;
 };
@@ -274,6 +276,7 @@ type ContactsUpdate = {
   phone?: string | null;
   relationship?: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
   is_self?: boolean;
+  is_split_only?: boolean;
   verified?: boolean;
   created_at?: string;
 };

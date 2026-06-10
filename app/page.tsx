@@ -12,7 +12,7 @@ import { getPricing } from '@/lib/pricing';
 
 // Landing page pública. Si el user ya está logueado, lo manda al dashboard.
 
-export default async function HomePage() {
+const HomePage = async () => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -228,19 +228,18 @@ export default async function HomePage() {
       <Footer variant="public" />
     </main>
   );
-}
+};
 
-function Feature({
-  icon,
-  title,
-  description,
-  tone,
-}: {
+export default HomePage;
+
+type FeatureProps = {
   icon: React.ReactNode;
   title: string;
   description: string;
   tone: 'sky' | 'lavender' | 'mint' | 'peach' | 'rose';
-}) {
+};
+
+const Feature = ({ icon, title, description, tone }: FeatureProps) => {
   const toneStyles = {
     sky:      'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
     lavender: 'bg-lavender-100 text-lavender-500 dark:bg-lavender-500/20',
@@ -257,18 +256,20 @@ function Feature({
       <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
     </div>
   );
-}
+};
 
-function PricingCard({
-  title, price, period, features, badge, highlight,
-}: {
+type PricingCardProps = {
   title: string;
   price: string;
   period: string;
   features: string[];
   badge?: string;
   highlight?: boolean;
-}) {
+};
+
+const PricingCard = ({
+  title, price, period, features, badge, highlight,
+}: PricingCardProps) => {
   return (
     <div
       className={`relative kumo-card p-6 ${
@@ -298,9 +299,11 @@ function PricingCard({
       </ul>
     </div>
   );
-}
+};
 
-function Step({ n, title, description }: { n: string; title: string; description: string }) {
+type StepProps = { n: string; title: string; description: string };
+
+const Step = ({ n, title, description }: StepProps) => {
   return (
     <li className="flex items-start gap-4">
       <span className="shrink-0 w-9 h-9 rounded-full kumo-gradient text-white grid place-items-center font-bold text-sm shadow-sm">
@@ -312,4 +315,4 @@ function Step({ n, title, description }: { n: string; title: string; description
       </div>
     </li>
   );
-}
+};

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentWorkspace } from '@/lib/workspace';
 import * as XLSX from 'xlsx';
 
 // Exporta los gastos del usuario a Excel (.xlsx) o CSV (.csv).
@@ -58,9 +59,14 @@ export async function GET(request: Request) {
     return new NextResponse('format inválido — usá xlsx o csv', { status: 400 });
   }
 
+  // Filtramos explícitamente por el workspace activo además de RLS, para no
+  // mezclar gastos de varios espacios si el user pertenece a más de uno.
+  const ctx = await getCurrentWorkspace();
+
   let q = supabase
     .from('expenses')
     .select('expense_date, due_date, description, amount, currency, paid, is_recurring, recurrence_type, categories(name)')
+    .eq('workspace_id', ctx.workspaceId)
     .order('expense_date', { ascending: false });
 
   if (from)     q = q.gte('expense_date', from);

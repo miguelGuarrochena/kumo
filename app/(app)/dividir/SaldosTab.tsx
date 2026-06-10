@@ -1,13 +1,15 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Scale, ArrowRight, Trash2, Plus, Loader2 } from 'lucide-react';
 import { Sheet } from '@/components/Sheet';
 import { Select } from '@/components/Select';
 import { recordPayment, deletePayment } from '../expenses/splitsActions';
-import { formatMoney, type Currency } from '@/lib/currency';
+import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
+import { useT } from '@/lib/i18n/client';
+import { localeTag } from '@/lib/i18n/locale';
 import type { BalanceRow, ContactLite, PaymentRow } from './types';
 
 type Props = {
@@ -18,6 +20,7 @@ type Props = {
 
 export const SaldosTab = ({ balances, contacts, payments }: Props) => {
   const router = useRouter();
+  const { t, locale } = useT();
   const [recording, setRecording] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -36,8 +39,8 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
   const onDeletePayment = (id: string) => {
     startTransition(async () => {
       const r = await deletePayment(id);
-      if (r.ok) { toast.success('Pago borrado'); router.refresh(); }
-      else toast.error(r.error ?? 'Error');
+      if (r.ok) { toast.success(t.split.balances_payment_deleted); router.refresh(); }
+      else toast.error(r.error ?? t.common.error);
     });
   };
 
@@ -50,7 +53,7 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl kumo-gradient text-white text-sm font-medium hover:opacity-90"
         >
           <Plus className="w-4 h-4" />
-          Registrar pago
+          {t.split.balances_record_payment}
         </button>
       </div>
 
@@ -58,11 +61,9 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
         <div className="kumo-card p-8 text-center space-y-3">
           <Scale className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
           <div>
-            <p className="text-sm font-medium">Sin deudas pendientes</p>
+            <p className="text-sm font-medium">{t.split.balances_no_debts}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
-              Acá ves quién te debe y a quién le debés en este espacio.<br/>
-              Cuando cargás un gasto con "Dividir" en Gastos, las deudas se calculan acá automáticamente.
-              Después podés registrar los pagos cuando se saldan.
+              {t.split.balances_empty_desc}
             </p>
           </div>
         </div>
@@ -70,10 +71,10 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="kumo-card p-4">
             <h3 className="font-semibold text-sm mb-3 text-rose-600 dark:text-rose-400">
-              Deben pagar
+              {t.split.balances_owe_title}
             </h3>
             {grouped.owe.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400 italic">Nadie debe nada.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">{t.split.balances_nobody_owes}</p>
             ) : (
               <ul className="space-y-2">
                 {grouped.owe.map((b) => (
@@ -90,10 +91,10 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
 
           <div className="kumo-card p-4">
             <h3 className="font-semibold text-sm mb-3 text-mint-600 dark:text-mint-400">
-              Les deben
+              {t.split.balances_owed_title}
             </h3>
             {grouped.owed.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400 italic">A nadie le deben.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">{t.split.balances_nobody_owed}</p>
             ) : (
               <ul className="space-y-2">
                 {grouped.owed.map((b) => (
@@ -112,7 +113,7 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
 
       {payments.length > 0 && (
         <div className="kumo-card p-4">
-          <h3 className="font-semibold text-sm mb-3">Últimos pagos registrados</h3>
+          <h3 className="font-semibold text-sm mb-3">{t.split.balances_recent_payments}</h3>
           <ul className="divide-y divide-slate-100 dark:divide-slate-700/50">
             {payments.map((p) => (
               <li key={p.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 text-sm">
@@ -125,14 +126,14 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
                   {formatMoney(Number(p.amount), p.currency as Currency)}
                 </span>
                 <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap hidden sm:inline">
-                  {new Date(p.paid_at).toLocaleDateString()}
+                  {new Date(p.paid_at).toLocaleDateString(localeTag(locale))}
                 </span>
                 <button
                   type="button"
                   onClick={() => onDeletePayment(p.id)}
                   disabled={pending}
                   className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20"
-                  aria-label="Borrar pago"
+                  aria-label={t.split.balances_delete_payment}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -151,13 +152,11 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
   );
 };
 
-const CURRENCY_OPTIONS = [
-  { value: 'ARS', label: 'Peso argentino', hint: 'ARS' },
-  { value: 'USD', label: 'Dólar', hint: 'USD' },
-  { value: 'EUR', label: 'Euro', hint: 'EUR' },
-  { value: 'MXN', label: 'Peso mexicano', hint: 'MXN' },
-  { value: 'CLP', label: 'Peso chileno', hint: 'CLP' },
-];
+const CURRENCY_OPTIONS = CURRENCIES.map((c) => ({
+  value: c.code,
+  label: c.label,
+  hint: c.code,
+}));
 
 const RecordPaymentSheet = ({
   open, onClose, contacts,
@@ -167,6 +166,7 @@ const RecordPaymentSheet = ({
   contacts: ContactLite[];
 }) => {
   const router = useRouter();
+  const { t } = useT();
   const [pending, startTransition] = useTransition();
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
@@ -174,9 +174,16 @@ const RecordPaymentSheet = ({
   const [currency, setCurrency] = useState('ARS');
   const [note, setNote] = useState('');
 
+  // Reseteamos el form cada vez que se abre el sheet para no arrastrar estado viejo.
+  useEffect(() => {
+    if (open) {
+      setFromId(''); setToId(''); setAmount(''); setCurrency('ARS'); setNote('');
+    }
+  }, [open]);
+
   const contactOptions = contacts.map((c) => ({
     value: c.id,
-    label: c.name + (c.is_self ? ' (Vos)' : ''),
+    label: c.name + (c.is_self ? ` ${t.split.who_paid_self_suffix}` : ''),
   }));
 
   const onSubmit = (e: React.FormEvent) => {
@@ -192,42 +199,42 @@ const RecordPaymentSheet = ({
         note: note || undefined,
       });
       if (r.ok) {
-        toast.success('Pago registrado');
+        toast.success(t.split.balances_payment_recorded);
         setFromId(''); setToId(''); setAmount(''); setNote('');
         onClose();
         router.refresh();
       } else {
-        toast.error(r.error ?? 'Error');
+        toast.error(r.error ?? t.common.error);
       }
     });
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Registrar pago">
+    <Sheet open={open} onClose={onClose} title={t.split.balances_sheet_title}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1.5">Pagó</label>
+          <label className="block text-sm font-medium mb-1.5">{t.split.balances_paid_label}</label>
           <Select
             value={fromId}
             onChange={setFromId}
             options={contactOptions}
-            placeholder="Elegí quién pagó..."
-            ariaLabel="Quién pagó"
+            placeholder={t.split.balances_from_placeholder}
+            ariaLabel={t.split.balances_from_aria}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">A</label>
+          <label className="block text-sm font-medium mb-1.5">{t.split.balances_to_label}</label>
           <Select
             value={toId}
             onChange={setToId}
             options={contactOptions.filter((o) => o.value !== fromId)}
-            placeholder="Elegí a quién..."
-            ariaLabel="A quién"
+            placeholder={t.split.balances_to_placeholder}
+            ariaLabel={t.split.balances_to_aria}
           />
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1.5">Monto</label>
+            <label className="block text-sm font-medium mb-1.5">{t.split.balances_amount}</label>
             <input
               type="number"
               inputMode="decimal"
@@ -239,22 +246,22 @@ const RecordPaymentSheet = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5">Moneda</label>
+            <label className="block text-sm font-medium mb-1.5">{t.expenses.currency}</label>
             <Select
               value={currency}
               onChange={setCurrency}
               options={CURRENCY_OPTIONS}
-              ariaLabel="Moneda"
+              ariaLabel={t.expenses.currency}
             />
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">Nota (opcional)</label>
+          <label className="block text-sm font-medium mb-1.5">{t.split.balances_note_optional}</label>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Ej: pago del alquiler de junio"
+            placeholder={t.split.balances_note_placeholder}
             className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base"
           />
         </div>
@@ -264,14 +271,14 @@ const RecordPaymentSheet = ({
             onClick={onClose}
             className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
           >
-            Cancelar
+            {t.common.cancel}
           </button>
           <button
             type="submit"
             disabled={pending || !fromId || !toId || !amount}
             className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
           >
-            {pending ? <Loader2 className="w-4 h-4 animate-spin inline" /> : 'Registrar'}
+            {pending ? <Loader2 className="w-4 h-4 animate-spin inline" /> : t.split.balances_register}
           </button>
         </div>
       </form>

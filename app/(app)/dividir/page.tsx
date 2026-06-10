@@ -2,18 +2,27 @@ import { createClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
 import { DividirClient } from './DividirClient';
-import type { ContactLite } from './types';
+import type { BalanceRow, ContactLite, PaymentRow } from './types';
 
-export default async function DividirPage() {
+const DividirPage = async () => {
   const supabase = await createClient();
   const ctx = await getCurrentWorkspace();
   const subscription = await getSubscription();
 
-  const { data: contactsRaw } = await supabase
-    .from('notification_contacts')
-    .select('id, name, is_self, user_id')
-    .eq('workspace_id', ctx.workspaceId)
-    .order('name');
+  const [{ data: contactsRaw }, balancesRes, { data: paymentsRaw }] = await Promise.all([
+    supabase
+      .from('notification_contacts')
+      .select('id, name, is_self, user_id')
+      .eq('workspace_id', ctx.workspaceId)
+      .order('name'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.rpc as any)('workspace_balances', { ws_id: ctx.workspaceId }),
+    supabase
+      .from('payments')
+      .select('id, from_contact_id, to_contact_id, amount, currency, note, paid_at')
+      .eq('workspace_id', ctx.workspaceId)
+      .order('paid_at', { ascending: false }),
+  ]);
 
   // Calculamos is_self desde la perspectiva del viewer (workspace compartido).
   type RawContact = { id: string; name: string; is_self: boolean; user_id: string | null };
@@ -24,10 +33,17 @@ export default async function DividirPage() {
       return a.name.localeCompare(b.name);
     });
 
+  const balances = (balancesRes?.data ?? []) as BalanceRow[];
+  const payments = (paymentsRaw ?? []) as PaymentRow[];
+
   return (
     <DividirClient
       contacts={contacts as ContactLite[]}
+      balances={balances}
+      payments={payments}
       isPro={subscription.tier === 'pro'}
     />
   );
-}
+};
+
+export default DividirPage;

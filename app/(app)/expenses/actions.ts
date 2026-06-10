@@ -97,14 +97,17 @@ export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: 
   return { ok: true };
 }
 
-export async function togglePaid(id: string, paid: boolean) {
+export async function togglePaid(id: string, paid: boolean): Promise<{ ok: boolean; error?: string }> {
   try {
     await requireAdmin();
-  } catch {
-    return; // RLS lo va a bloquear igualmente; silenciamos para no romper el toggle
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
   }
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('expenses') as any).update({ paid }).eq('id', id);
+  const { error } = await (supabase.from('expenses') as any).update({ paid }).eq('id', id);
+  if (error) return { ok: false, error: error.message };
   revalidatePath('/expenses');
+  revalidatePath('/dashboard');
+  return { ok: true };
 }
