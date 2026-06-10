@@ -5,7 +5,6 @@ import { ChevronDown } from 'lucide-react';
 import { useClickOutside } from '@/lib/useClickOutside';
 import { CURRENCIES } from '@/lib/currency';
 
-// Dropdown simple para moneda — opciones cortas, no necesita portal ni búsqueda.
 export const CurrencyPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

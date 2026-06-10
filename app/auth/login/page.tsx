@@ -8,7 +8,6 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { Mail, ArrowLeft, Check, Loader2 } from 'lucide-react';
 
-// Mensajes amigables por código de error que viene del callback
 const ERROR_LABELS: Record<string, string> = {
   auth_failed:   'No pudimos completar el login. Probá de nuevo.',
   no_user:       'La sesión no se creó correctamente. Probá de nuevo.',
@@ -128,10 +127,6 @@ const LoginInner = () => {
     </main>
   );
 };
-
-// ---------------------------------------------------------------------------
-// Sub-componentes
-// ---------------------------------------------------------------------------
 
 const ChooseMode = ({
   loading,

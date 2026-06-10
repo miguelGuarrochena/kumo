@@ -1,6 +1,3 @@
-// Factory de OCR providers. Switcheable por env var OCR_PROVIDER.
-// Hoy: solo Gemini. Más adelante podés agregar Claude, OpenAI, etc.
-
 import type { OcrProvider } from './types';
 import { GeminiOcrProvider } from './gemini';
 
@@ -15,9 +12,6 @@ export function getOcrProvider(): OcrProvider {
     case 'gemini':
       _provider = new GeminiOcrProvider();
       break;
-    // case 'claude':
-    //   _provider = new ClaudeOcrProvider();
-    //   break;
     default:
       throw new Error(`Unknown OCR_PROVIDER: ${id}`);
   }

@@ -1,13 +1,5 @@
 'use client';
 
-// Implementación mínima del tema (light / dark / system) — reemplaza next-themes
-// que inyectaba un <script> en el árbol React y disparaba warnings con React 19.
-//
-// La pre-hidratación (evitar flash light → dark) se hace con un script INLINE
-// puesto en el <head> desde el server layout vía dangerouslySetInnerHTML —
-// ese script corre antes del primer paint, lee localStorage y aplica la clase
-// `dark` directamente al <html>.
-
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -38,7 +30,6 @@ const applyTheme = (theme: Theme): 'light' | 'dark' => {
   if (resolved === 'dark') html.classList.add('dark');
   else html.classList.remove('dark');
   html.style.colorScheme = resolved;
-  // Un frame sin transitions para que todo cambie junto (evita UI “por partes”).
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       html.classList.remove('theme-changing');
@@ -51,7 +42,6 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setThemeState] = useState<Theme>('system');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
-  // Init: leer localStorage + aplicar
   useEffect(() => {
     const stored = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null) as Theme | null;
     const initial: Theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
@@ -59,7 +49,6 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     setResolvedTheme(applyTheme(initial));
   }, []);
 
-  // Si está en system, escuchamos cambios del media query
   useEffect(() => {
     if (theme !== 'system' || typeof window === 'undefined') return;
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
@@ -85,7 +74,4 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useTheme = (): Ctx => useContext(ThemeContext);
 
-// Script inline para pre-hidratación (evita flash). Se inserta en el <head>.
-// Lee localStorage; si dice 'dark' (o 'system' + prefers dark), agrega la clase
-// `dark` al <html> antes de que renderice React.
 export const themeInitScript = `(function(){try{var t=localStorage.getItem('${STORAGE_KEY}');var d=t==='dark'||((t==='system'||!t)&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}else{document.documentElement.style.colorScheme='light';}}catch(e){}})();`;

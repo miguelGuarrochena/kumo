@@ -11,8 +11,6 @@ import {
 import { getPricing } from '@/lib/pricing';
 import { getLocale } from '@/lib/i18n/server';
 
-// Landing page pública. Si el user ya está logueado, lo manda al dashboard.
-
 const HomePage = async () => {
   const supabase = await createClient();
   const {

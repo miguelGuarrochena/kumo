@@ -36,7 +36,6 @@ export const DividirTab = ({
 }: Props) => {
   const { t, locale } = useT();
   const [total, setTotal] = useState('');
-  // Propina puede ser porcentaje o monto fijo, con toggle.
   const [tipMode, setTipMode] = useState<'percent' | 'amount'>('percent');
   const [tipValue, setTipValue] = useState('');
   const [currency, setCurrency] = useState('ARS');
@@ -55,9 +54,6 @@ export const DividirTab = ({
     const existing = contacts.find((c) => c.name.toLowerCase() === v.toLowerCase());
     const id = newId();
     setParts((p) => [...p, { id, name: existing?.name ?? v, contactId: existing?.id ?? null }]);
-    // Autocompletar valor del nuevo participante con el remaining para que
-    // el total cierre solo. En % → 100 menos lo que ya tienen los otros.
-    // En monto fijo → totalNum menos lo que ya tienen los otros.
     if (mode === 'percentage' || mode === 'fixed') {
       const cap = mode === 'percentage' ? 100 : totalNum;
       const sumOthers = parts.reduce(
@@ -72,17 +68,12 @@ export const DividirTab = ({
     setPartInput('');
   };
 
-  // Cambiar de modo limpia los valores específicos del modo previo así no
-  // se arrastran porcentajes cuando paso a monto fijo y viceversa.
   const changeMode = (next: Mode) => {
     setMode(next);
     setValues({});
     if (next !== 'items') setItems([]);
   };
 
-  // En porcentaje, cuando el user edita un valor redistribuimos lo que falta
-  // proporcionalmente entre los otros participantes para que sume 100. En
-  // monto fijo el user es responsable de hacer cuadrar el total.
   const updateValue = (id: string, v: string) => {
     setValues((prev) => {
       const next: Record<string, string> = { ...prev, [id]: v };
@@ -130,8 +121,6 @@ export const DividirTab = ({
   const totalNum = baseTotal + tipAmount;
   const N = parts.length;
 
-  // computed[participantId] = monto que le toca. Keyed por id para no depender
-  // del orden del array.
   const computed = useMemo(() => {
     const out: Record<string, number> = {};
     for (const p of parts) out[p.id] = 0;
@@ -263,16 +252,13 @@ export const DividirTab = ({
         return;
       }
 
-      // Resolvemos los participantes a contactos. Los que tienen nombre libre
-      // (sin contactId) se crean como contactos ad-hoc para no perder su parte
-      // del split, igual que hace SplitEditor en Gastos.
       const splits: { contactId: string; amount: number }[] = [];
       for (const p of parts) {
         const amount = computed[p.id] ?? 0;
         let contactId = p.contactId;
         if (!contactId) {
           const name = p.name.trim();
-          if (!name) continue; // participante sin nombre ni contacto → se ignora
+          if (!name) continue;
           const created = await createAdHocContact(name);
           if (!created.ok || !created.id) {
             toast.error(created.error ?? t.common.error);
@@ -293,7 +279,6 @@ export const DividirTab = ({
         });
       }
       toast.success(t.split.expense_saved);
-      // Limpiar form
       setTotal(''); setParts([]); setValues({}); setItems([]);
     } finally {
       setSaving(false);

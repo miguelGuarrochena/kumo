@@ -1,16 +1,5 @@
 'use client';
 
-// Banner sutil que invita a instalar Kumo como PWA.
-//
-// Maneja 3 casos:
-//   - Android / Chrome desktop: usa el evento `beforeinstallprompt`
-//   - iOS Safari: no hay event nativo; mostramos instrucciones manuales
-//     (Compartir → Agregar a inicio)
-//   - Ya instalada (display-mode: standalone): no muestra nada
-//
-// El usuario puede descartar; guardamos timestamp en localStorage y
-// no volvemos a molestar por 7 días.
-
 import { useEffect, useState } from 'react';
 import { Download, X, Share, Plus } from 'lucide-react';
 import { track } from '@/lib/analytics';

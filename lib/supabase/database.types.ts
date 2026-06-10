@@ -1,6 +1,3 @@
-// Tipos del schema de Supabase. Después del primer setup podés regenerar con:
-//   pnpm db:types
-
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 // ---------- categories ----------

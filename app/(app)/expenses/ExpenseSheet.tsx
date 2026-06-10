@@ -59,7 +59,6 @@ export const ExpenseSheet = ({
   const [recurrenceType, setRecurrenceType] = useState<string>('monthly');
   const [notifyContactIds, setNotifyContactIds] = useState<string[]>([]);
 
-  // Split inline: toggle + state controlado pasado al SplitEditor
   const [splitOn, setSplitOn] = useState(false);
   const [splitState, setSplitState] = useState<SplitState>(emptySplitState);
 
@@ -67,7 +66,6 @@ export const ExpenseSheet = ({
     if (!open) return;
 
     if (expense) {
-      // Edición de gasto existente
       setAmount(expense.amount?.toString() ?? '');
       setCurrency((expense.currency as Currency) ?? defaultCurrency);
       setCategoryId(expense.category_id ?? '');
@@ -80,7 +78,6 @@ export const ExpenseSheet = ({
       setRecurrenceType(expense.recurrence_type ?? 'monthly');
       setNotifyContactIds(expense.notify_contact_ids ?? []);
     } else if (aiSuggestion) {
-      // Creación con datos extraídos del ticket
       setAmount(aiSuggestion.total ? aiSuggestion.total.toString() : '');
       const cur = (aiSuggestion.currency?.toUpperCase() ?? defaultCurrency) as Currency;
       setCurrency(CURRENCIES.some((c) => c.code === cur) ? cur : defaultCurrency);
@@ -91,7 +88,6 @@ export const ExpenseSheet = ({
       setPaid(true);
       setIsRecurring(false);
       setRecurrenceType('monthly');
-      // Intentar matchear categoría sugerida con las existentes
       const sugg = aiSuggestion.categorySuggestion?.toLowerCase().trim();
       const matched = sugg
         ? categories.find(
@@ -105,7 +101,6 @@ export const ExpenseSheet = ({
       const selfId = contacts.find((c) => c.is_self)?.id;
       setNotifyContactIds(selfId ? [selfId] : []);
     } else {
-      // Creación vacía
       setAmount('');
       setCurrency(defaultCurrency);
       setCategoryId('');
@@ -119,20 +114,13 @@ export const ExpenseSheet = ({
       const selfId = contacts.find((c) => c.is_self)?.id;
       setNotifyContactIds(selfId ? [selfId] : []);
     }
-    // El split de un gasto existente lo resuelve el efecto async de abajo (carga
-    // desde DB). Acá solo reseteamos para creación nueva / desde ticket, así
-    // evitamos el flicker false→true y la ventana donde un submit guardaría sin split.
     if (!expense) {
       setSplitOn(false);
       setSplitState(emptySplitState());
     }
-    // OJO: no dependemos de `contacts`/`categories`. Si dependiéramos, un
-    // `router.refresh()` (p. ej. al crear un contacto ad-hoc desde el split)
-    // re-ejecutaría este efecto y borraría monto/descripción en plena edición.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, expense?.id, aiSuggestion, defaultCurrency]);
 
-  // Cargar split existente cuando se edita un gasto con splits
   useEffect(() => {
     if (!open || !expense?.id) return;
     let cancelled = false;
@@ -175,15 +163,11 @@ export const ExpenseSheet = ({
           items: e2?.items_breakdown ?? [],
         });
       } else {
-        // Gasto existente sin split: estado limpio (lo hacemos acá y no en el
-        // efecto general para no provocar flicker ni perder datos en edición).
         setSplitOn(false);
         setSplitState(emptySplitState());
       }
     })();
     return () => { cancelled = true; };
-    // Igual que arriba: no dependemos de `contacts` para no recargar (y pisar)
-    // el split en edición cuando un `router.refresh()` actualiza la lista.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, expense?.id]);
 
@@ -202,7 +186,6 @@ export const ExpenseSheet = ({
     return (amt / fromRate) * toRate;
   }, [amount, currency, defaultCurrency, rates]);
 
-  // Validación del split inline para bloquear el submit cuando no cuadra.
   const splitTotalNum = parseFloat(amount) || 0;
   const splitComputed = useMemo(
     () => (splitOn ? computeSplits(splitState, splitTotalNum) : {}),
@@ -224,7 +207,6 @@ export const ExpenseSheet = ({
     fd.set('paid', String(paid));
     fd.set('is_recurring', String(isRecurring));
     if (isRecurring) fd.set('recurrence_type', recurrenceType);
-    // Solo mandamos contactos si hay vencimiento (sino no tiene sentido notificar)
     if (hasDueDate) {
       notifyContactIds.forEach((id) => fd.append('notify_contact_ids', id));
     }
@@ -233,7 +215,6 @@ export const ExpenseSheet = ({
       const result = await upsertExpense({ ok: false }, fd);
       if (result.ok) {
         const expenseId = result.expenseId ?? expense?.id;
-        // Si está activo el split, guardarlo también.
         if (expenseId) {
           if (splitOn && splitState.mode) {
             const splits =
@@ -254,7 +235,6 @@ export const ExpenseSheet = ({
             });
             if (!sr.ok) toast.error(sr.error ?? 'División no guardada');
           } else if (!splitOn && expense?.id) {
-            // El user destildó la división: si había una, la borramos.
             await saveSplits({
               expenseId,
               mode: null,
@@ -278,7 +258,6 @@ export const ExpenseSheet = ({
   return (
     <Sheet open={open} onClose={onClose} title={expense ? t.expenses.edit_title : t.expenses.new}>
       <form onSubmit={onSubmit} className="space-y-4">
-        {/* Banner cuando vienen datos del OCR */}
         {!expense && aiSuggestion && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-gradient-to-br from-sky-50 to-lavender-50 dark:from-sky-900/20 dark:to-lavender-900/20 border border-sky-200 dark:border-sky-800/60">
             <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
@@ -505,7 +484,6 @@ export const ExpenseSheet = ({
                 const on = e.target.checked;
                 setSplitOn(on);
                 if (on) {
-                  // Inicializar con modo "Partes iguales" + Yo como pagador
                   setSplitState((s) => ({
                     ...s,
                     mode: s.mode ?? 'equal',

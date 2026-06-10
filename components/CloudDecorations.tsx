@@ -103,7 +103,6 @@ const StarrySky = () => (
   </div>
 );
 
-/** Fondo decorativo: CSS puro (dark:) para cambiar al instante con el tema, sin esperar React. */
 export const CloudDecorations = () => (
   <>
     <div className="dark:hidden">

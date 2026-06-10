@@ -27,8 +27,6 @@ const SettingsPage = async () => {
   const whatsappPending =
     !isWhatsAppConfigured() || process.env.NEXT_PUBLIC_WHATSAPP_PENDING === 'true';
 
-  // Limpieza silenciosa: si quedaron contactos "Yo" duplicados por bugs viejos,
-  // los borramos sin mostrar nada al user. El unique de DB previene futuros.
   await supabase.rpc('cleanup_duplicate_self_contacts', { ws_id: ctx.workspaceId });
 
   const [
@@ -43,11 +41,8 @@ const SettingsPage = async () => {
       .from('notification_contacts')
       .select('*')
       .eq('workspace_id', ctx.workspaceId)
-      // Excluimos los contactos creados al vuelo desde el editor de split:
-      // esos sólo se usan para asignar montos, no para mandar WhatsApp.
       .eq('is_split_only', false)
       .order('created_at', { ascending: true }),
-    // RPC con SECURITY DEFINER que trae emails reales de auth.users
     supabase.rpc('get_workspace_members', { ws_id: ctx.workspaceId }),
     ctx.role === 'admin'
       ? supabase
@@ -87,7 +82,6 @@ const SettingsPage = async () => {
     created_at: i.created_at,
   }));
 
-  // Origin para construir links de invite client-side
   const h = await headers();
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'kumo-app.com';
   const proto = h.get('x-forwarded-proto') ?? 'https';

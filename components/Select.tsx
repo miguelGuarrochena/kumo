@@ -1,16 +1,5 @@
 'use client';
 
-// Dropdown custom estilo popover. Reemplaza el <select> nativo,
-// que en mobile abre el picker del SO (feo) y no tiene styling en desktop.
-//
-// Soporta:
-// - opciones planas: SelectOption[]
-// - opciones agrupadas: SelectGroup[]
-// - búsqueda interna opcional (searchable)
-// - render custom de la opción seleccionada (leftIcon, rightHint)
-//
-// Cierre por click-fuera, Escape, o tap en la opción.
-
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search as SearchIcon, X } from 'lucide-react';
@@ -20,8 +9,8 @@ import { useT } from '@/lib/i18n/client';
 export type SelectOption = {
   value: string;
   label: string;
-  hint?: string;       // texto secundario a la derecha (ej. "GMT-3")
-  prefix?: string;     // chip o label corto al inicio (ej. flag "ES")
+  hint?: string;
+  prefix?: string;
 };
 
 export type SelectGroup = {

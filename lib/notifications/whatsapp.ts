@@ -1,10 +1,3 @@
-// WhatsApp Cloud API adapter (Meta Graph).
-//
-// Templates en Meta (Utility, aprobadas):
-//   - kumo_vencimiento (es): {{1}} descripción, {{2}} fecha, {{3}} monto
-//   - kumo_reminder    (es): {{1}} tipo (Turno médico / Cumpleaños / Recordatorio),
-//                            {{2}} título, {{3}} cuándo
-
 import type { NotificationAdapter, NotificationMessage, NotificationResult } from './types';
 
 const GRAPH_VERSION = 'v21.0';
@@ -105,14 +98,12 @@ export class WhatsAppCloudAdapter implements NotificationAdapter {
 
 let _adapter: WhatsAppCloudAdapter | null = null;
 
-/** Devuelve el adapter solo si las credenciales de Meta están configuradas. */
 export function tryGetWhatsAppAdapter(): WhatsAppCloudAdapter | null {
   if (!isWhatsAppConfigured()) return null;
   if (!_adapter) _adapter = new WhatsAppCloudAdapter();
   return _adapter;
 }
 
-/** @deprecated Usar tryGetWhatsAppAdapter — lanza si no hay credenciales. */
 export function getWhatsAppAdapter(): WhatsAppCloudAdapter {
   const wa = tryGetWhatsAppAdapter();
   if (!wa) {

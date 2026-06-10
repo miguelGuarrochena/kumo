@@ -17,7 +17,6 @@ export type ParsedFeedToken = {
 export const signCalendarFeedToken = (userId: string, version = 0): string => {
   const sig = signPayload(userId, version);
   if (version === 0) {
-    // Formato legacy (compat): userId.sig
     return `${userId}.${sig}`;
   }
   return `${userId}.${version}.${sig}`;

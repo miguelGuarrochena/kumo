@@ -1,7 +1,3 @@
-// Endpoint que corre el "loop de notificaciones".
-// Llamado por un cron (Supabase pg_cron, Vercel Cron, o uptime monitor).
-// Auth: header Authorization: Bearer <CRON_SECRET>
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { tryGetWhatsAppAdapter } from '@/lib/notifications/whatsapp';
@@ -74,7 +70,6 @@ export async function POST(request: Request) {
     pushByUser.set(p.user_id, arr);
   }
 
-  // Limpia suscripciones que el endpoint ya no acepta (404/410).
   const stalePushIds: string[] = [];
   const pushToUser = async (userId: string, payload: { title: string; body: string; url: string; tag: string }) => {
     const list = pushByUser.get(userId) ?? [];
@@ -94,8 +89,6 @@ export async function POST(request: Request) {
 
   const contactsById = new Map<string, Contact>(contacts.map((c) => [c.id, c]));
   const settingsByUser = new Map<string, Settings>(settings.map((s) => [s.user_id, s]));
-  // Indexamos el contacto "Yo" por (user_id, workspace_id): un mismo usuario puede
-  // tener varios workspaces, cada uno con su propio self contact.
   const selfKey = (userId: string, workspaceId: string) => `${userId}::${workspaceId}`;
   const selfContactByUser = new Map<string, Contact>(
     contacts.filter((c) => c.is_self).map((c) => [selfKey(c.user_id, c.workspace_id), c]),
@@ -172,8 +165,6 @@ export async function POST(request: Request) {
       continue;
     }
 
-    // Comparamos como fechas calendario (YYYY-MM-DD) para evitar el off-by-one
-    // que produce parsear la fecha como UTC midnight y restar Date.now().
     const diffDays = daysBetween(today, dayKey(rem.reminder_date));
     if (diffDays > rem.notify_days_before) {
       skipped++;

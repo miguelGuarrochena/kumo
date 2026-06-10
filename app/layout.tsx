@@ -106,8 +106,6 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        {/* Pre-hidratación: aplica la clase `dark` antes del primer paint
-            para evitar el flash light → dark. */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="antialiased">

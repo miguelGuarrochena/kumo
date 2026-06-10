@@ -11,7 +11,6 @@ type SearchParams = {
   view?: 'month' | 'upcoming' | 'past';
 };
 
-// Construye una clave "YYYY-MM-DD" 100% local (sin pasar por UTC) — evita off-by-one en bordes de mes.
 const localKey = (year: number, monthIdx: number, day: number) =>
   `${year}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
@@ -24,7 +23,6 @@ const CalendarPage = async ({
   const ctx = await getCurrentWorkspace();
   const params = await searchParams;
 
-  // Lista de workspaces del user (para el selector multi).
   const { data: { user } } = await supabase.auth.getUser();
   const { data: memberships } = await supabase
     .from('workspace_members')
@@ -50,14 +48,13 @@ const CalendarPage = async ({
   const year = Number(yearStr);
   const month = Number(mStr);
 
-  // Rango ampliado para grid del mes (incluye días de mes anterior/siguiente que aparecen en la grilla 6x7).
   const queryStart = (() => {
     const d = new Date(year, month - 1, 1);
     d.setDate(d.getDate() - 7);
     return localKey(d.getFullYear(), d.getMonth(), d.getDate());
   })();
   const queryEnd = (() => {
-    const d = new Date(year, month, 0); // último día del mes
+    const d = new Date(year, month, 0);
     d.setDate(d.getDate() + 14);
     return localKey(d.getFullYear(), d.getMonth(), d.getDate());
   })();
@@ -70,8 +67,6 @@ const CalendarPage = async ({
 
   const userId = user?.id ?? '';
 
-  // Calendar trae eventos de TODOS los workspaces del user (filtra RLS).
-  // El cliente decide qué workspaces mostrar con checkboxes; default: solo el activo.
   const [
     { data: expenses },
     { data: reminders },
@@ -79,8 +74,6 @@ const CalendarPage = async ({
     { data: settings },
     { data: contacts },
   ] = await Promise.all([
-    // El cliente ubica cada gasto por `due_date ?? expense_date`, así que traemos
-    // tanto los que vencen en el rango como los gastos normales (solo expense_date).
     supabase
       .from('expenses')
       .select('id, workspace_id, description, amount, currency, due_date, expense_date, paid, categories(name, color)')
@@ -105,8 +98,6 @@ const CalendarPage = async ({
       .order('created_at'),
   ]);
 
-  // is_self desde la perspectiva del viewer (igual que expenses/dividir):
-  // en un workspace compartido, "Yo" es solo el contacto del usuario actual.
   type RawCalContact = {
     id: string; name: string; relationship: string | null;
     is_self: boolean; phone: string | null; user_id: string | null;

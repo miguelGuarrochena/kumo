@@ -1,8 +1,5 @@
 'use client';
 
-// PostHog provider — analytics + funnels.
-// Free tier: 1M eventos/mes. Captura pageviews automático.
-
 import posthog from 'posthog-js';
 import { PostHogProvider as Provider } from 'posthog-js/react';
 import { useEffect, Suspense } from 'react';
@@ -14,12 +11,10 @@ const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com';
 if (typeof window !== 'undefined' && KEY) {
   posthog.init(KEY, {
     api_host: HOST,
-    // Captura pageviews nosotros con el hook (Next router no dispara nativamente)
     capture_pageview: false,
     capture_pageleave: true,
     person_profiles: 'identified_only',
     autocapture: {
-      // Bloquear inputs sensibles (montos, números, etc.)
       dom_event_allowlist: ['click', 'submit'],
       element_allowlist: ['a', 'button', 'form', 'input', 'select', 'textarea', 'label'],
       css_selector_allowlist: ['[data-attr]'],

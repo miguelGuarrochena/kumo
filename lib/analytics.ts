@@ -1,6 +1,3 @@
-// Wrapper sobre PostHog para tracking de eventos custom de forma tipada.
-// Uso: import { track } from '@/lib/analytics'; track('expense_created', { amount: 1500 });
-
 import posthog from 'posthog-js';
 
 export type AnalyticsEvent =
@@ -23,9 +20,6 @@ export type AnalyticsEvent =
   | { name: 'pwa_install_result'; props: { outcome: 'accepted' | 'dismissed' } }
   | { name: 'pwa_install_ios_help_shown' };
 
-/**
- * Manda un evento a PostHog. No-op si PostHog no está configurado.
- */
 export function track<T extends AnalyticsEvent>(
   event: T['name'],
   props?: T extends { props: infer P } ? P : Record<string, unknown> | undefined,
@@ -35,32 +29,26 @@ export function track<T extends AnalyticsEvent>(
   try {
     posthog.capture(event, (props ?? {}) as Record<string, unknown>);
   } catch {
-    // ignore
+    /* noop */
   }
 }
 
-/**
- * Identifica al usuario en PostHog (después del login).
- */
 export function identify(userId: string, traits?: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
   if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
   try {
     posthog.identify(userId, traits);
   } catch {
-    // ignore
+    /* noop */
   }
 }
 
-/**
- * Resetea la sesión al hacer logout.
- */
 export function resetAnalytics() {
   if (typeof window === 'undefined') return;
   if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
   try {
     posthog.reset();
   } catch {
-    // ignore
+    /* noop */
   }
 }

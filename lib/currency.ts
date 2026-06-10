@@ -1,9 +1,3 @@
-// Conversor de moneda. Combina dos APIs gratis:
-//   - Frankfurter (frankfurter.app): ECB, sin API key, EUR/USD/principales
-//   - DolarAPI (dolarapi.com): específico para ARS (oficial, blue, MEP, tarjeta)
-//
-// Cache server-side: 1 hora. No hace falta más para gastos personales.
-
 export type Currency = 'ARS' | 'USD' | 'EUR' | 'MXN' | 'CLP' | 'COP' | 'BRL' | 'GBP';
 
 export const CURRENCIES: { code: Currency; label: string; symbol: string }[] = [
@@ -17,10 +11,6 @@ export const CURRENCIES: { code: Currency; label: string; symbol: string }[] = [
   { code: 'GBP', label: 'Libra',              symbol: '£' },
 ];
 
-// ---------------------------------------------------------------------
-// Cache simple en memoria del server (vive por proceso, hora de TTL)
-// ---------------------------------------------------------------------
-
 type RatesSnapshot = {
   base: Currency;
   rates: Partial<Record<Currency, number>>;
@@ -28,11 +18,8 @@ type RatesSnapshot = {
 };
 
 let cache: RatesSnapshot | null = null;
-const TTL_MS = 60 * 60 * 1000; // 1 hora
+const TTL_MS = 60 * 60 * 1000;
 
-// ---------------------------------------------------------------------
-// API: ARS oficial via DolarAPI (la oficial es la que usan los bancos)
-// ---------------------------------------------------------------------
 async function fetchArsOficial(): Promise<number | null> {
   try {
     const res = await fetch('https://dolarapi.com/v1/dolares/oficial', {
@@ -40,7 +27,6 @@ async function fetchArsOficial(): Promise<number | null> {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    // Devuelve "venta" en ARS por 1 USD
     return typeof data.venta === 'number' ? data.venta : null;
   } catch {
     return null;

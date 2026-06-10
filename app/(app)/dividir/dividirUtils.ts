@@ -1,7 +1,6 @@
 import { localeTag } from '@/lib/i18n/locale';
 import type { Locale } from '@/lib/i18n/types';
 
-// Id estable de cliente para keys de React y referencias sin índice.
 export const newId = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -15,8 +14,6 @@ export const formatMoney = (n: number, ccy: string, locale: Locale = 'es'): stri
   }
 };
 
-// Redondea a 2 decimales y devuelve string sin trailing zeros
-// (15.50 → "15.5", 33.333... → "33.33").
 export const trimNumber = (n: number): string => {
   if (!isFinite(n)) return '0';
   const rounded = Math.round(n * 100) / 100;

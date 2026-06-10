@@ -1,10 +1,8 @@
-// Interface para providers de OCR. Hoy: Gemini. Futuro: Claude, GPT, etc.
-
 export type ExtractedExpense = {
   merchant: string | null;
   total: number | null;
-  currency: string | null; // ARS, USD, EUR, etc.
-  date: string | null; // YYYY-MM-DD
+  currency: string | null;
+  date: string | null;
   description: string;
   categorySuggestion: string | null;
   items?: Array<{ name: string; price: number }> | null;

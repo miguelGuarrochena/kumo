@@ -174,7 +174,6 @@ const RecordPaymentSheet = ({
   const [currency, setCurrency] = useState('ARS');
   const [note, setNote] = useState('');
 
-  // Reseteamos el form cada vez que se abre el sheet para no arrastrar estado viejo.
   useEffect(() => {
     if (open) {
       setFromId(''); setToId(''); setAmount(''); setCurrency('ARS'); setNote('');

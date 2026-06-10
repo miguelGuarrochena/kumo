@@ -1,11 +1,3 @@
-// Adapter de email. Hoy usa Resend, pero la interfaz es agnóstica —
-// si más adelante migramos a Brevo / SES / SMTP cambia solo este archivo.
-//
-// Variables de entorno:
-//   RESEND_API_KEY            — obligatoria para que funcione el envío
-//   EMAIL_FROM                — sender (default: "Kumo <info@kumo-app.com>")
-//   NEXT_PUBLIC_SITE_URL      — para construir links absolutos
-
 import { Resend } from 'resend';
 
 export type SendResult = { ok: true; id: string } | { ok: false; error: string };

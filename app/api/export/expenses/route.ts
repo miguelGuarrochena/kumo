@@ -5,17 +5,6 @@ import { getLocale, getMessages } from '@/lib/i18n/server';
 import { localeTag } from '@/lib/i18n/locale';
 import * as XLSX from 'xlsx';
 
-// Exporta los gastos del usuario a Excel (.xlsx) o CSV (.csv).
-//
-// Soporta filtros opcionales por query string:
-//   ?format=xlsx|csv     default xlsx
-//   ?from=YYYY-MM-DD     fecha desde (expense_date >=)
-//   ?to=YYYY-MM-DD       fecha hasta (expense_date <=)
-//   ?currency=ARS        filtrar por moneda
-//   ?paid=paid|pending   estado
-//
-// El archivo se descarga directamente desde el browser.
-
 type ExpenseRow = {
   expense_date: string;
   due_date: string | null;

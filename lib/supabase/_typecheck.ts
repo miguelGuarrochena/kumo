@@ -1,2 +1,0 @@
-// (placeholder, sin uso)
-export {};

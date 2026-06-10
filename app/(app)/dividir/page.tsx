@@ -25,7 +25,6 @@ const DividirPage = async () => {
       .order('paid_at', { ascending: false }),
   ]);
 
-  // Calculamos is_self desde la perspectiva del viewer (workspace compartido).
   type RawContact = { id: string; name: string; is_self: boolean; user_id: string | null };
   const contacts = ((contactsRaw ?? []) as RawContact[])
     .map((c) => ({ ...c, is_self: !!c.is_self && c.user_id === ctx.userId }))

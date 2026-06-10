@@ -1,8 +1,3 @@
-// Tests de flujos completos autenticados.
-// REQUIERE auth.setup.ts haber corrido primero (genera .auth/user.json).
-//
-// Se skipean automáticamente si no hay env vars E2E_*.
-
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
 
@@ -48,13 +43,6 @@ test.describe('Authenticated flows', () => {
   test('workspace switcher abre y muestra al menos un espacio', async ({ page }) => {
     await page.goto('/dashboard');
     await page.locator('aside').getByRole('button').first().click();
-    // El popover debería tener al menos el espacio activo
     await expect(page.getByRole('listbox')).toBeVisible();
   });
-
-  // TODO: tests de flujo completo que crean data y la verifican
-  //   - crear gasto desde /expenses → ver en tabla
-  //   - crear reminder desde /calendar → ver en grilla
-  //   - agregar shopping item → tickear → ver en "ya comprado"
-  // Estos requieren limpieza después (DELETE) o un Supabase de test efímero.
 });

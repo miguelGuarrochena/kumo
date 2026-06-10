@@ -120,8 +120,6 @@ export const ExpensesClient = ({
   const convertToDisplay = (amount: number, currency: string): number | null =>
     convertAmount(amount, currency as Currency, displayCurrency, rates);
 
-  // Sumamos solo los montos que se pudieron convertir. Si falta alguna tasa,
-  // lo marcamos para avisar en vez de sumar 0 silenciosamente.
   const { totalInDisplay, someRateMissing } = useMemo(() => {
     let total = 0;
     let missing = false;
@@ -134,9 +132,6 @@ export const ExpensesClient = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses, displayCurrency, rates]);
 
-  // Breakdown de cantidad de gastos por moneda original. Solo lo mostramos
-  // cuando hay más de una moneda mezclada, como hint sutil de que el total
-  // está convertido. Ordenamos descendente por cantidad.
   const currencyBreakdown = useMemo(() => {
     const counts = new Map<string, number>();
     for (const e of expenses) {
@@ -279,7 +274,6 @@ export const ExpensesClient = ({
       </div>
 
       {view === 'archive' ? (
-        // ============== VISTA HISTÓRICO ==============
         <ArchiveView
           years={archiveYears}
           displayCurrency={displayCurrency}
@@ -298,7 +292,6 @@ export const ExpensesClient = ({
           }}
         />
       ) : view === 'month' ? (
-        // ============== VISTA MES ==============
         <div className="kumo-card p-5 sm:p-6">
           <div className="flex items-center justify-between mb-3">
             <button
@@ -348,7 +341,6 @@ export const ExpensesClient = ({
           </div>
         </div>
       ) : (
-        // ============== VISTA TODOS ==============
         <>
           <form onSubmit={onSearchSubmit} className="flex gap-2">
             <div className="flex-1 relative">
