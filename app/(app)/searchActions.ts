@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getMessages } from '@/lib/i18n/server';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import { localeTag } from '@/lib/i18n/locale';
 
 export type SearchResult = {
@@ -74,7 +75,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
       results.push({
         type: 'expense',
         id: e.id,
-        title: e.description ?? e.categories?.name ?? t.expenses.default_name,
+        title: e.description ?? (e.categories?.name ? categoryDisplayName(e.categories.name, t) : null) ?? t.expenses.default_name,
         subtitle: `${formatAmount(e.amount, e.currency, tag)} · ${e.expense_date}`,
         href: '/expenses?view=all',
         color: e.categories?.color,
@@ -112,7 +113,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
       results.push({
         type: 'category',
         id: c.id,
-        title: c.name,
+        title: categoryDisplayName(c.name, t),
         subtitle: t.command.type_category,
         href: '/categories',
         color: c.color,

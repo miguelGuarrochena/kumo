@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { getLocale, getMessages } from '@/lib/i18n/server';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import { localeTag } from '@/lib/i18n/locale';
 import * as XLSX from 'xlsx';
 
@@ -80,7 +81,7 @@ export async function GET(request: Request) {
     expense_date: e.expense_date,
     due_date: e.due_date,
     description: e.description,
-    category_name: e.categories?.name ?? '—',
+    category_name: e.categories?.name ? categoryDisplayName(e.categories.name, t) : '—',
     amount: Number(e.amount),
     currency: e.currency,
     paid: e.paid,

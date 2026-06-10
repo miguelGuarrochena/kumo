@@ -344,7 +344,15 @@
     "delete_confirm_title": "Delete category",
     "delete_confirm": "Delete \"{name}\"? Expenses will lose their category.",
     "empty_title": "No categories",
-    "empty_desc": "Create your first category to organize your expenses."
+    "empty_desc": "Create your first category to organize your expenses.",
+    "presets": {
+      "rent": "Rent",
+      "groceries": "Groceries",
+      "utilities": "Utilities",
+      "transport": "Transport",
+      "health": "Health",
+      "other": "Other"
+    }
   },
   "workspace": {
     "title": "Share space",

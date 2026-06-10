@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Select } from '@/components/Select';
 import { FiltersSheet, type Filters } from './FiltersSheet';
 import { useT } from '@/lib/i18n/client';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import type { ExpensesView, ArchiveYear } from './page';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { formatMoney, convertAmount, type Currency } from '@/lib/currency';
@@ -447,7 +448,7 @@ export const ExpensesClient = ({
                       setUrlParam('cat', next.length > 0 ? next.join(',') : null);
                     }}
                   >
-                    {cat.name}
+                    {categoryDisplayName(cat.name, t)}
                   </FilterChip>
                 );
               })}
@@ -608,7 +609,12 @@ export const ExpensesClient = ({
         onClose={() => setToDelete(null)}
         onConfirm={onDelete}
         title={t.expenses.delete_confirm_title}
-        description={t.expenses.delete_confirm_desc.replace('{name}', toDelete?.description ?? toDelete?.categories?.name ?? 'este gasto')}
+        description={t.expenses.delete_confirm_desc.replace(
+          '{name}',
+          toDelete?.description
+            ?? (toDelete?.categories?.name ? categoryDisplayName(toDelete.categories.name, t) : null)
+            ?? 'este gasto',
+        )}
       />
 
       <OcrPaywallSheet

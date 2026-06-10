@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Database } from '@/lib/supabase/database.types';
 import { track } from '@/lib/analytics';
 import { useT } from '@/lib/i18n/client';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 
@@ -121,7 +122,7 @@ export const CategoriesClient = ({ initialCategories }: { initialCategories: Cat
         onClose={() => setToDelete(null)}
         onConfirm={onDelete}
         title={t.categories.delete_confirm_title}
-        description={t.categories.delete_confirm.replace('{name}', toDelete?.name ?? '')}
+        description={t.categories.delete_confirm.replace('{name}', toDelete ? categoryDisplayName(toDelete.name, t) : '')}
       />
     </>
   );
@@ -146,7 +147,7 @@ const CategoryCard = ({
         <Icon className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{category.name}</div>
+        <div className="font-medium truncate">{categoryDisplayName(category.name, t)}</div>
       </div>
       <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         <button

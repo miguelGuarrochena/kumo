@@ -5,6 +5,7 @@ import { Wallet, Calendar as CalendarIcon, Plus, Pencil, Trash2 } from 'lucide-r
 import { Sheet } from '@/components/Sheet';
 import { formatMoney, type Currency } from '@/lib/currency';
 import { useT } from '@/lib/i18n/client';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import type { Holiday } from '@/lib/holidays';
 import type { ContactLite, DayEvents, ReminderCal } from './types';
 import { TYPE_META, TONE_STYLES, COLOR_DOT } from './constants';
@@ -153,7 +154,7 @@ export const DayDetailSheet = ({
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate flex items-center gap-1.5">
                           <span className={`w-2 h-2 rounded-full ${dotCls}`} />
-                          {e.description || e.categories?.name || t.expenses.default_name}
+                          {e.description || (e.categories?.name ? categoryDisplayName(e.categories.name, t) : null) || t.expenses.default_name}
                           {isPending && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-peach-100 dark:bg-peach-500/20 text-peach-400 font-medium">
                               {t.expenses.pending}
@@ -161,7 +162,7 @@ export const DayDetailSheet = ({
                           )}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {e.categories?.name ?? t.expenses.no_category}
+                          {e.categories?.name ? categoryDisplayName(e.categories.name, t) : t.expenses.no_category}
                         </p>
                       </div>
                       <p className="font-semibold text-sm whitespace-nowrap">

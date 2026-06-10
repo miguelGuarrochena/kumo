@@ -154,22 +154,24 @@ export const WorkspaceSection = ({
             <WsIcon className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-semibold truncate">{workspaceName}</h3>
+            <div className="flex items-center gap-0.5 min-w-0">
+              <h3 className="font-semibold truncate">{workspaceName}</h3>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(true)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 shrink-0"
+                  aria-label={t.common.edit}
+                  title={t.common.edit}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t.workspace.title}</p>
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => setEditOpen(true)}
-              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
-              aria-label={t.common.edit}
-              title={t.common.edit}
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-          )}
           {isAdmin && !inviteOpen && (
             <button
               onClick={() => setInviteOpen(true)}

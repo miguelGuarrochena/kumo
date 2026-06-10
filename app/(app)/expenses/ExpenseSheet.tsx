@@ -8,6 +8,7 @@ import { upsertExpense } from './actions';
 import { Sheet } from '@/components/Sheet';
 import { Select, type SelectOption } from '@/components/Select';
 import { useT } from '@/lib/i18n/client';
+import { categoryDisplayName, categoryNamesMatch } from '@/lib/categoryLabels';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
 import { track } from '@/lib/analytics';
@@ -90,12 +91,7 @@ export const ExpenseSheet = ({
       setRecurrenceType('monthly');
       const sugg = aiSuggestion.categorySuggestion?.toLowerCase().trim();
       const matched = sugg
-        ? categories.find(
-            (c) =>
-              c.name.toLowerCase() === sugg ||
-              c.name.toLowerCase().includes(sugg) ||
-              sugg.includes(c.name.toLowerCase()),
-          )
+        ? categories.find((c) => categoryNamesMatch(c.name, sugg))
         : null;
       setCategoryId(matched?.id ?? '');
       const selfId = contacts.find((c) => c.is_self)?.id;
@@ -353,7 +349,7 @@ export const ExpenseSheet = ({
             onChange={setCategoryId}
             options={[
               { value: '', label: t.expenses.no_category } as SelectOption,
-              ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ...categories.map((c) => ({ value: c.id, label: categoryDisplayName(c.name, t) })),
             ]}
             ariaLabel={t.expenses.category}
             buttonClassName="py-3 rounded-xl"

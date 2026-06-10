@@ -344,7 +344,15 @@
     "delete_confirm_title": "Borrar categoría",
     "delete_confirm": "¿Borrar \"{name}\"? Los gastos quedan sin categoría.",
     "empty_title": "Sin categorías",
-    "empty_desc": "Creá tu primer categoría para organizar los gastos."
+    "empty_desc": "Creá tu primer categoría para organizar los gastos.",
+    "presets": {
+      "rent": "Alquiler",
+      "groceries": "Supermercado",
+      "utilities": "Servicios",
+      "transport": "Transporte",
+      "health": "Salud",
+      "other": "Otros"
+    }
   },
   "workspace": {
     "title": "Compartir espacio",

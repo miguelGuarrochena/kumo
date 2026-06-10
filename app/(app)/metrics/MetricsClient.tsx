@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'luci
 import { CURRENCIES, formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { Select } from '@/components/Select';
 import { useT } from '@/lib/i18n/client';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import { localeTag } from '@/lib/i18n/locale';
 import { formatDate as formatExpenseDate } from '../expenses/utils';
 import type { MetricsPeriod } from './page';
@@ -97,7 +98,9 @@ export const MetricsClient = ({
     const map = new Map<string, { id: string; name: string; color: string; total: number }>();
     for (const e of currentExpenses) {
       const id = e.category_id ?? '__none__';
-      const name = e.categories?.name ?? t.expenses.no_category;
+      const name = e.categories?.name
+        ? categoryDisplayName(e.categories.name, t)
+        : t.expenses.no_category;
       const color = e.categories?.color ?? 'sky';
       const existing = map.get(id);
       const amount = convert(Number(e.amount), e.currency) ?? 0;
@@ -329,6 +332,7 @@ export const MetricsClient = ({
               <div className="space-y-2">
                 {topExpenses.map((e, i) => {
                   const cat = e.categories;
+                  const catLabel = cat ? categoryDisplayName(cat.name, t) : null;
                   const color = cat ? COLOR_HEX[cat.color] ?? FALLBACK_COLORS[0] : '#cbd5e1';
                   return (
                     <div key={e.id} className="flex items-center gap-3">
@@ -336,10 +340,10 @@ export const MetricsClient = ({
                       <span className="w-2 h-8 rounded-full shrink-0" style={{ background: color }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">
-                          {e.description || cat?.name || t.expenses.default_name}
+                          {e.description || catLabel || t.expenses.default_name}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                          {cat?.name ?? t.expenses.no_category} · {formatExpenseDate(e.expense_date, locale)}
+                          {catLabel ?? t.expenses.no_category} · {formatExpenseDate(e.expense_date, locale)}
                         </p>
                       </div>
                       <p className="font-semibold text-sm tabular-nums whitespace-nowrap">

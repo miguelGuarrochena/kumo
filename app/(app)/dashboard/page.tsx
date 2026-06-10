@@ -6,6 +6,7 @@ import {
 import Link from 'next/link';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { getLocale, getMessages } from '@/lib/i18n/server';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import { localeTag } from '@/lib/i18n/locale';
 import { getRates, formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { todayKey, parseLocalDate, daysBetween } from '@/lib/date';
@@ -208,7 +209,7 @@ const DashboardPage = async () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {e.description || e.categories?.name || t.expenses.default_name}
+                      {e.description || (e.categories?.name ? categoryDisplayName(e.categories.name, t) : null) || t.expenses.default_name}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       <span className={days === 0 ? 'text-rose-500 font-medium' : ''}>{label}</span>
@@ -274,10 +275,10 @@ const DashboardPage = async () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {e.description || e.categories?.name || t.expenses.default_name}
+                    {e.description || (e.categories?.name ? categoryDisplayName(e.categories.name, t) : null) || t.expenses.default_name}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    {e.categories?.name ?? t.expenses.no_category} · {formatShortDate(e.expense_date, dateLocale)}
+                    {e.categories?.name ? categoryDisplayName(e.categories.name, t) : t.expenses.no_category} · {formatShortDate(e.expense_date, dateLocale)}
                   </p>
                 </div>
                 <p className="text-sm font-semibold tabular-nums whitespace-nowrap">

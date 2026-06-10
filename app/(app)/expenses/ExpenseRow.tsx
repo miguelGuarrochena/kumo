@@ -2,6 +2,7 @@
 
 import { Check, Pencil, Trash2 } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import { formatMoney, type Currency } from '@/lib/currency';
 import type { Expense, ExpenseWithSplits } from './types';
 import { COLOR_DOT, formatDate, formatFullDate } from './utils';
@@ -29,6 +30,7 @@ export const ExpenseRow = ({
 }: ExpenseRowProps) => {
   const { t, locale } = useT();
   const cat = expense.categories;
+  const catLabel = cat ? categoryDisplayName(cat.name, t) : null;
   const dotColor = cat ? COLOR_DOT[cat.color] ?? 'bg-slate-300' : 'bg-slate-300';
   const isPending = expense.due_date && !expense.paid;
   const isDifferentCurrency = expense.currency !== displayCurrency;
@@ -41,7 +43,7 @@ export const ExpenseRow = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           <p className="font-medium text-sm truncate">
-            {expense.description || cat?.name || t.expenses.default_name}
+            {expense.description || catLabel || t.expenses.default_name}
           </p>
           {isPending && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-peach-100 text-peach-400 font-medium">
@@ -67,7 +69,7 @@ export const ExpenseRow = ({
           )}
         </div>
         <p className="text-xs text-slate-500 mt-0.5 truncate">
-          {cat?.name ?? t.expenses.no_category} · {showFullDate ? formatFullDate(expense.expense_date, locale) : formatDate(expense.expense_date, locale)}
+          {catLabel ?? t.expenses.no_category} · {showFullDate ? formatFullDate(expense.expense_date, locale) : formatDate(expense.expense_date, locale)}
           {expense.due_date && ` · ${t.expenses.due_short} ${formatDate(expense.due_date, locale)}`}
         </p>
         {splits.length > 0 && (

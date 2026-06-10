@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { COUNTRY_LABEL, type Country, type Holiday } from '@/lib/holidays';
 import { useT } from '@/lib/i18n/client';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import type { EventsByDate } from './types';
 import { COLOR_DOT, TYPE_META } from './constants';
 import { buildGrid, formatMonthLabel, localeTag, weekdayInitials } from './utils';
@@ -167,7 +168,7 @@ export const MonthView = ({
                         <DayLabel
                           key={e.id}
                           dotCls={cls}
-                          text={e.description || e.categories?.name || t.expenses.default_name}
+                          text={e.description || (e.categories?.name ? categoryDisplayName(e.categories.name, t) : null) || t.expenses.default_name}
                         />
                       );
                     })}

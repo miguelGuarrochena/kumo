@@ -50,7 +50,7 @@ export const Sidebar = ({ userEmail, workspaces, activeWorkspaceId }: Props) => 
   };
 
   return (
-    <aside className="hidden lg:flex w-64 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 flex-col sticky top-0 h-screen">
+    <aside className="hidden lg:flex w-64 shrink-0 h-full bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 flex-col overflow-y-auto">
       <Link
         href="/dashboard"
         className="px-5 pt-5 pb-3 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 hover:opacity-80 transition-opacity"

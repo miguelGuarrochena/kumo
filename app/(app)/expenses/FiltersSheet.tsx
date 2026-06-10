@@ -6,6 +6,7 @@ import { Sheet } from '@/components/Sheet';
 import { Select } from '@/components/Select';
 import { CURRENCIES, type Currency } from '@/lib/currency';
 import { useT } from '@/lib/i18n/client';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 
 type CategoryLite = {
   id: string;
@@ -121,7 +122,7 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${COLOR_DOT[c.color] ?? 'bg-slate-300'}`} />
-                  {c.name}
+                  {categoryDisplayName(c.name, t)}
                 </button>
               );
             })}
