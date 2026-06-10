@@ -34,29 +34,16 @@ const HomePage = async () => {
           <CloudLogo className="w-9 h-9" />
           <span className="font-bold text-xl tracking-tight kumo-gradient-text">Kumo</span>
         </div>
-        <div className="flex items-center gap-1">
-          <a
-            href="#pricing"
-            className="hidden sm:inline-block px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors"
-          >
-            Precios
-          </a>
-          <Link
-            href="/auth/login"
-            className="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors"
-          >
-            Iniciar sesión
-          </Link>
-        </div>
+        <Link
+          href="/auth/login"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold kumo-gradient text-white shadow-md hover:opacity-90 active:scale-95 transition-all"
+        >
+          Iniciar sesión
+        </Link>
       </header>
 
       {/* Hero */}
       <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-slate-800/60 backdrop-blur border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-mint-400 animate-pulse" />
-          Beta pública · gratis
-        </div>
-
         <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-5">
           Tus gastos,
           <br />
@@ -139,7 +126,7 @@ const HomePage = async () => {
       </section>
 
       {/* OCR add-on */}
-      <section id="pricing" className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+      <section id="ocr" className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Kumo es gratis</h2>
         <p className="text-center text-slate-500 dark:text-slate-400 mb-8 text-sm sm:text-base">
           Gastos, recordatorios, compras, WhatsApp, push y todos los espacios que necesites — sin costo.
@@ -172,8 +159,8 @@ const HomePage = async () => {
         <ol className="space-y-6">
           <Step
             n="1"
-            title="Entrá con Google"
-            description="Sin contraseñas, sin formularios. Un click y estás adentro."
+            title="Entrá con Google o email"
+            description="Un click con Google o un magic link a tu casilla. Sin contraseñas ni formularios largos."
           />
           <Step
             n="2"
