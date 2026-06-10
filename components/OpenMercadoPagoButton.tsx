@@ -31,7 +31,9 @@ export const OpenMercadoPagoButton = ({
         .filter(Boolean)
         .join(' ')}
     >
-      <MercadoPagoLogo variant="icon" className={compact ? 'w-4 h-4' : 'w-5 h-5'} />
+      <span className="inline-flex items-center justify-center rounded-md bg-white p-0.5 shrink-0">
+        <MercadoPagoLogo variant="icon" className={compact ? 'w-4 h-4' : 'w-5 h-5'} />
+      </span>
       <span>{t.split.pay_open_mp}</span>
     </button>
   );
