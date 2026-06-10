@@ -53,8 +53,8 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
 
   return (
     <header className="lg:hidden sticky top-0 z-20 bg-white/90 dark:bg-slate-900/80 backdrop-blur border-b border-slate-100 dark:border-slate-800 pt-[env(safe-area-inset-top)]">
-      <div className="relative flex items-center h-14 px-4">
-        <div className="flex flex-1 items-center justify-start min-w-0">
+      <div className="flex items-center h-14 px-4 gap-[5px]">
+        <div className="w-9 shrink-0 flex items-center justify-start">
           {!isDashboard && (
             <button
               type="button"
@@ -69,13 +69,13 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
 
         <Link
           href="/dashboard"
-          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 max-w-[40%] hover:opacity-80 transition-opacity"
+          className="flex-1 flex items-center justify-center gap-1.5 min-w-0 hover:opacity-80 transition-opacity"
         >
           <CloudLogo className="w-6 shrink-0" />
           <span className="font-bold text-base tracking-tight kumo-gradient-text truncate">Kumo</span>
         </Link>
 
-        <div className="flex flex-1 items-center justify-end gap-1.5 min-w-0">
+        <div className="flex shrink-0 items-center gap-1.5">
           <ThemeToggle compact />
           <button
             type="button"
