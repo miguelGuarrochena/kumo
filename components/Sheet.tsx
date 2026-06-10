@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 
@@ -14,6 +15,9 @@ type Props = {
 
 export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
   const { t } = useT();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -31,9 +35,9 @@ export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
       onClick={onClose}
@@ -75,6 +79,7 @@ export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

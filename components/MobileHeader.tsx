@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check, BarChart3 } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { ThemeToggle } from './ThemeToggle';
+import { Sheet } from './Sheet';
 import { WorkspaceSwitcher, type WorkspaceOption } from './WorkspaceSwitcher';
 import { createClient } from '@/lib/supabase/client';
 import { resetAnalytics } from '@/lib/analytics';
@@ -29,6 +30,12 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
   const { t, locale } = useT();
   const [menuOpen, setMenuOpen] = useState(false);
   const initial = userEmail.charAt(0).toUpperCase();
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  const closeMenu = () => setMenuOpen(false);
 
   const onSignOut = async () => {
     resetAnalytics();
@@ -82,88 +89,88 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
         </div>
       </div>
 
-      {menuOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setMenuOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="fixed right-3 top-14 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 min-w-72 overflow-hidden">
-            <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-700">
-              <WorkspaceSwitcher workspaces={workspaces} activeId={activeWorkspaceId} />
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2.5 px-1">
+      <Sheet
+        open={menuOpen}
+        onClose={closeMenu}
+        title={t.menu.open}
+        footer={
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            {t.nav.signOut}
+          </button>
+        }
+      >
+        <div className="space-y-5 -mt-1">
+          <div className="space-y-2">
+            <WorkspaceSwitcher workspaces={workspaces} activeId={activeWorkspaceId} />
+            <div className="px-1">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 {t.menu.connectedAs}
               </p>
-              <p className="text-sm font-medium truncate dark:text-slate-100 px-1">{userEmail}</p>
+              <p className="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{userEmail}</p>
             </div>
+          </div>
 
-            <MenuItem href="/settings" icon={Settings} onClick={() => setMenuOpen(false)}>
+          <nav className="space-y-0.5">
+            <MenuItem href="/settings" icon={Settings} onClick={closeMenu}>
               {t.menu.settings}
             </MenuItem>
-            <MenuItem href="/categories" icon={Tags} onClick={() => setMenuOpen(false)}>
+            <MenuItem href="/categories" icon={Tags} onClick={closeMenu}>
               {t.menu.categories}
             </MenuItem>
-            <MenuItem href="/metrics" icon={BarChart3} onClick={() => setMenuOpen(false)}>
+            <MenuItem href="/metrics" icon={BarChart3} onClick={closeMenu}>
               {t.menu.metrics}
             </MenuItem>
+          </nav>
 
-            <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
-
-            <div className="px-4 pt-2 pb-1">
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold">
-                {t.menu.language}
-              </p>
-            </div>
-            {LANGS.map((l) => {
-              const active = l.value === locale;
-              return (
-                <button
-                  key={l.value}
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    if (l.value !== locale) setLocale(l.value);
-                  }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${
-                    active
-                      ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 font-medium'
-                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
-                      {l.flag}
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold px-1 mb-1.5">
+              {t.menu.language}
+            </p>
+            <div className="space-y-0.5">
+              {LANGS.map((l) => {
+                const active = l.value === locale;
+                return (
+                  <button
+                    key={l.value}
+                    type="button"
+                    onClick={() => {
+                      closeMenu();
+                      if (l.value !== locale) setLocale(l.value);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm transition-colors ${
+                      active
+                        ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 font-medium'
+                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <span className="text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                        {l.flag}
+                      </span>
+                      {l.label}
                     </span>
-                    {l.label}
-                  </span>
-                  {active && <Check className="w-4 h-4 text-sky-500" />}
-                </button>
-              );
-            })}
+                    {active && <Check className="w-4 h-4 text-sky-500" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
-
-            <MenuItem href="/legal/privacy" icon={Shield} onClick={() => setMenuOpen(false)}>
+          <nav className="space-y-0.5 pt-1 border-t border-slate-100 dark:border-slate-700/50">
+            <MenuItem href="/legal/privacy" icon={Shield} onClick={closeMenu}>
               {t.menu.privacy}
             </MenuItem>
-            <MenuItem href="/legal/terms" icon={FileText} onClick={() => setMenuOpen(false)}>
+            <MenuItem href="/legal/terms" icon={FileText} onClick={closeMenu}>
               {t.menu.terms}
             </MenuItem>
-
-            <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
-
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20"
-            >
-              <LogOut className="w-4 h-4" />
-              {t.nav.signOut}
-            </button>
-          </div>
-        </>
-      )}
+          </nav>
+        </div>
+      </Sheet>
     </header>
   );
 };
@@ -179,7 +186,7 @@ const MenuItem = ({ href, icon: Icon, onClick, children }: MenuItemProps) => (
   <Link
     href={href as never}
     onClick={onClick}
-    className="flex items-center gap-3 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 active:bg-slate-100 dark:active:bg-slate-700"
   >
     <Icon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
     {children}
