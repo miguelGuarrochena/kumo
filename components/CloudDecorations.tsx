@@ -1,8 +1,3 @@
-'use client';
-
-import { useTheme } from '@/lib/theme';
-import { useEffect, useState } from 'react';
-
 type CloudProps = {
   className?: string;
   opacity?: number;
@@ -108,12 +103,14 @@ const StarrySky = () => (
   </div>
 );
 
-export const CloudDecorations = () => {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
-  return resolvedTheme === 'dark' ? <StarrySky /> : <FluffyClouds />;
-};
+/** Fondo decorativo: CSS puro (dark:) para cambiar al instante con el tema, sin esperar React. */
+export const CloudDecorations = () => (
+  <>
+    <div className="dark:hidden">
+      <FluffyClouds />
+    </div>
+    <div className="hidden dark:block">
+      <StarrySky />
+    </div>
+  </>
+);

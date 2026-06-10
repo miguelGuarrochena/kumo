@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Toaster } from 'sonner';
+import { ThemeToaster } from '@/components/ThemeToaster';
 import { CookieBanner } from '@/components/CookieBanner';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { Analytics } from '@vercel/analytics/next';
@@ -117,23 +117,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
               <ServiceWorkerRegister />
               {children}
               <CookieBanner />
-              <Toaster
-                position="top-right"
-                mobileOffset={{ top: 16, right: 16, left: 16 }}
-                offset={{ top: 24, right: 24 }}
-                richColors
-                closeButton
-                theme="system"
-                visibleToasts={3}
-                duration={4000}
-                toastOptions={{
-                  classNames: {
-                    toast: 'kumo-toast',
-                    title: 'kumo-toast-title',
-                    description: 'kumo-toast-desc',
-                  },
-                }}
-              />
+              <ThemeToaster />
             </I18nProvider>
           </ThemeProvider>
         </PostHogProvider>

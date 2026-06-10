@@ -34,9 +34,16 @@ const readSystem = (): 'light' | 'dark' => {
 const applyTheme = (theme: Theme): 'light' | 'dark' => {
   const resolved = theme === 'system' ? readSystem() : theme;
   const html = document.documentElement;
+  html.classList.add('theme-changing');
   if (resolved === 'dark') html.classList.add('dark');
   else html.classList.remove('dark');
   html.style.colorScheme = resolved;
+  // Un frame sin transitions para que todo cambie junto (evita UI “por partes”).
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      html.classList.remove('theme-changing');
+    });
+  });
   return resolved;
 };
 
@@ -62,11 +69,11 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, [theme]);
 
   const setTheme = useCallback((t: Theme) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, t);
+    const resolved = applyTheme(t);
     setThemeState(t);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, t);
-      setResolvedTheme(applyTheme(t));
-    }
+    setResolvedTheme(resolved);
   }, []);
 
   return (
