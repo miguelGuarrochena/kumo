@@ -87,7 +87,13 @@ export async function upsertContact(
     }
   }
 
-  const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
+  const payload = {
+    ...parsed.data,
+    user_id: ctx.userId,
+    workspace_id: ctx.workspaceId,
+    // Contacto con teléfono → visible en Settings y apto para notificaciones.
+    ...(parsed.data.phone ? { is_split_only: false } : {}),
+  };
 
   const { error } = parsed.data.id
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,23 +168,33 @@ export async function createAdHocContact(name: string): Promise<{ ok: boolean; i
     .maybeSingle();
   if (existing) return { ok: true, id: (existing as { id: string }).id };
 
+  const base = {
+    workspace_id: ctx.workspaceId,
+    user_id: ctx.userId,
+    name: trimmed,
+    relationship: 'other' as const,
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: created, error } = await (supabase.from('notification_contacts') as any)
-    .insert({
-      workspace_id: ctx.workspaceId,
-      user_id: ctx.userId,
-      name: trimmed,
-      relationship: 'other',
-      // Marcado como sólo-split: no aparece en Settings > Contactos hasta que
-      // el user lo "promueva" agregándole teléfono manualmente.
-      is_split_only: true,
-    })
+  let result = await (supabase.from('notification_contacts') as any)
+    .insert({ ...base, is_split_only: true })
     .select('id')
     .single();
-  if (error) return { ok: false, error: error.message };
+
+  // DB sin migración 0021: reintentar sin is_split_only.
+  if (result.error && /is_split_only|schema cache/i.test(result.error.message)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    result = await (supabase.from('notification_contacts') as any)
+      .insert(base)
+      .select('id')
+      .single();
+  }
+
+  if (result.error) return { ok: false, error: result.error.message };
   revalidatePath('/settings');
   revalidatePath('/expenses');
-  return { ok: true, id: (created as { id: string }).id };
+  revalidatePath('/split');
+  return { ok: true, id: (result.data as { id: string }).id };
 }
 
 const mpFieldSchema = z.object({

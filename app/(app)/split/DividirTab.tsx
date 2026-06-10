@@ -335,7 +335,7 @@ export const DividirTab = ({
         return;
       }
 
-      const splits: { contactId: string; amount: number }[] = [];
+      const splits: { contactId: string; amount: number; paid?: boolean }[] = [];
       for (const p of parts) {
         const amount = computed[p.id] ?? 0;
         let contactId = p.contactId;
@@ -345,28 +345,29 @@ export const DividirTab = ({
           const created = await createAdHocContact(name);
           if (!created.ok || !created.id) {
             toast.error(created.error ?? t.common.error);
-            continue;
+            return;
           }
           contactId = created.id;
         }
-        splits.push({ contactId, amount });
+        splits.push({ contactId, amount, paid: paidParts.has(p.id) });
       }
 
       if (splits.length > 0) {
-        const selfContact = contacts.find((c) => c.is_self);
-        await saveSplits({
+        const payer = selfContact ?? contacts.find((c) => c.is_self);
+        const splitResult = await saveSplits({
           expenseId: r.expenseId,
           mode: 'fixed',
-          paidByContactId: selfContact?.id ?? null,
+          paidByContactId: payer?.id ?? null,
           splits,
         });
+        if (!splitResult.ok) {
+          toast.error(splitResult.error ?? t.split.split_not_saved_generic);
+          return;
+        }
       }
       toast.success(t.split.expense_saved);
-      setTotal('');
-      setParts([]);
-      setPaidParts(new Set());
-      setValues({});
-      setItems([]);
+      router.refresh();
+      reset();
     } finally {
       setSaving(false);
     }

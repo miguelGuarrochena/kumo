@@ -8,6 +8,7 @@ export type SplitInput = {
   contactId: string;
   amount?: number;
   percentage?: number;
+  paid?: boolean;
 };
 
 type Result = { ok: boolean; error?: string };
@@ -84,7 +85,7 @@ export const saveSplits = async (params: {
       contact_id: s.contactId,
       amount: s.amount ?? null,
       percentage: s.percentage ?? null,
-      paid: paidByContact.get(s.contactId) ?? false,
+      paid: paidByContact.get(s.contactId) ?? s.paid ?? false,
     }));
   }
 
@@ -95,6 +96,7 @@ export const saveSplits = async (params: {
   }
 
   revalidatePath('/expenses');
+  revalidatePath('/split');
   return { ok: true };
 };
 
