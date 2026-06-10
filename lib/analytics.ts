@@ -11,8 +11,10 @@ export type AnalyticsEvent =
   | { name: 'photo_ocr_used'; props?: { success?: boolean } }
   | { name: 'theme_changed'; props: { theme: 'light' | 'dark' | 'system' } }
   | { name: 'currency_changed'; props: { from: string; to: string } }
-  | { name: 'onboarding_step_completed'; props: { step: 1 | 2 | 3 } }
+  | { name: 'onboarding_step_completed'; props: { step: 1 | 2 | 3 | 4 } }
   | { name: 'onboarding_skipped' }
+  | { name: 'calendar_feed_subscribe' }
+  | { name: 'calendar_feed_share' }
   | { name: 'shopping_item_added' }
   | { name: 'whatsapp_configured' }
   | { name: 'pwa_install_dismissed' }

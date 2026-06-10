@@ -11,6 +11,9 @@ const GRAPH_VERSION = 'v21.0';
 
 type TemplateParam = { type: 'text'; text: string };
 
+export const isWhatsAppConfigured = (): boolean =>
+  Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN);
+
 function buildExpenseParams(message: NotificationMessage): TemplateParam[] {
   const descripcion = message.body.match(/^(.+?) vence/)?.[1] ?? message.title;
   const fecha       = message.body.match(/vence el (.+?)\./)?.[1] ?? '';
@@ -23,8 +26,6 @@ function buildExpenseParams(message: NotificationMessage): TemplateParam[] {
 }
 
 function buildReminderParams(message: NotificationMessage): TemplateParam[] {
-  // title: "Turno médico · <título> · Kumo"
-  // body:  "Es mañana (2025-06-09)" o con greeting "Hola Juan, te aviso..."
   const titleMatch = message.title.match(/^(.+?) · (.+?) · Kumo$/);
   const tipo   = titleMatch?.[1] ?? 'Recordatorio';
   const titulo = titleMatch?.[2] ?? message.title;
@@ -54,7 +55,6 @@ export class WhatsAppCloudAdapter implements NotificationAdapter {
   }
 
   async send(message: NotificationMessage): Promise<NotificationResult> {
-    // Limpia el número: saca espacios, +, etc. Meta espera formato E.164 sin "+"
     const to   = message.to.replace(/\D/g, '');
     const url  = `https://graph.facebook.com/${GRAPH_VERSION}/${this.phoneId}/messages`;
     const lang = message.lang ?? 'es';
@@ -103,10 +103,22 @@ export class WhatsAppCloudAdapter implements NotificationAdapter {
   }
 }
 
-// Singleton lazy
 let _adapter: WhatsAppCloudAdapter | null = null;
 
-export function getWhatsAppAdapter(): WhatsAppCloudAdapter {
+/** Devuelve el adapter solo si las credenciales de Meta están configuradas. */
+export function tryGetWhatsAppAdapter(): WhatsAppCloudAdapter | null {
+  if (!isWhatsAppConfigured()) return null;
   if (!_adapter) _adapter = new WhatsAppCloudAdapter();
   return _adapter;
+}
+
+/** @deprecated Usar tryGetWhatsAppAdapter — lanza si no hay credenciales. */
+export function getWhatsAppAdapter(): WhatsAppCloudAdapter {
+  const wa = tryGetWhatsAppAdapter();
+  if (!wa) {
+    throw new Error(
+      'WhatsApp env vars no configuradas. Setea WHATSAPP_PHONE_NUMBER_ID y WHATSAPP_ACCESS_TOKEN.',
+    );
+  }
+  return wa;
 }

@@ -8,6 +8,8 @@ import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
 import { isAdmin } from '@/lib/admin';
+import { buildCalendarFeedUrl } from '@/lib/calendar/feedToken';
+import { CalendarFeedSection } from './CalendarFeedSection';
 
 const SettingsPage = async () => {
   const supabase = await createClient();
@@ -113,6 +115,8 @@ const SettingsPage = async () => {
       />
 
       <ContactsSection contacts={contacts ?? []} />
+
+      <CalendarFeedSection feedUrl={buildCalendarFeedUrl(user!.id, origin)} />
 
       <SettingsClient
         initialSettings={settings}

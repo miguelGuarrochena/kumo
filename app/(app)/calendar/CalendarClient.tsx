@@ -24,6 +24,7 @@ import { YearView } from './YearView';
 import { AgendaList } from './AgendaList';
 import { DayDetailSheet } from './DayDetailSheet';
 import { FullReminderSheet } from './FullReminderSheet';
+import { CalendarFeedBanner } from '@/components/CalendarFeedBanner';
 
 export type { WorkspaceLite } from './types';
 
@@ -41,6 +42,7 @@ type Props = {
   country?: Country;
   workspaces: WorkspaceLite[];
   activeWorkspaceId: string;
+  feedUrl: string;
 };
 
 type WithWorkspace<T> = T & { workspace_id: string };
@@ -57,6 +59,7 @@ export const CalendarClient = ({
   country = 'AR',
   workspaces,
   activeWorkspaceId,
+  feedUrl,
 }: Props) => {
   const router = useRouter();
   const { t } = useT();
@@ -180,6 +183,8 @@ export const CalendarClient = ({
           <span className="hidden sm:inline">{t.calendar.new}</span>
         </button>
       </header>
+
+      <CalendarFeedBanner feedUrl={feedUrl} />
 
       {workspaces.length > 1 && (
         <div className="kumo-card p-3 flex flex-wrap items-center gap-2">

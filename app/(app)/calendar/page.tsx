@@ -1,8 +1,10 @@
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { CalendarClient } from './CalendarClient';
 import { type Currency } from '@/lib/currency';
 import { countryFromTimezone } from '@/lib/holidays';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import { buildCalendarFeedUrl } from '@/lib/calendar/feedToken';
 
 type SearchParams = {
   month?: string;
@@ -120,8 +122,15 @@ const CalendarPage = async ({
 
   const initialView = params.view ?? 'month';
 
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'kumo-app.com';
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+  const origin = `${proto}://${host}`;
+  const feedUrl = buildCalendarFeedUrl(userId, origin);
+
   return (
     <CalendarClient
+      feedUrl={feedUrl}
       year={year}
       month={month}
       startDate={startDate}

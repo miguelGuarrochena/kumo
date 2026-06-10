@@ -4,7 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getWhatsAppAdapter } from '@/lib/notifications/whatsapp';
+import { tryGetWhatsAppAdapter } from '@/lib/notifications/whatsapp';
 import { sendPush, type PushSubscriptionRow } from '@/lib/push/server';
 import { todayKey, toIsoLocal, daysBetween, dayKey } from '@/lib/date';
 import type { Database } from '@/lib/supabase/database.types';
@@ -101,7 +101,8 @@ export async function POST(request: Request) {
     contacts.filter((c) => c.is_self).map((c) => [selfKey(c.user_id, c.workspace_id), c]),
   );
 
-  const wa = getWhatsAppAdapter();
+  const wa = tryGetWhatsAppAdapter();
+  let waSkipped = 0;
 
   function resolveRecipients(userId: string, workspaceId: string, contactIds: string[]): { id: string; name: string; phone: string }[] {
     let pool: Contact[] = [];
@@ -149,14 +150,18 @@ export async function POST(request: Request) {
     await pushToUser(exp.user_id, { title, body, url: '/expenses', tag: `exp-${exp.id}` });
 
     const recipients = resolveRecipients(exp.user_id, exp.workspace_id, exp.notify_contact_ids ?? []);
-    for (const r of recipients) {
-      const result = await wa.send({
-        to: r.phone,
-        title,
-        body: `${exp.description ?? 'Gasto'} vence el ${exp.due_date}.\nMonto: ${exp.amount} ${exp.currency}`,
-        ref: { type: 'expense', id: exp.id },
-      });
-      result.ok ? sent++ : failed++;
+    if (!wa) {
+      waSkipped += recipients.length;
+    } else {
+      for (const r of recipients) {
+        const result = await wa.send({
+          to: r.phone,
+          title,
+          body: `${exp.description ?? 'Gasto'} vence el ${exp.due_date}.\nMonto: ${exp.amount} ${exp.currency}`,
+          ref: { type: 'expense', id: exp.id },
+        });
+        result.ok ? sent++ : failed++;
+      }
     }
   }
 
@@ -204,22 +209,26 @@ export async function POST(request: Request) {
       'Recordatorio';
 
     let anyOk = false;
-    for (const r of recipients) {
-      const selfPhone = selfContactByUser.get(selfKey(rem.user_id, rem.workspace_id))?.phone;
-      const isOwner = r.phone === selfPhone;
-      const greeting = isOwner ? '' : `Hola ${r.name}, te aviso de parte de Kumo: `;
+    if (!wa) {
+      waSkipped += recipients.length;
+    } else {
+      for (const r of recipients) {
+        const selfPhone = selfContactByUser.get(selfKey(rem.user_id, rem.workspace_id))?.phone;
+        const isOwner = r.phone === selfPhone;
+        const greeting = isOwner ? '' : `Hola ${r.name}, te aviso de parte de Kumo: `;
 
-      const result = await wa.send({
-        to: r.phone,
-        title: `${prefix} · ${rem.title} · Kumo`,
-        body: `${greeting}Es ${diffDays === 0 ? 'hoy' : diffDays === 1 ? 'mañana' : `en ${diffDays} días`} (${rem.reminder_date})`,
-        ref: { type: 'reminder', id: rem.id },
-      });
-      if (result.ok) {
-        anyOk = true;
-        sent++;
-      } else {
-        failed++;
+        const result = await wa.send({
+          to: r.phone,
+          title: `${prefix} · ${rem.title} · Kumo`,
+          body: `${greeting}Es ${diffDays === 0 ? 'hoy' : diffDays === 1 ? 'mañana' : `en ${diffDays} días`} (${rem.reminder_date})`,
+          ref: { type: 'reminder', id: rem.id },
+        });
+        if (result.ok) {
+          anyOk = true;
+          sent++;
+        } else {
+          failed++;
+        }
       }
     }
 
@@ -235,5 +244,12 @@ export async function POST(request: Request) {
     await supabase.from('push_subscriptions').delete().in('id', stalePushIds);
   }
 
-  return NextResponse.json({ sent, failed, skipped, stalePush: stalePushIds.length });
+  return NextResponse.json({
+    sent,
+    failed,
+    skipped,
+    waSkipped,
+    whatsapp: wa ? 'active' : 'disabled',
+    stalePush: stalePushIds.length,
+  });
 }

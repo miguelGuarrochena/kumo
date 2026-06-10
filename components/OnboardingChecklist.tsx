@@ -1,12 +1,13 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, Check, ArrowRight, X } from 'lucide-react';
 import { skipOnboarding } from '@/app/(app)/dashboard/onboardingActions';
 import { track } from '@/lib/analytics';
 import { useT } from '@/lib/i18n/client';
+import { isCalendarFeedDone } from '@/lib/calendar/feedUrls';
 
 type Step = {
   done: boolean;
@@ -26,6 +27,14 @@ export const OnboardingChecklist = ({ hasExpense, hasContact, hasReminder }: Pro
   const router = useRouter();
   const { t } = useT();
   const [pending, startTransition] = useTransition();
+  const [calendarFeedDone, setCalendarFeedDone] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setCalendarFeedDone(isCalendarFeedDone());
+    sync();
+    window.addEventListener('focus', sync);
+    return () => window.removeEventListener('focus', sync);
+  }, []);
 
   const steps: Step[] = [
     {
@@ -48,6 +57,13 @@ export const OnboardingChecklist = ({ hasExpense, hasContact, hasReminder }: Pro
       description: t.onboarding.step3_desc,
       cta: t.onboarding.step3_cta,
       href: '/calendar?view=upcoming',
+    },
+    {
+      done: calendarFeedDone,
+      title: t.onboarding.step4_title,
+      description: t.onboarding.step4_desc,
+      cta: t.onboarding.step4_cta,
+      href: '/settings#google-calendar',
     },
   ];
 
