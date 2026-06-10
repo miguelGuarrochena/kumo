@@ -92,3 +92,25 @@ export const copyPaymentDetails = async (
 
 export const hasPaymentAssist = (info: PaymentAssistInfo): boolean =>
   info.amount > 0 && !!(info.mpAlias?.trim() || info.mpPaymentLink?.trim());
+
+/** Abre WhatsApp con monto y alias del acreedor (chat directo si hay teléfono). */
+export const openPaymentWhatsApp = (
+  info: PaymentAssistInfo,
+  t: Messages,
+  phone?: string | null,
+): void => {
+  if (typeof window === 'undefined') return;
+  const amountStr = formatMoney(info.amount, info.currency as Currency, info.locale ?? 'es');
+  const intro = t.split.pay_wa_intro
+    .replace('{name}', info.creditorName)
+    .replace('{amount}', amountStr);
+  const lines = [intro];
+  if (info.concept?.trim()) lines.push(info.concept.trim());
+  const text = buildPaymentWhatsAppText(info, lines, t);
+  const encoded = encodeURIComponent(text);
+  const digits = phone?.replace(/\D/g, '');
+  const url = digits
+    ? `https://wa.me/${digits}?text=${encoded}`
+    : `https://wa.me/?text=${encoded}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+};

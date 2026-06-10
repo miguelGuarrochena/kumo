@@ -3,8 +3,9 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Camera, Copy, MessageCircle, Plus, RotateCcw, Save, X, Loader2, Wallet } from 'lucide-react';
-import { PaymentQuickSheet } from '@/components/PaymentQuickSheet';
+import { Camera, Copy, MessageCircle, Plus, RotateCcw, Save, X, Loader2 } from 'lucide-react';
+import { MercadoPagoLogo } from '@/components/MercadoPagoLogo';
+import { OpenMercadoPagoButton } from '@/components/OpenMercadoPagoButton';
 import { upsertExpense } from '../expenses/actions';
 import { saveSplits } from '../expenses/splitsActions';
 import { createAdHocContact } from '../settings/contactsActions';
@@ -18,8 +19,11 @@ import { formatMoney, trimNumber, newId } from './dividirUtils';
 import { CurrencyPicker } from './CurrencyPicker';
 import { ItemsEditor } from './ItemsEditor';
 import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
-import { PaymentAssistPanel } from '@/components/PaymentAssistPanel';
-import { buildPaymentWhatsAppText } from '@/lib/paymentAssist';
+import {
+  buildPaymentWhatsAppText,
+  copyPaymentDetails,
+  openPaymentWhatsApp,
+} from '@/lib/paymentAssist';
 
 type Props = {
   contacts: ContactLite[];
@@ -55,7 +59,6 @@ export const DividirTab = ({
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
   const [creatingContact, setCreatingContact] = useState(false);
   const [paidParts, setPaidParts] = useState<Set<string>>(() => new Set());
-  const [personPay, setPersonPay] = useState<{ name: string; amount: number } | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const togglePartPaid = (id: string) => {
@@ -277,18 +280,39 @@ export const DividirTab = ({
     }, 0);
   }, [parts, paidParts, computed, selfContact]);
 
-  const onCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(buildShareText());
-      toast.success(t.split.copied);
-    } catch {
-      toast.error(t.split.copy_failed);
-    }
+  const selfPaymentInfo = (amount: number) =>
+    selfContact
+      ? {
+          creditorName: selfContact.name,
+          mpAlias: selfContact.mp_alias,
+          mpPaymentLink: selfContact.mp_payment_link,
+          amount,
+          currency,
+          concept: t.split.default_description,
+          locale,
+        }
+      : null;
+
+  const onCopyPerson = async (p: Participant) => {
+    const amount = computed[p.id] ?? 0;
+    const info = selfPaymentInfo(amount);
+    if (!info) return;
+    const ok = await copyPaymentDetails(info, t);
+    if (ok) toast.success(t.split.pay_copied);
+    else toast.error(t.split.copy_failed);
   };
 
-  const onShareWhatsApp = () => {
+  const onSharePerson = (p: Participant) => {
+    const amount = computed[p.id] ?? 0;
+    const info = selfPaymentInfo(amount);
+    if (!info) return;
+    const contact = contacts.find((c) => c.id === p.contactId);
+    openPaymentWhatsApp(info, t, contact?.phone);
+  };
+
+  const onShareAll = () => {
     const text = encodeURIComponent(buildShareText());
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
   };
 
   const reset = () => {
@@ -309,6 +333,13 @@ export const DividirTab = ({
     (s, p) => s + (paidParts.has(p.id) ? (computed[p.id] ?? 0) : 0),
     0,
   );
+
+  const pendingCollectors = parts.filter((p) => {
+    if (paidParts.has(p.id)) return false;
+    if (selfContact && p.contactId === selfContact.id) return false;
+    return (computed[p.id] ?? 0) > 0;
+  });
+  const showSendToAll = mode === 'equal' && pendingCollectors.length >= 2;
 
   const [saving, setSaving] = useState(false);
   const onSaveAsExpense = async () => {
@@ -662,37 +693,51 @@ export const DividirTab = ({
             const amount = computed[p.id] ?? 0;
             const paid = paidParts.has(p.id);
             const isSelf = selfContact && p.contactId === selfContact.id;
-            const canCollect = !paid && !isSelf && selfContact && amount > 0;
+            const canRequest = !paid && !isSelf && selfContact && amount > 0;
             return (
-              <div key={p.id} className="flex items-center gap-2 text-sm py-0.5">
-                <span className="truncate flex-1 min-w-0">
-                  {p.name}{isSelf ? ` ${t.split.who_paid_self_suffix}` : ''}
-                </span>
-                <span className="font-semibold tabular-nums shrink-0">
-                  {formatMoney(amount, currency, locale)}
-                </span>
-                {canCollect && (
+              <div
+                key={p.id}
+                className="py-2 border-b border-slate-100 dark:border-slate-700/50 last:border-0 space-y-1.5"
+              >
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="truncate flex-1 min-w-0 font-medium">
+                    {p.name}{isSelf ? ` ${t.split.who_paid_self_suffix}` : ''}
+                  </span>
+                  <span className="font-semibold tabular-nums shrink-0">
+                    {formatMoney(amount, currency, locale)}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setPersonPay({ name: p.name, amount })}
-                    className="shrink-0 p-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10"
-                    title={t.split.pay_person_btn}
-                    aria-label={t.split.pay_person_btn}
+                    onClick={() => togglePartPaid(p.id)}
+                    className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                      paid
+                        ? 'bg-mint-100 text-mint-700 dark:bg-mint-500/20 dark:text-mint-300'
+                        : 'bg-peach-100 text-peach-600 dark:bg-peach-500/20 dark:text-peach-300'
+                    }`}
                   >
-                    <Wallet className="w-3.5 h-3.5" />
+                    {paid ? t.split.collected : t.split.pending}
                   </button>
+                </div>
+                {canRequest && (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSharePerson(p)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-mint-200 dark:border-mint-500/30 text-mint-700 dark:text-mint-300 text-[11px] font-medium hover:bg-mint-50 dark:hover:bg-mint-500/10"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                      {t.split.whatsapp}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onCopyPerson(p)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px] font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      <Copy className="w-3.5 h-3.5 shrink-0" />
+                      {t.split.pay_copy_btn}
+                    </button>
+                  </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => togglePartPaid(p.id)}
-                  className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                    paid
-                      ? 'bg-mint-100 text-mint-700 dark:bg-mint-500/20 dark:text-mint-300'
-                      : 'bg-peach-100 text-peach-600 dark:bg-peach-500/20 dark:text-peach-300'
-                  }`}
-                >
-                  {paid ? t.split.collected : t.split.pending}
-                </button>
               </div>
             );
           })}
@@ -708,36 +753,41 @@ export const DividirTab = ({
                 .replace('{amount}', formatMoney(paidSum, currency, locale))}
             </p>
           )}
-
           {selfContact && pendingToCollect > 0 && (
-            <PaymentAssistPanel
-              creditorName={selfContact.name}
-              mpAlias={selfContact.mp_alias}
-              mpPaymentLink={selfContact.mp_payment_link}
-              amount={pendingToCollect}
-              currency={currency}
-              concept={t.split.default_description}
-              compact
-            />
+            <p className="text-xs font-semibold text-peach-600 dark:text-peach-400 tabular-nums">
+              {t.split.remaining_to_collect.replace(
+                '{amount}',
+                formatMoney(pendingToCollect, currency, locale),
+              )}
+            </p>
           )}
-
-          <div className="grid grid-cols-2 gap-2 pt-2">
+          {showSendToAll && (
             <button
               type="button"
-              onClick={onCopy}
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              {t.split.copy}
-            </button>
-            <button
-              type="button"
-              onClick={onShareWhatsApp}
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-mint-200 dark:border-mint-500/30 text-mint-700 dark:text-mint-300 text-xs font-medium hover:bg-mint-50 dark:hover:bg-mint-500/10"
+              onClick={onShareAll}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-mint-200 dark:border-mint-500/30 bg-mint-50/50 dark:bg-mint-500/5 text-mint-700 dark:text-mint-300 text-xs font-medium hover:bg-mint-50 dark:hover:bg-mint-500/10"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              {t.split.whatsapp}
+              {t.split.send_to_all}
             </button>
+          )}
+          {!selfContact?.mp_alias?.trim() && pendingCollectors.length > 0 && (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              {t.split.pay_no_alias_hint}
+            </p>
+          )}
+
+          <div className="rounded-xl border border-sky-200/80 dark:border-sky-500/25 bg-sky-50/40 dark:bg-sky-500/5 p-3 space-y-2.5">
+            <div className="space-y-1">
+              <MercadoPagoLogo variant="full" className="w-7 h-7" />
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                {t.split.open_mp_section_hint}
+              </p>
+            </div>
+            <OpenMercadoPagoButton compact fullWidth />
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 pt-1">
             <button
               type="button"
               onClick={onSaveAsExpense}
@@ -759,21 +809,6 @@ export const DividirTab = ({
           </div>
         </div>
       )}
-      <PaymentQuickSheet
-        open={!!personPay && !!selfContact}
-        onClose={() => setPersonPay(null)}
-        creditor={selfContact ? {
-          id: selfContact.id,
-          name: selfContact.name,
-          mp_alias: selfContact.mp_alias,
-          mp_payment_link: selfContact.mp_payment_link,
-          phone: selfContact.phone,
-        } : null}
-        amount={personPay?.amount ?? 0}
-        currency={currency}
-        concept={t.split.default_description}
-        debtorName={personPay?.name}
-      />
     </div>
   );
 };

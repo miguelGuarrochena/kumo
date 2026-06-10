@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Copy, ExternalLink, Link2, MessageCircle, QrCode } from 'lucide-react';
+import { Copy, Link2, MessageCircle, QrCode } from 'lucide-react';
+import { OpenMercadoPagoButton } from '@/components/OpenMercadoPagoButton';
 import QRCode from 'qrcode';
 import { useT } from '@/lib/i18n/client';
 import { formatMoney, type Currency } from '@/lib/currency';
@@ -10,7 +11,6 @@ import {
   buildPaymentQrPayload,
   copyPaymentDetails,
   hasPaymentAssist,
-  openMercadoPago,
   openPaymentLink,
   type PaymentAssistInfo,
 } from '@/lib/paymentAssist';
@@ -125,14 +125,7 @@ export const PaymentAssistPanel = ({
           <Copy className="w-3.5 h-3.5 shrink-0" />
           {t.split.pay_copy_btn}
         </button>
-        <button
-          type="button"
-          onClick={openMercadoPago}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg kumo-gradient text-white text-xs font-medium hover:opacity-90"
-        >
-          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-          {t.split.pay_open_mp}
-        </button>
+        <OpenMercadoPagoButton compact className="w-full" />
         <button
           type="button"
           onClick={onWhatsApp}
