@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Home, Wallet, ShoppingCart, CalendarDays, Scale,
+  Home, Wallet, ShoppingCart, CalendarDays, Calculator,
 } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 
@@ -16,7 +16,7 @@ export const MobileNav = () => {
     { href: '/expenses',  label: t.mobileNav.expenses, icon: Wallet },
     { href: '/calendar',  label: t.mobileNav.calendar, icon: CalendarDays },
     { href: '/shopping',  label: t.mobileNav.shopping, icon: ShoppingCart },
-    { href: '/dividir',   label: t.mobileNav.split,    icon: Scale },
+    { href: '/split',     label: t.mobileNav.split,    icon: Calculator },
   ] as const;
 
   return (

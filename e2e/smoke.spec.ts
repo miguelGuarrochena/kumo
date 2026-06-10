@@ -37,7 +37,7 @@ test.describe('Public routes', () => {
 });
 
 test.describe('Protected routes (sin auth, deben redirigir)', () => {
-  for (const path of ['/dashboard', '/expenses', '/calendar', '/shopping', '/dividir', '/metrics', '/categories', '/settings']) {
+  for (const path of ['/dashboard', '/expenses', '/calendar', '/shopping', '/split', '/metrics', '/categories', '/settings']) {
     test(`${path} redirige a /auth/login`, async ({ page }) => {
       await page.goto(path);
       await page.waitForURL(/\/auth\/login/, { timeout: 10_000 });

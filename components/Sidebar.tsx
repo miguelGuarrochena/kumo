@@ -9,7 +9,7 @@ import {
   ShoppingCart,
   CalendarDays,
   BarChart3,
-  Scale,
+  Calculator,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -37,7 +37,7 @@ export const Sidebar = ({ userEmail, workspaces, activeWorkspaceId }: Props) => 
     { href: '/metrics',    label: t.nav.metrics,      icon: BarChart3 },
     { href: '/calendar',   label: t.nav.calendar,     icon: CalendarDays },
     { href: '/shopping',   label: t.nav.shopping,     icon: ShoppingCart },
-    { href: '/dividir',    label: t.nav.split,        icon: Scale },
+    { href: '/split',      label: t.nav.split,        icon: Calculator },
     { href: '/categories', label: t.nav.categories,   icon: Tags },
     { href: '/settings',   label: t.nav.settings,     icon: Settings },
   ] as const;

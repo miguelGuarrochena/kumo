@@ -4,7 +4,7 @@ import { getRates, convertAmount, type Currency } from '@/lib/currency';
 import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
 import { getCurrentWorkspace } from '@/lib/workspace';
-import type { BalanceRow, PaymentRow } from '../dividir/types';
+import type { BalanceRow, PaymentRow } from '../split/types';
 
 export type ExpensesView = 'month' | 'all' | 'archive';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Pencil, Trash2, Check } from 'lucide-react';
+import { Check, Pencil, Trash2 } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 import { formatMoney, type Currency } from '@/lib/currency';
 import type { Expense, ExpenseWithSplits } from './types';
@@ -33,10 +33,11 @@ export const ExpenseRow = ({
   const isPending = expense.due_date && !expense.paid;
   const isDifferentCurrency = expense.currency !== displayCurrency;
   const splits = (expense as ExpenseWithSplits)._splits ?? [];
+  const pendingSplits = splits.filter((s) => !s.paid).length;
 
   return (
-    <div className="p-3.5 flex items-center gap-3 group active:bg-slate-50/80">
-      <div className={`w-2.5 h-2.5 rounded-full ${dotColor} flex-shrink-0`} />
+    <div className="p-3.5 flex items-start gap-3 group active:bg-slate-50/80 dark:active:bg-slate-800/50">
+      <div className={`w-2.5 h-2.5 rounded-full ${dotColor} flex-shrink-0 mt-1.5`} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           <p className="font-medium text-sm truncate">
@@ -57,14 +58,12 @@ export const ExpenseRow = ({
             </span>
           )}
           {splits.length > 0 && (
-            <button
-              type="button"
-              onClick={onEdit}
-              className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 font-medium hover:bg-sky-200 dark:hover:bg-sky-500/30 cursor-pointer"
-              title={t.expenses.edit_split}
-            >
-              {t.expenses.divided} · {splits.filter((s) => !s.paid).length}/{splits.length} {t.expenses.split_pending_short}
-            </button>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 font-medium">
+              {t.expenses.divided}
+              {pendingSplits > 0 && (
+                <span className="opacity-80"> · {pendingSplits} {t.expenses.split_pending_short}</span>
+              )}
+            </span>
           )}
         </div>
         <p className="text-xs text-slate-500 mt-0.5 truncate">
@@ -72,7 +71,7 @@ export const ExpenseRow = ({
           {expense.due_date && ` · ${t.expenses.due_short} ${formatDate(expense.due_date, locale)}`}
         </p>
         {splits.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="mt-2 flex flex-wrap gap-1">
             {splits.map((s, i) => {
               const total = Number(expense.amount);
               const portion = s.amount !== null
@@ -86,27 +85,34 @@ export const ExpenseRow = ({
                   type="button"
                   onClick={() => onToggleSplitPaid?.(s.contact_id, !s.paid)}
                   disabled={!onToggleSplitPaid}
-                  className={`text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors ${
-                    s.paid
-                      ? 'bg-mint-100 text-mint-700 dark:bg-mint-500/20 dark:text-mint-300'
-                      : 'bg-peach-100 text-peach-600 dark:bg-peach-500/20 dark:text-peach-300'
-                  } ${onToggleSplitPaid ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`}
                   title={s.paid ? t.expenses.split_mark_pending : t.expenses.split_mark_paid}
+                  className={`inline-flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+                    s.paid
+                      ? 'bg-mint-50 text-mint-700 border border-mint-200 dark:bg-mint-500/15 dark:text-mint-300 dark:border-mint-500/30'
+                      : 'bg-peach-50 text-peach-700 border border-peach-200 dark:bg-peach-500/15 dark:text-peach-300 dark:border-peach-500/30'
+                  } ${onToggleSplitPaid ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`}
                 >
-                  {s.contact_name}
+                  <span className="truncate max-w-[5.5rem] sm:max-w-none">{s.contact_name}</span>
                   {portion !== null && (
-                    <span className="opacity-80"> · {formatMoney(portion, expense.currency as Currency, locale)}</span>
+                    <span className="tabular-nums opacity-90 shrink-0">
+                      {formatMoney(portion, expense.currency as Currency, locale)}
+                    </span>
                   )}
-                  <span className="opacity-70"> · {s.paid ? t.expenses.split_paid : t.expenses.split_pending}</span>
+                  <span
+                    className={`w-4 h-4 rounded-full grid place-items-center shrink-0 ${
+                      s.paid ? 'bg-mint-500 text-white' : 'bg-peach-300/80 text-white dark:bg-peach-500'
+                    }`}
+                  >
+                    {s.paid ? <Check className="w-2.5 h-2.5" strokeWidth={3} /> : null}
+                  </span>
                 </button>
               );
             })}
           </div>
         )}
       </div>
-      <div className="text-right shrink-0">
+      <div className="text-right shrink-0 pt-0.5">
         {isDifferentCurrency && convertedAmount === null ? (
-          // No hay tasa para convertir: mostramos el monto original sin inventar 0.
           <p className="font-semibold text-sm whitespace-nowrap">
             {formatMoney(Number(expense.amount), expense.currency as Currency, locale)}
           </p>

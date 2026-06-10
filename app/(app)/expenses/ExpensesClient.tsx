@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import { deleteExpense, togglePaid } from './actions';
 import { toggleSplitPaid } from './splitsActions';
-import { SaldosTab } from '../dividir/SaldosTab';
-import type { BalanceRow, PaymentRow } from '../dividir/types';
+import { SaldosTab } from '../split/SaldosTab';
+import type { BalanceRow, PaymentRow } from '../split/types';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Select } from '@/components/Select';
 import { FiltersSheet, type Filters } from './FiltersSheet';
@@ -266,64 +266,71 @@ export const ExpensesClient = ({
         )}
       </header>
 
-      <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 w-full sm:w-auto sm:inline-grid sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => switchSection('gastos')}
-          className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            section === 'gastos'
-              ? 'bg-white dark:bg-slate-700 shadow-sm'
-              : 'text-slate-500 dark:text-slate-400'
-          }`}
-        >
-          <Wallet className="w-4 h-4" />
-          {t.expenses.tab_expenses}
-        </button>
-        <button
-          type="button"
-          onClick={() => switchSection('saldos')}
-          className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            section === 'saldos'
-              ? 'bg-white dark:bg-slate-700 shadow-sm'
-              : 'text-slate-500 dark:text-slate-400'
-          }`}
-        >
-          <Scale className="w-4 h-4" />
-          {t.expenses.tab_balances}
-        </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 w-full sm:w-auto sm:min-w-[14rem]">
+          <button
+            type="button"
+            onClick={() => switchSection('gastos')}
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              section === 'gastos'
+                ? 'bg-white dark:bg-slate-700 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Wallet className="w-4 h-4" />
+            {t.expenses.tab_expenses}
+          </button>
+          <button
+            type="button"
+            onClick={() => switchSection('saldos')}
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              section === 'saldos'
+                ? 'bg-white dark:bg-slate-700 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Scale className="w-4 h-4" />
+            {t.expenses.tab_balances}
+          </button>
+        </div>
+
+        {section === 'gastos' && (
+          <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto sm:ml-auto">
+            <button
+              type="button"
+              onClick={() => switchView('month')}
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                view === 'month' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {t.expenses.view_month}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchView('all')}
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                view === 'all' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {t.expenses.view_all}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchView('archive')}
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                view === 'archive' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {t.expenses.view_archive}
+            </button>
+          </div>
+        )}
       </div>
 
       {section === 'saldos' ? (
         <SaldosTab balances={balances} contacts={contacts} payments={payments} />
       ) : (
       <>
-      {/* --- Toggle de vista --- */}
-      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto sm:inline-flex">
-        <button
-          onClick={() => switchView('month')}
-          className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            view === 'month' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
-          }`}
-        >
-          {t.expenses.view_month}
-        </button>
-        <button
-          onClick={() => switchView('all')}
-          className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            view === 'all' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
-          }`}
-        >
-          {t.expenses.view_all}
-        </button>
-        <button
-          onClick={() => switchView('archive')}
-          className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            view === 'archive' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
-          }`}
-        >
-          {t.expenses.view_archive}
-        </button>
-      </div>
 
       {view === 'archive' ? (
         <ArchiveView

@@ -218,7 +218,7 @@ export const Select = ({
             left: pos.left,
             width: renderTrigger ? undefined : pos.width,
             minWidth: renderTrigger ? '12rem' : pos.width,
-            zIndex: 9999,
+            zIndex: 10050,
           }}
           className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-[18rem] flex flex-col"
         >

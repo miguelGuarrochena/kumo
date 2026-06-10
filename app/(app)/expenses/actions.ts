@@ -79,7 +79,7 @@ export async function upsertExpense(
 
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
-  revalidatePath('/dividir');
+  revalidatePath('/split');
   return { ok: true, expenseId: expenseId ?? undefined };
 }
 
