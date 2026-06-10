@@ -30,10 +30,10 @@ const HomePage = async () => {
 
       {/* Nav */}
       <header className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <CloudLogo className="w-9 h-9" />
           <span className="font-bold text-xl tracking-tight kumo-gradient-text">Kumo</span>
-        </div>
+        </Link>
         <Link
           href="/auth/login"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold kumo-gradient text-white shadow-md hover:opacity-90 active:scale-95 transition-all"

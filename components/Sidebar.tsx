@@ -51,10 +51,13 @@ export const Sidebar = ({ userEmail, workspaces, activeWorkspaceId }: Props) => 
 
   return (
     <aside className="hidden lg:flex w-64 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-r border-slate-200 dark:border-slate-800 flex-col sticky top-0 h-screen">
-      <div className="px-5 pt-5 pb-3 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
+      <Link
+        href="/dashboard"
+        className="px-5 pt-5 pb-3 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 hover:opacity-80 transition-opacity"
+      >
         <CloudLogo className="w-8 h-8" />
-        <h1 className="font-bold text-lg tracking-tight kumo-gradient-text">Kumo</h1>
-      </div>
+        <span className="font-bold text-lg tracking-tight kumo-gradient-text">Kumo</span>
+      </Link>
 
       <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800">
         <WorkspaceSwitcher workspaces={workspaces} activeId={activeWorkspaceId} />

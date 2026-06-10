@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { CloudLogo } from '@/components/CloudLogo';
 import { CloudDecorations } from '@/components/CloudDecorations';
 import { createClient } from '@/lib/supabase/client';
@@ -77,7 +78,9 @@ const LoginInner = () => {
 
       <div className="kumo-card relative w-full max-w-md p-8 space-y-6">
         <div className="flex flex-col items-center gap-2">
-          <CloudLogo className="w-40 cloud-float" withWordmark />
+          <Link href="/" className="hover:opacity-80 transition-opacity" aria-label="Volver al inicio">
+            <CloudLogo className="w-40 cloud-float" withWordmark />
+          </Link>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
             Tus gastos, organizados como una nube perfecta
           </p>

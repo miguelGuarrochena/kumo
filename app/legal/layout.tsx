@@ -16,7 +16,7 @@ const LegalLayout = async ({ children }: { children: React.ReactNode }) => {
       <CloudDecorations />
 
       <header className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center gap-2">
+        <Link href={backHref as never} className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
           <CloudLogo className="w-8 h-8" />
           <span className="font-bold text-lg tracking-tight kumo-gradient-text">Kumo</span>
         </Link>

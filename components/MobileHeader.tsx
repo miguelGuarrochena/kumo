@@ -60,7 +60,7 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
           )}
         </div>
 
-        <Link href="/dashboard" className="flex items-center justify-center gap-1.5">
+        <Link href="/dashboard" className="flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity">
           <CloudLogo className="w-6" />
           <span className="font-bold text-base tracking-tight kumo-gradient-text">Kumo</span>
         </Link>
