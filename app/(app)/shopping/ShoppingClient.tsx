@@ -108,16 +108,19 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
         </p>
       </header>
 
-      {/* --- Tabs de listas --- */}
-      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
+      {/* Listas: wrap en varias filas — mejor que scroll horizontal en mobile */}
+      <div role="tablist" aria-label={t.shopping.lists_label} className="flex flex-wrap gap-2">
         {lists.map((list) => {
           const active = list === activeList;
           const count = optimisticItems.filter((i) => i.list_name === list && !i.bought).length;
           return (
             <button
               key={list}
+              type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setActiveList(list)}
-              className={`shrink-0 px-3.5 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 rounded-full text-sm font-medium transition-colors inline-flex items-center gap-1.5 ${
                 active
                   ? 'kumo-gradient text-white shadow-sm'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300'
@@ -137,9 +140,10 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
           );
         })}
         <button
+          type="button"
           onClick={() => setCreatingList(true)}
-          className="shrink-0 px-3 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-slate-700 border border-dashed border-slate-300 dark:border-slate-600"
-          aria-label="Nueva lista"
+          className="px-3 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-dashed border-slate-300 dark:border-slate-600"
+          aria-label={t.shopping.new_list}
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -181,7 +185,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
           Desktop: 1 fila inline. */}
       <form
         onSubmit={onQuickAdd}
-        className="kumo-card p-3 space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:gap-2 sticky top-14 lg:top-0 z-10 bg-white dark:bg-slate-800"
+        className="kumo-card p-3 space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:gap-2"
       >
         <input
           ref={nameRef}

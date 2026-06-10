@@ -13,6 +13,7 @@ export type ContactLite = {
   relationship: string;
   is_self: boolean;
   phone: string | null;
+  is_split_only: boolean;
 };
 
 export type Expense = {

@@ -36,7 +36,7 @@ export const DividirClient = ({
         </p>
       </header>
 
-      <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
+      <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 w-full sm:w-auto">
         <button
           type="button"
           onClick={() => setTab('dividir')}

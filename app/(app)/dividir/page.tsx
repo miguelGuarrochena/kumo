@@ -13,7 +13,7 @@ const DividirPage = async () => {
   const [{ data: contactsRaw }, balancesRes, { data: paymentsRaw }] = await Promise.all([
     supabase
       .from('notification_contacts')
-      .select('id, name, is_self, user_id')
+      .select('id, name, is_self, user_id, is_split_only')
       .eq('workspace_id', ctx.workspaceId)
       .order('name'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,11 +25,18 @@ const DividirPage = async () => {
       .order('paid_at', { ascending: false }),
   ]);
 
-  type RawContact = { id: string; name: string; is_self: boolean; user_id: string | null };
+  type RawContact = {
+    id: string;
+    name: string;
+    is_self: boolean;
+    user_id: string | null;
+    is_split_only: boolean;
+  };
   const contacts = ((contactsRaw ?? []) as RawContact[])
     .map((c) => ({ ...c, is_self: !!c.is_self && c.user_id === ctx.userId }))
     .sort((a, b) => {
       if (a.is_self !== b.is_self) return a.is_self ? -1 : 1;
+      if (a.is_split_only !== b.is_split_only) return a.is_split_only ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
 

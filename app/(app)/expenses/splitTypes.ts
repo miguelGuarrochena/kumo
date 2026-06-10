@@ -4,6 +4,7 @@ export type ContactLite = {
   id: string;
   name: string;
   is_self: boolean;
+  is_split_only?: boolean;
 };
 
 export type SplitMode = 'equal' | 'percentage' | 'fixed' | 'items' | null;

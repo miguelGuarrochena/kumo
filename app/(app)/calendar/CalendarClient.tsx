@@ -212,7 +212,7 @@ export const CalendarClient = ({
         </div>
       )}
 
-      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-x-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
         <TabButton active={view === 'month'}    onClick={() => setView('month')}>{t.calendar.tab_month}</TabButton>
         <TabButton active={view === 'year'}     onClick={() => setView('year')}>{t.calendar.tab_year}</TabButton>
         <TabButton active={view === 'upcoming'} onClick={() => setView('upcoming')}>

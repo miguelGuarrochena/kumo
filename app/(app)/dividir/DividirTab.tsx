@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Camera, Copy, MessageCircle, Plus, RotateCcw, Save, X, Loader2 } from 'lucide-react';
 import { upsertExpense } from '../expenses/actions';
@@ -35,6 +36,9 @@ export const DividirTab = ({
   yearlyPct,
 }: Props) => {
   const { t, locale } = useT();
+  const router = useRouter();
+  const selfContact = useMemo(() => contacts.find((c) => c.is_self) ?? null, [contacts]);
+
   const [total, setTotal] = useState('');
   const [tipMode, setTipMode] = useState<'percent' | 'amount'>('percent');
   const [tipValue, setTipValue] = useState('');
@@ -46,26 +50,56 @@ export const DividirTab = ({
   const [items, setItems] = useState<ItemRow[]>([]);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
+  const [creatingContact, setCreatingContact] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
-  const addParticipant = (text?: string) => {
+  const autocompleteValue = (id: string, currentParts: Participant[]) => {
+    if (mode !== 'percentage' && mode !== 'fixed') return;
+    const cap = mode === 'percentage' ? 100 : totalNum;
+    const sumOthers = currentParts.reduce(
+      (s, p) => (p.id === id ? s : s + (parseFloat(values[p.id] ?? '0') || 0)),
+      0,
+    );
+    const remaining = Math.max(0, cap - sumOthers);
+    if (remaining > 0) {
+      setValues((prev) => ({ ...prev, [id]: trimNumber(remaining) }));
+    }
+  };
+
+  const addFromContact = (c: ContactLite) => {
+    if (parts.some((p) => p.contactId === c.id)) return;
+    const id = newId();
+    const next = [...parts, { id, name: c.name, contactId: c.id }];
+    setParts(next);
+    autocompleteValue(id, next);
+  };
+
+  const addParticipant = async (text?: string) => {
     const v = (text ?? partInput).trim();
     if (!v) return;
     const existing = contacts.find((c) => c.name.toLowerCase() === v.toLowerCase());
-    const id = newId();
-    setParts((p) => [...p, { id, name: existing?.name ?? v, contactId: existing?.id ?? null }]);
-    if (mode === 'percentage' || mode === 'fixed') {
-      const cap = mode === 'percentage' ? 100 : totalNum;
-      const sumOthers = parts.reduce(
-        (s, p) => s + (parseFloat(values[p.id] ?? '0') || 0),
-        0,
-      );
-      const remaining = Math.max(0, cap - sumOthers);
-      if (remaining > 0) {
-        setValues((prev) => ({ ...prev, [id]: trimNumber(remaining) }));
-      }
+    if (existing) {
+      addFromContact(existing);
+      setPartInput('');
+      return;
     }
-    setPartInput('');
+    setCreatingContact(true);
+    try {
+      const r = await createAdHocContact(v);
+      if (r.ok && r.id) {
+        const id = newId();
+        const next = [...parts, { id, name: v, contactId: r.id }];
+        setParts(next);
+        autocompleteValue(id, next);
+        setPartInput('');
+        toast.success(t.split.person_added.replace('{name}', v));
+        router.refresh();
+      } else {
+        toast.error(r.error ?? t.split.person_could_not_create);
+      }
+    } finally {
+      setCreatingContact(false);
+    }
   };
 
   const changeMode = (next: Mode) => {
@@ -279,7 +313,10 @@ export const DividirTab = ({
         });
       }
       toast.success(t.split.expense_saved);
-      setTotal(''); setParts([]); setValues({}); setItems([]);
+      setTotal('');
+      setParts([]);
+      setValues({});
+      setItems([]);
     } finally {
       setSaving(false);
     }
@@ -296,8 +333,8 @@ export const DividirTab = ({
         className="hidden"
       />
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
             {t.split.amount_total}
           </label>
@@ -311,55 +348,57 @@ export const DividirTab = ({
             className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-lg font-medium tabular-nums"
           />
         </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-            {t.split.tip}
-          </label>
-          <div className="flex items-stretch gap-1">
-            <input
-              type="number"
-              inputMode="decimal"
-              step={tipMode === 'percent' ? '0.1' : '0.01'}
-              value={tipValue}
-              onChange={(e) => setTipValue(e.target.value)}
-              placeholder={tipMode === 'percent' ? '10' : '0'}
-              className="flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base tabular-nums"
-            />
-            <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1 text-sm font-semibold shrink-0">
-              <button
-                type="button"
-                onClick={() => setTipMode('percent')}
-                aria-pressed={tipMode === 'percent'}
-                aria-label={t.split.tip_pct_aria}
-                className={`px-3 rounded-md ${
-                  tipMode === 'percent'
-                    ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 shadow-sm'
-                    : 'text-slate-400 dark:text-slate-500'
-                }`}
-              >
-                %
-              </button>
-              <button
-                type="button"
-                onClick={() => setTipMode('amount')}
-                aria-pressed={tipMode === 'amount'}
-                aria-label={t.split.tip_amount_aria}
-                className={`px-3 rounded-md ${
-                  tipMode === 'amount'
-                    ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 shadow-sm'
-                    : 'text-slate-400 dark:text-slate-500'
-                }`}
-              >
-                $
-              </button>
+        <div className="grid grid-cols-2 sm:contents gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              {t.split.tip}
+            </label>
+            <div className="flex items-stretch gap-1">
+              <input
+                type="number"
+                inputMode="decimal"
+                step={tipMode === 'percent' ? '0.1' : '0.01'}
+                value={tipValue}
+                onChange={(e) => setTipValue(e.target.value)}
+                placeholder={tipMode === 'percent' ? '10' : '0'}
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base tabular-nums"
+              />
+              <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1 text-sm font-semibold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setTipMode('percent')}
+                  aria-pressed={tipMode === 'percent'}
+                  aria-label={t.split.tip_pct_aria}
+                  className={`px-3 rounded-md ${
+                    tipMode === 'percent'
+                      ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 shadow-sm'
+                      : 'text-slate-400 dark:text-slate-500'
+                  }`}
+                >
+                  %
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipMode('amount')}
+                  aria-pressed={tipMode === 'amount'}
+                  aria-label={t.split.tip_amount_aria}
+                  className={`px-3 rounded-md ${
+                    tipMode === 'amount'
+                      ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 shadow-sm'
+                      : 'text-slate-400 dark:text-slate-500'
+                  }`}
+                >
+                  $
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-            {t.expenses.currency}
-          </label>
-          <CurrencyPicker value={currency} onChange={setCurrency} />
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              {t.expenses.currency}
+            </label>
+            <CurrencyPicker value={currency} onChange={setCurrency} />
+          </div>
         </div>
       </div>
 
@@ -398,63 +437,8 @@ export const DividirTab = ({
       />
 
       <div>
-        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-          {t.split.participants}
-        </label>
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {parts.map((p) => (
-            <span
-              key={p.id}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 text-xs font-medium"
-            >
-              {p.name}{p.contactId ? '' : ' ✎'}
-              <button
-                type="button"
-                onClick={() => removeParticipant(p.id)}
-                aria-label={t.split.participants_remove}
-                className="hover:text-rose-500"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-        <div className="flex gap-1">
-          <input
-            type="text"
-            list="contacts-list"
-            value={partInput}
-            onChange={(e) => setPartInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addParticipant();
-              }
-            }}
-            placeholder={t.split.participants_placeholder}
-            className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
-          />
-          <datalist id="contacts-list">
-            {contacts.map((c) => (
-              <option key={c.id} value={c.name} />
-            ))}
-          </datalist>
-          <button
-            type="button"
-            onClick={() => addParticipant()}
-            className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
-        <p className="text-[11px] text-slate-400 mt-1">
-          {t.split.participants_hint}
-        </p>
-      </div>
-
-      <div>
         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t.split.mode}</label>
-        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
           {([
             { v: 'equal' as const,      label: t.split.mode_equal },
             { v: 'percentage' as const, label: t.split.mode_percentage },
@@ -465,9 +449,9 @@ export const DividirTab = ({
               key={m.v}
               type="button"
               onClick={() => changeMode(m.v)}
-              className={`px-1.5 py-1.5 rounded text-[11px] sm:text-xs font-medium text-center leading-tight ${
+              className={`px-2 py-2.5 rounded-lg text-xs font-medium text-center leading-tight ${
                 mode === m.v
-                  ? 'bg-white dark:bg-slate-700 shadow-sm'
+                  ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-slate-100'
                   : 'text-slate-500 dark:text-slate-400'
               }`}
             >
@@ -483,6 +467,95 @@ export const DividirTab = ({
             : mode === 'fixed'      ? t.split.mode_fixed_hint
             : t.split.mode_items_hint}
         </p>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+          {t.split.divide_between}
+        </label>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-3">
+          {parts.length === 0 ? (
+            <p className="text-xs text-slate-400 dark:text-slate-500 italic text-center py-1">
+              {t.split.values_no_participants}
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {parts.map((p) => (
+                <span
+                  key={p.id}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-900/15 border border-sky-100 dark:border-sky-800/30 text-sm text-slate-800 dark:text-slate-100"
+                >
+                  {p.name}{selfContact && p.contactId === selfContact.id ? ` ${t.split.who_paid_self_suffix}` : ''}
+                  <button
+                    type="button"
+                    onClick={() => removeParticipant(p.id)}
+                    aria-label={t.split.participants_remove}
+                    className="p-0.5 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">{t.split.participants_tap_hint}</p>
+
+          {contacts.filter((c) => !parts.some((p) => p.contactId === c.id)).length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5 font-semibold">
+                {parts.length <= 1 ? t.split.participants_available : t.split.participants_others}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {contacts
+                  .filter((c) => !parts.some((p) => p.contactId === c.id))
+                  .map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => addFromContact(c)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border inline-flex items-center gap-1 ${
+                        c.is_split_only
+                          ? 'bg-slate-50 dark:bg-slate-800/80 border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/20'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/20'
+                      }`}
+                    >
+                      <Plus className="w-3 h-3" />
+                      {c.name}{c.is_self ? ` ${t.split.who_paid_self_suffix}` : ''}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/50">
+            <input
+              type="text"
+              value={partInput}
+              onChange={(e) => setPartInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void addParticipant();
+                }
+              }}
+              placeholder={t.split.add_person}
+              className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => void addParticipant()}
+              disabled={creatingContact || !partInput.trim()}
+              aria-label={t.split.add_person_short}
+              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50"
+            >
+              {creatingContact ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-snug">
+            {t.split.contacts_saved_hint}
+          </p>
+        </div>
       </div>
 
       {N > 0 && mode !== 'items' && mode !== 'equal' && (

@@ -154,10 +154,11 @@ export const ExpenseSheet = ({
       }
       const hasSplit = ids.length > 0 || !!e2?.split_mode;
       if (hasSplit) {
+        const selfId = contacts.find((c) => c.is_self)?.id ?? null;
         setSplitOn(true);
         setSplitState({
           mode: e2?.split_mode ?? 'equal',
-          paidById: e2?.paid_by_contact_id ?? contacts.find((c) => c.is_self)?.id ?? null,
+          paidById: e2?.paid_by_contact_id ?? selfId,
           participantIds: ids,
           values: vals,
           items: e2?.items_breakdown ?? [],
@@ -255,20 +256,53 @@ export const ExpenseSheet = ({
     });
   };
 
+  const splitContacts = contacts.map((c) => ({
+    id: c.id,
+    name: c.name,
+    is_self: c.is_self,
+    is_split_only: c.is_split_only,
+  }));
+
+  const notifyContacts = contacts.filter((c) => !c.is_split_only);
+
   return (
-    <Sheet open={open} onClose={onClose} title={expense ? t.expenses.edit_title : t.expenses.new}>
-      <form onSubmit={onSubmit} className="space-y-4">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={expense ? t.expenses.edit_title : t.expenses.new}
+      footer={
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
+          >
+            {t.common.cancel}
+          </button>
+          <button
+            type="submit"
+            form="expense-form"
+            disabled={pending || !amount || (splitOn && !splitSumOk)}
+            title={splitOn && !splitSumOk ? t.split.save_disabled_sum_no_match : undefined}
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {pending ? t.common.saving : expense ? t.common.save : t.common.new}
+          </button>
+        </div>
+      }
+    >
+      <form id="expense-form" onSubmit={onSubmit} className="space-y-4">
         {!expense && aiSuggestion && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-gradient-to-br from-sky-50 to-lavender-50 dark:from-sky-900/20 dark:to-lavender-900/20 border border-sky-200 dark:border-sky-800/60">
             <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
             <div className="text-xs">
               <p className="font-medium text-sky-700 dark:text-sky-300">
-                Datos extraídos por IA
+                {t.expenses.ocr_extracted_title}
               </p>
               <p className="text-slate-600 dark:text-slate-400 mt-0.5">
-                Revisá monto, fecha y categoría antes de guardar.
+                {t.expenses.ocr_extracted_review}
                 {aiSuggestion.merchant && (
-                  <> Comercio detectado: <strong>{aiSuggestion.merchant}</strong>.</>
+                  <> {t.expenses.ocr_merchant_detected.replace('{merchant}', aiSuggestion.merchant)}</>
                 )}
               </p>
             </div>
@@ -428,14 +462,14 @@ export const ExpenseSheet = ({
         </div>
 
         {/* Selector "Avisar a" — solo aparece si hay vencimiento */}
-        {hasDueDate && contacts.length > 0 && (
+        {hasDueDate && notifyContacts.length > 0 && (
           <div>
             <label className="block text-sm font-medium mb-1.5">{t.expenses.notify_who}</label>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
               {t.expenses.notify_who_desc}
             </p>
             <div className="space-y-1.5">
-              {contacts.map((c) => {
+              {notifyContacts.map((c) => {
                 const selected = notifyContactIds.includes(c.id);
                 return (
                   <button
@@ -502,29 +536,11 @@ export const ExpenseSheet = ({
             <SplitEditor
               totalAmount={parseFloat(amount) || 0}
               currency={currency}
-              contacts={contacts.map((c) => ({ id: c.id, name: c.name, is_self: c.is_self }))}
+              contacts={splitContacts}
               state={splitState}
               setState={setSplitState}
             />
           )}
-        </div>
-
-        <div className="flex gap-2 pt-2 sticky bottom-0 bg-white dark:bg-slate-800 pb-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-          >
-            {t.common.cancel}
-          </button>
-          <button
-            type="submit"
-            disabled={pending || !amount || (splitOn && !splitSumOk)}
-            title={splitOn && !splitSumOk ? t.split.save_disabled_sum_no_match : undefined}
-            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {pending ? t.common.saving : expense ? t.common.save : t.common.new}
-          </button>
         </div>
       </form>
     </Sheet>

@@ -50,7 +50,8 @@ export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
           text-slate-900 dark:text-slate-100
           rounded-t-3xl sm:rounded-2xl
           shadow-2xl
-          max-h-[92vh] sm:max-h-[85vh]
+          max-h-[92dvh] sm:max-h-[85vh]
+          min-h-0
           flex flex-col
           animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 fade-in
         "
@@ -71,10 +72,10 @@ export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-6 py-5">{children}</div>
 
         {footer && (
-          <div className="shrink-0 px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-white dark:bg-slate-800">
+          <div className="shrink-0 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-100 dark:border-slate-700/50 bg-white dark:bg-slate-800">
             {footer}
           </div>
         )}

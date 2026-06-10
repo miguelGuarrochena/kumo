@@ -147,7 +147,11 @@ export const ParticipantsSection = ({
                 key={c.id}
                 type="button"
                 onClick={() => onToggle(c.id)}
-                className="px-2.5 py-1 rounded-full text-xs font-medium border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/20 inline-flex items-center gap-1"
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border inline-flex items-center gap-1 ${
+                  c.is_split_only
+                    ? 'bg-slate-50 dark:bg-slate-800/80 border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/20'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/20'
+                }`}
               >
                 <Plus className="w-3 h-3" />
                 {c.name}{c.is_self ? ` ${t.split.who_paid_self_suffix}` : ''}
@@ -182,6 +186,9 @@ export const ParticipantsSection = ({
           {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
         </button>
       </div>
+      <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-snug">
+        {t.split.contacts_saved_hint}
+      </p>
     </div>
   );
 };

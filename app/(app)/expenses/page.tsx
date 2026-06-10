@@ -53,7 +53,7 @@ const ExpensesPage = async ({
     supabase.from('user_settings').select('default_currency').single(),
     supabase
       .from('notification_contacts')
-      .select('id, name, relationship, is_self, phone, user_id')
+      .select('id, name, relationship, is_self, phone, user_id, is_split_only')
       .eq('workspace_id', ctx.workspaceId)
       .order('created_at'),
     getRates(),
@@ -63,7 +63,15 @@ const ExpensesPage = async ({
   // Calculamos `is_self` desde la perspectiva del viewer: solo es "Yo" si
   // el contacto pertenece al user actual. Los selfs de otros miembros del
   // workspace aparecen como contactos normales (sin el sufijo "(Vos)").
-  type RawContact = { id: string; name: string; relationship: string; is_self: boolean; phone: string | null; user_id: string | null };
+  type RawContact = {
+    id: string;
+    name: string;
+    relationship: string;
+    is_self: boolean;
+    phone: string | null;
+    user_id: string | null;
+    is_split_only: boolean;
+  };
   const contacts = ((contactsRaw ?? []) as RawContact[])
     .map((c) => ({
       ...c,
@@ -71,6 +79,7 @@ const ExpensesPage = async ({
     }))
     .sort((a, b) => {
       if (a.is_self !== b.is_self) return a.is_self ? -1 : 1;
+      if (a.is_split_only !== b.is_split_only) return a.is_split_only ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
 
