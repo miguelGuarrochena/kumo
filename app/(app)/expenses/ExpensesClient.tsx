@@ -5,9 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Plus, ChevronLeft, ChevronRight, Wallet, Search, SlidersHorizontal,
-  Camera, Loader2,
+  Camera, Loader2, Scale,
 } from 'lucide-react';
 import { deleteExpense, togglePaid } from './actions';
+import { toggleSplitPaid } from './splitsActions';
+import { SaldosTab } from '../dividir/SaldosTab';
+import type { BalanceRow, PaymentRow } from '../dividir/types';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Select } from '@/components/Select';
 import { FiltersSheet, type Filters } from './FiltersSheet';
@@ -26,13 +29,18 @@ import { FilterChip } from './FilterChip';
 import { ExportMenu } from './ExportMenu';
 import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
 
+type ExpensesSection = 'gastos' | 'saldos';
+
 type Props = {
+  section: ExpensesSection;
   view: ExpensesView;
   monthStr: string;
   expenses: Expense[];
   archiveYears: ArchiveYear[];
   categories: CategoryLite[];
   contacts: ContactLite[];
+  balances: BalanceRow[];
+  payments: PaymentRow[];
   defaultCurrency: Currency;   // moneda preferida del user (de settings)
   displayCurrency: Currency;   // moneda en la que se muestra el TOTAL ahora
   rates: Partial<Record<Currency, number>>;
@@ -45,12 +53,15 @@ type Props = {
 };
 
 export const ExpensesClient = ({
+  section,
   view,
   monthStr,
   expenses,
   archiveYears,
   categories,
   contacts,
+  balances,
+  payments,
   defaultCurrency,
   displayCurrency,
   rates,
@@ -148,8 +159,16 @@ export const ExpensesClient = ({
   const monthLabel = formatMonth(year, month, locale);
 
   const switchView = (next: ExpensesView) => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams.toString());
     if (next !== 'month') params.set('view', next);
+    else params.delete('view');
+    router.push(`/expenses?${params.toString()}`);
+  };
+
+  const switchSection = (next: ExpensesSection) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'saldos') params.set('section', 'saldos');
+    else params.delete('section');
     router.push(`/expenses?${params.toString()}`);
   };
 
@@ -199,9 +218,10 @@ export const ExpensesClient = ({
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.expenses.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-            {t.expenses.subtitle}
+            {section === 'saldos' ? t.expenses.saldos_subtitle : t.expenses.subtitle}
           </p>
         </div>
+        {section === 'gastos' && (
         <div className="flex items-center gap-2 shrink-0">
           <input
             ref={fileInputRef}
@@ -243,8 +263,40 @@ export const ExpensesClient = ({
             <span>{t.expenses.new}</span>
           </button>
         </div>
+        )}
       </header>
 
+      <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 w-full sm:w-auto sm:inline-grid sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => switchSection('gastos')}
+          className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            section === 'gastos'
+              ? 'bg-white dark:bg-slate-700 shadow-sm'
+              : 'text-slate-500 dark:text-slate-400'
+          }`}
+        >
+          <Wallet className="w-4 h-4" />
+          {t.expenses.tab_expenses}
+        </button>
+        <button
+          type="button"
+          onClick={() => switchSection('saldos')}
+          className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            section === 'saldos'
+              ? 'bg-white dark:bg-slate-700 shadow-sm'
+              : 'text-slate-500 dark:text-slate-400'
+          }`}
+        >
+          <Scale className="w-4 h-4" />
+          {t.expenses.tab_balances}
+        </button>
+      </div>
+
+      {section === 'saldos' ? (
+        <SaldosTab balances={balances} contacts={contacts} payments={payments} />
+      ) : (
+      <>
       {/* --- Toggle de vista --- */}
       <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto sm:inline-flex">
         <button
@@ -507,6 +559,14 @@ export const ExpensesClient = ({
                 toast.success(exp.paid ? t.expenses.mark_pending_toast : t.expenses.mark_paid_toast);
                 router.refresh();
               }}
+              onToggleSplitPaid={async (contactId, paid) => {
+                const result = await toggleSplitPaid(exp.id, contactId, paid);
+                if (!result.ok) {
+                  toast.error(result.error ?? t.common.error);
+                  return;
+                }
+                router.refresh();
+              }}
             />
           ))}
         </div>
@@ -552,6 +612,9 @@ export const ExpensesClient = ({
         yearlyPct={yearlyPct}
         trialDaysLeft={trialDaysLeft}
       />
+
+      </>
+      )}
 
       {ocrLoading && ocrPreviewUrl && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm grid place-items-center p-6">

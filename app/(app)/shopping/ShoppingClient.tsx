@@ -108,8 +108,12 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
         </p>
       </header>
 
-      {/* Listas: wrap en varias filas — mejor que scroll horizontal en mobile */}
-      <div role="tablist" aria-label={t.shopping.lists_label} className="flex flex-wrap gap-2">
+      {/* Mobile: lista vertical. Desktop: chips en fila */}
+      <div
+        role="tablist"
+        aria-label={t.shopping.lists_label}
+        className="flex flex-col sm:flex-row sm:flex-wrap gap-2"
+      >
         {lists.map((list) => {
           const active = list === activeList;
           const count = optimisticItems.filter((i) => i.list_name === list && !i.bought).length;
@@ -120,16 +124,16 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
               role="tab"
               aria-selected={active}
               onClick={() => setActiveList(list)}
-              className={`px-3.5 py-2 rounded-full text-sm font-medium transition-colors inline-flex items-center gap-1.5 ${
+              className={`w-full sm:w-auto px-3.5 py-2.5 sm:py-2 rounded-xl sm:rounded-full text-sm font-medium transition-colors flex items-center justify-between sm:justify-center gap-2 ${
                 active
                   ? 'kumo-gradient text-white shadow-sm'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300'
               }`}
             >
-              {list}
+              <span>{list}</span>
               {count > 0 && (
                 <span
-                  className={`px-1.5 rounded-full text-[10px] ${
+                  className={`px-1.5 rounded-full text-[10px] tabular-nums ${
                     active ? 'bg-white/25' : 'bg-slate-100 dark:bg-slate-700'
                   }`}
                 >
@@ -142,10 +146,11 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
         <button
           type="button"
           onClick={() => setCreatingList(true)}
-          className="px-3 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-dashed border-slate-300 dark:border-slate-600"
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-xl sm:rounded-full text-sm font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-dashed border-slate-300 dark:border-slate-600"
           aria-label={t.shopping.new_list}
         >
           <Plus className="w-4 h-4" />
+          <span className="sm:hidden">{t.shopping.new_list}</span>
         </button>
       </div>
 

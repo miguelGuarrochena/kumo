@@ -4,6 +4,7 @@ import { getRates, convertAmount, type Currency } from '@/lib/currency';
 import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import type { BalanceRow, PaymentRow } from '../dividir/types';
 
 export type ExpensesView = 'month' | 'all' | 'archive';
 
@@ -27,6 +28,7 @@ type SearchParams = {
   cur?: string;
   asCurrency?: string;
   sort?: string;
+  section?: string;
 };
 
 const ExpensesPage = async ({
@@ -48,7 +50,15 @@ const ExpensesPage = async ({
 
   const ctx = await getCurrentWorkspace();
 
-  const [{ data: categories }, { data: settings }, { data: contactsRaw }, rates, subscription] = await Promise.all([
+  const [
+    { data: categories },
+    { data: settings },
+    { data: contactsRaw },
+    rates,
+    subscription,
+    balancesRes,
+    { data: paymentsRaw },
+  ] = await Promise.all([
     supabase.from('categories').select('*').eq('workspace_id', ctx.workspaceId).order('name'),
     supabase.from('user_settings').select('default_currency').single(),
     supabase
@@ -58,7 +68,18 @@ const ExpensesPage = async ({
       .order('created_at'),
     getRates(),
     getSubscription(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.rpc as any)('workspace_balances', { ws_id: ctx.workspaceId }),
+    supabase
+      .from('payments')
+      .select('id, from_contact_id, to_contact_id, amount, currency, note, paid_at')
+      .eq('workspace_id', ctx.workspaceId)
+      .order('paid_at', { ascending: false }),
   ]);
+
+  const balances = (balancesRes?.data ?? []) as BalanceRow[];
+  const payments = (paymentsRaw ?? []) as PaymentRow[];
+  const section = params.section === 'saldos' ? 'saldos' : 'gastos';
 
   // Calculamos `is_self` desde la perspectiva del viewer: solo es "Yo" si
   // el contacto pertenece al user actual. Los selfs de otros miembros del
@@ -159,12 +180,12 @@ const ExpensesPage = async ({
     if (expIds.length > 0) {
       const { data: splitRows } = await supabase
         .from('expense_splits')
-        .select('expense_id, contact_id, amount, percentage, notification_contacts(name)')
+        .select('expense_id, contact_id, amount, percentage, paid, notification_contacts(name)')
         .in('expense_id', expIds);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows = ((splitRows ?? []) as any[]);
-      const map = new Map<string, Array<{ contact_id: string; contact_name: string; amount: number | null; percentage: number | null }>>();
+      const map = new Map<string, Array<{ contact_id: string; contact_name: string; amount: number | null; percentage: number | null; paid: boolean }>>();
       for (const r of rows) {
         const list = map.get(r.expense_id) ?? [];
         list.push({
@@ -172,6 +193,7 @@ const ExpensesPage = async ({
           contact_name: r.notification_contacts?.name ?? '—',
           amount: r.amount,
           percentage: r.percentage,
+          paid: !!r.paid,
         });
         map.set(r.expense_id, list);
       }
@@ -184,12 +206,15 @@ const ExpensesPage = async ({
 
   return (
     <ExpensesClient
+      section={section}
       view={view}
       monthStr={monthStr}
       expenses={expenses as never}
       archiveYears={archiveYears}
       categories={categories ?? []}
       contacts={contacts ?? []}
+      balances={balances}
+      payments={payments}
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}
       rates={rates.rates}

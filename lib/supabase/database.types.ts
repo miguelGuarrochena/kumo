@@ -58,6 +58,7 @@ type ExpenseSplitsRow = {
   contact_id: string;
   amount: number | null;
   percentage: number | null;
+  paid: boolean;
   created_at: string;
 };
 type ExpenseSplitsInsert = Partial<ExpenseSplitsRow> & {

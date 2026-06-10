@@ -36,6 +36,7 @@ export type SplitDetail = {
   contact_name: string;
   amount: number | null;
   percentage: number | null;
+  paid: boolean;
 };
 
 // Algunos gastos vienen con sus splits adjuntos para previsualizar en la lista.

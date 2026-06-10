@@ -13,6 +13,7 @@ type ExpenseRowProps = {
   onEdit: () => void;
   onDelete: () => void;
   onTogglePaid: () => void;
+  onToggleSplitPaid?: (contactId: string, paid: boolean) => void;
   showFullDate?: boolean;
 };
 
@@ -23,6 +24,7 @@ export const ExpenseRow = ({
   onEdit,
   onDelete,
   onTogglePaid,
+  onToggleSplitPaid,
   showFullDate = false,
 }: ExpenseRowProps) => {
   const { t, locale } = useT();
@@ -61,7 +63,7 @@ export const ExpenseRow = ({
               className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 font-medium hover:bg-sky-200 dark:hover:bg-sky-500/30 cursor-pointer"
               title={t.expenses.edit_split}
             >
-              {t.expenses.shared} · {splits.length}
+              {t.expenses.divided} · {splits.filter((s) => !s.paid).length}/{splits.length} {t.expenses.split_pending_short}
             </button>
           )}
         </div>
@@ -79,14 +81,24 @@ export const ExpenseRow = ({
                   ? (total * s.percentage) / 100
                   : null;
               return (
-                <span
+                <button
                   key={`${s.contact_id}-${i}`}
-                  className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                  type="button"
+                  onClick={() => onToggleSplitPaid?.(s.contact_id, !s.paid)}
+                  disabled={!onToggleSplitPaid}
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors ${
+                    s.paid
+                      ? 'bg-mint-100 text-mint-700 dark:bg-mint-500/20 dark:text-mint-300'
+                      : 'bg-peach-100 text-peach-600 dark:bg-peach-500/20 dark:text-peach-300'
+                  } ${onToggleSplitPaid ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`}
+                  title={s.paid ? t.expenses.split_mark_pending : t.expenses.split_mark_paid}
                 >
-                  {s.contact_name}{portion !== null && (
-                    <span className="opacity-70"> · {formatMoney(portion, expense.currency as Currency, locale)}</span>
+                  {s.contact_name}
+                  {portion !== null && (
+                    <span className="opacity-80"> · {formatMoney(portion, expense.currency as Currency, locale)}</span>
                   )}
-                </span>
+                  <span className="opacity-70"> · {s.paid ? t.expenses.split_paid : t.expenses.split_pending}</span>
+                </button>
               );
             })}
           </div>

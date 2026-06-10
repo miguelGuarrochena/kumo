@@ -51,7 +51,17 @@ export const DividirTab = ({
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
   const [creatingContact, setCreatingContact] = useState(false);
+  const [paidParts, setPaidParts] = useState<Set<string>>(() => new Set());
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const togglePartPaid = (id: string) => {
+    setPaidParts((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const autocompleteValue = (id: string, currentParts: Participant[]) => {
     if (mode !== 'percentage' && mode !== 'fixed') return;
@@ -135,6 +145,11 @@ export const DividirTab = ({
   };
 
   const removeParticipant = (id: string) => {
+    setPaidParts((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
     setParts((p) => p.filter((part) => part.id !== id));
     setValues((prev) => {
       const next = { ...prev };
@@ -256,10 +271,17 @@ export const DividirTab = ({
     setCurrency('ARS');
     setMode('equal');
     setParts([]);
+    setPaidParts(new Set());
     setPartInput('');
     setValues({});
     setItems([]);
   };
+
+  const paidCount = parts.filter((p) => paidParts.has(p.id)).length;
+  const paidSum = parts.reduce(
+    (s, p) => s + (paidParts.has(p.id) ? (computed[p.id] ?? 0) : 0),
+    0,
+  );
 
   const [saving, setSaving] = useState(false);
   const onSaveAsExpense = async () => {
@@ -315,6 +337,7 @@ export const DividirTab = ({
       toast.success(t.split.expense_saved);
       setTotal('');
       setParts([]);
+      setPaidParts(new Set());
       setValues({});
       setItems([]);
     } finally {
@@ -607,22 +630,49 @@ export const DividirTab = ({
               return <span className="text-[11px] text-rose-500">{label}</span>;
             })()}
           </div>
-          {parts.map((p) => (
-            <div key={p.id} className="flex items-center justify-between text-sm">
-              <span className="truncate">{p.name}</span>
-              <span className="font-semibold tabular-nums">{formatMoney(computed[p.id] ?? 0, currency, locale)}</span>
-            </div>
-          ))}
+          {parts.map((p) => {
+            const amount = computed[p.id] ?? 0;
+            const paid = paidParts.has(p.id);
+            return (
+              <div key={p.id} className="flex items-center gap-2 text-sm py-0.5">
+                <span className="truncate flex-1 min-w-0">
+                  {p.name}{selfContact && p.contactId === selfContact.id ? ` ${t.split.who_paid_self_suffix}` : ''}
+                </span>
+                <span className="font-semibold tabular-nums shrink-0">
+                  {formatMoney(amount, currency, locale)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => togglePartPaid(p.id)}
+                  className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                    paid
+                      ? 'bg-mint-100 text-mint-700 dark:bg-mint-500/20 dark:text-mint-300'
+                      : 'bg-peach-100 text-peach-600 dark:bg-peach-500/20 dark:text-peach-300'
+                  }`}
+                >
+                  {paid ? t.split.collected : t.split.pending}
+                </button>
+              </div>
+            );
+          })}
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/50">
             <span>{t.split.preview_total}</span>
             <span className="tabular-nums">{formatMoney(sumComputed, currency, locale)} / {formatMoney(totalNum, currency, locale)}</span>
           </div>
+          {N > 0 && (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {t.split.collection_progress
+                .replace('{n}', String(paidCount))
+                .replace('{total}', String(N))
+                .replace('{amount}', formatMoney(paidSum, currency, locale))}
+            </p>
+          )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3">
+          <div className="grid grid-cols-2 gap-2 pt-2">
             <button
               type="button"
               onClick={onCopy}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <Copy className="w-3.5 h-3.5" />
               {t.split.copy}
@@ -630,7 +680,7 @@ export const DividirTab = ({
             <button
               type="button"
               onClick={onShareWhatsApp}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-mint-200 dark:border-mint-500/30 text-mint-700 dark:text-mint-300 text-xs font-medium hover:bg-mint-50 dark:hover:bg-mint-500/10"
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-mint-200 dark:border-mint-500/30 text-mint-700 dark:text-mint-300 text-xs font-medium hover:bg-mint-50 dark:hover:bg-mint-500/10"
             >
               <MessageCircle className="w-3.5 h-3.5" />
               {t.split.whatsapp}
@@ -639,16 +689,16 @@ export const DividirTab = ({
               type="button"
               onClick={onSaveAsExpense}
               disabled={saving || !sumOk}
-              title={!sumOk ? t.split.save_disabled_sum : t.split.save_as_expense_title}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg kumo-gradient text-white text-xs font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!sumOk ? t.split.save_disabled_sum : t.split.carry_to_expenses_hint}
+              className="col-span-2 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              {t.split.save_as_expense}
+              {t.split.carry_to_expenses}
             </button>
             <button
               type="button"
               onClick={reset}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 text-slate-500 dark:text-slate-400 text-xs font-medium hover:text-slate-700 dark:hover:text-slate-200"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               {t.split.reset}

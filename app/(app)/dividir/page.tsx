@@ -3,27 +3,18 @@ import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
 import { DividirClient } from './DividirClient';
-import type { BalanceRow, ContactLite, PaymentRow } from './types';
+import type { ContactLite } from './types';
 
 const DividirPage = async () => {
   const supabase = await createClient();
   const ctx = await getCurrentWorkspace();
   const subscription = await getSubscription();
 
-  const [{ data: contactsRaw }, balancesRes, { data: paymentsRaw }] = await Promise.all([
-    supabase
-      .from('notification_contacts')
-      .select('id, name, is_self, user_id, is_split_only')
-      .eq('workspace_id', ctx.workspaceId)
-      .order('name'),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.rpc as any)('workspace_balances', { ws_id: ctx.workspaceId }),
-    supabase
-      .from('payments')
-      .select('id, from_contact_id, to_contact_id, amount, currency, note, paid_at')
-      .eq('workspace_id', ctx.workspaceId)
-      .order('paid_at', { ascending: false }),
-  ]);
+  const { data: contactsRaw } = await supabase
+    .from('notification_contacts')
+    .select('id, name, is_self, user_id, is_split_only')
+    .eq('workspace_id', ctx.workspaceId)
+    .order('name');
 
   type RawContact = {
     id: string;
@@ -40,16 +31,11 @@ const DividirPage = async () => {
       return a.name.localeCompare(b.name);
     });
 
-  const balances = (balancesRes?.data ?? []) as BalanceRow[];
-  const payments = (paymentsRaw ?? []) as PaymentRow[];
-
   const pricing = getPricing();
 
   return (
     <DividirClient
       contacts={contacts as ContactLite[]}
-      balances={balances}
-      payments={payments}
       hasOcrAccess={subscription.tier === 'pro'}
       trialDaysLeft={subscription.daysLeftInTrial}
       priceMonthly={pricing.monthly}

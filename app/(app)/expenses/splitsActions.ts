@@ -39,11 +39,28 @@ export const saveSplits = async (params: {
     .eq('id', params.expenseId);
   if (updErr) return { ok: false, error: updErr.message };
 
+  const { data: existingSplits } = await supabase
+    .from('expense_splits')
+    .select('contact_id, paid')
+    .eq('expense_id', params.expenseId);
+  const paidByContact = new Map(
+    ((existingSplits ?? []) as Array<{ contact_id: string; paid: boolean }>).map((r) => [
+      r.contact_id,
+      r.paid,
+    ]),
+  );
+
   await supabase.from('expense_splits').delete().eq('expense_id', params.expenseId);
 
   // Modo 'items': generamos los splits derivados de la asignación de items.
   // Cada item con N personas se divide en partes iguales entre ellas.
-  let rowsToInsert: Array<{ expense_id: string; contact_id: string; amount: number | null; percentage: number | null }> = [];
+  let rowsToInsert: Array<{
+    expense_id: string;
+    contact_id: string;
+    amount: number | null;
+    percentage: number | null;
+    paid: boolean;
+  }> = [];
 
   if (params.mode === 'items' && params.items && params.items.length > 0) {
     const totals = new Map<string, number>();
@@ -59,6 +76,7 @@ export const saveSplits = async (params: {
       contact_id: cid,
       amount: Math.round(amt * 100) / 100,
       percentage: null,
+      paid: paidByContact.get(cid) ?? false,
     }));
   } else if (params.mode && params.splits.length > 0) {
     rowsToInsert = params.splits.map((s) => ({
@@ -66,6 +84,7 @@ export const saveSplits = async (params: {
       contact_id: s.contactId,
       amount: s.amount ?? null,
       percentage: s.percentage ?? null,
+      paid: paidByContact.get(s.contactId) ?? false,
     }));
   }
 
@@ -76,7 +95,25 @@ export const saveSplits = async (params: {
   }
 
   revalidatePath('/expenses');
-  revalidatePath('/dividir');
+  return { ok: true };
+};
+
+export const toggleSplitPaid = async (
+  expenseId: string,
+  contactId: string,
+  paid: boolean,
+): Promise<Result> => {
+  try { await requireAdmin(); } catch (e) { return { ok: false, error: (e as Error).message }; }
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('expense_splits') as any)
+    .update({ paid })
+    .eq('expense_id', expenseId)
+    .eq('contact_id', contactId);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/expenses');
   return { ok: true };
 };
 
@@ -104,7 +141,7 @@ export const recordPayment = async (params: {
   });
 
   if (error) return { ok: false, error: error.message };
-  revalidatePath('/dividir');
+  revalidatePath('/expenses');
   return { ok: true };
 };
 
@@ -113,6 +150,6 @@ export const deletePayment = async (paymentId: string): Promise<Result> => {
   const supabase = await createClient();
   const { error } = await supabase.from('payments').delete().eq('id', paymentId);
   if (error) return { ok: false, error: error.message };
-  revalidatePath('/dividir');
+  revalidatePath('/expenses');
   return { ok: true };
 };
