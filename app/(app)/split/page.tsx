@@ -12,7 +12,7 @@ const DividirPage = async () => {
 
   const { data: contactsRaw } = await supabase
     .from('notification_contacts')
-    .select('id, name, is_self, user_id, is_split_only')
+    .select('id, name, is_self, user_id, is_split_only, phone, mp_alias, mp_payment_link')
     .eq('workspace_id', ctx.workspaceId)
     .order('name');
 

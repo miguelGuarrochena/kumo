@@ -116,6 +116,8 @@ export async function POST(request: Request) {
           workspace_id: '',
           name: 'Yo',
           phone: settingsRow.whatsapp_number,
+          mp_alias: null,
+          mp_payment_link: null,
           relationship: 'self',
           is_self: true,
           is_split_only: false,

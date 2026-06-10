@@ -11,6 +11,11 @@ import { PushToggle } from '@/components/PushToggle';
 import { Select } from '@/components/Select';
 import { useT } from '@/lib/i18n/client';
 import type { Database } from '@/lib/supabase/database.types';
+
+type SelfContact = Pick<
+  Database['public']['Tables']['notification_contacts']['Row'],
+  'id' | 'mp_alias' | 'mp_payment_link'
+>;
 import { track } from '@/lib/analytics';
 import { CURRENCY_OPTIONS, TIMEZONE_GROUPS } from './settingsConstants';
 import { Section, DonateSection, LanguageSection } from './SettingsSections';
@@ -26,6 +31,7 @@ export const SettingsClient = ({
   initialSettings,
   userEmail,
   initialDisplayName,
+  selfContact,
   vapidPublicKey,
   isAdmin = false,
   isOnboarded = true,
@@ -33,6 +39,7 @@ export const SettingsClient = ({
   initialSettings: Settings | null;
   userEmail: string;
   initialDisplayName: string;
+  selfContact: SelfContact | null;
   vapidPublicKey: string;
   isAdmin?: boolean;
   isOnboarded?: boolean;
@@ -138,7 +145,13 @@ export const SettingsClient = ({
         </Link>
       )}
 
-      <ProfileSection initialName={initialDisplayName} userEmail={userEmail} />
+      <ProfileSection
+        initialName={initialDisplayName}
+        userEmail={userEmail}
+        selfContactId={selfContact?.id}
+        initialMpAlias={selfContact?.mp_alias}
+        initialMpPaymentLink={selfContact?.mp_payment_link}
+      />
 
       <Section icon={<MessageCircle className="w-5 h-5" />} title={t.settings.section_whatsapp} tone="mint">
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">

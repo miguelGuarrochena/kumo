@@ -63,7 +63,7 @@ const ExpensesPage = async ({
     supabase.from('user_settings').select('default_currency').single(),
     supabase
       .from('notification_contacts')
-      .select('id, name, relationship, is_self, phone, user_id, is_split_only')
+      .select('id, name, relationship, is_self, phone, mp_alias, mp_payment_link, user_id, is_split_only')
       .eq('workspace_id', ctx.workspaceId)
       .order('created_at'),
     getRates(),
@@ -90,6 +90,8 @@ const ExpensesPage = async ({
     relationship: string;
     is_self: boolean;
     phone: string | null;
+    mp_alias: string | null;
+    mp_payment_link: string | null;
     user_id: string | null;
     is_split_only: boolean;
   };

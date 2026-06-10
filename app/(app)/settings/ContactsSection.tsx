@@ -143,6 +143,7 @@ const ContactRow = ({ contact, onEdit, onDelete }: ContactRowProps) => {
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
           {RELATIONSHIP_LABEL[contact.relationship]} · {phoneDisplay}
+          {contact.mp_alias ? ` · ${contact.mp_alias}` : ''}
         </p>
       </div>
       <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -177,12 +178,16 @@ const ContactSheet = ({ open, contact, onClose }: ContactSheetProps) => {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [mpAlias, setMpAlias] = useState('');
+  const [mpPaymentLink, setMpPaymentLink] = useState('');
   const [relationship, setRelationship] = useState<string>('other');
 
   useEffect(() => {
     if (!open) return;
     setName(contact?.name ?? '');
     setPhone(contact?.phone ?? '');
+    setMpAlias(contact?.mp_alias ?? '');
+    setMpPaymentLink(contact?.mp_payment_link ?? '');
     setRelationship(contact?.relationship ?? 'other');
   }, [open, contact?.id]);
 
@@ -192,6 +197,8 @@ const ContactSheet = ({ open, contact, onClose }: ContactSheetProps) => {
     if (contact?.id) fd.set('id', contact.id);
     fd.set('name', name);
     fd.set('phone', phone);
+    fd.set('mp_alias', mpAlias);
+    fd.set('mp_payment_link', mpPaymentLink);
     // Si es "Yo" (is_self), forzamos relationship a "self"
     fd.set('relationship', contact?.is_self ? 'self' : relationship);
 
@@ -241,6 +248,36 @@ const ContactSheet = ({ open, contact, onClose }: ContactSheetProps) => {
           />
           <p className="text-xs text-slate-400 mt-1">
             Formato internacional. Podés escribirlo con espacios o guiones.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Alias de Mercado Pago</label>
+          <input
+            type="text"
+            value={mpAlias}
+            onChange={(e) => setMpAlias(e.target.value)}
+            placeholder="Ej: juan.perez.mp"
+            className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            maxLength={80}
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            Opcional. Para cobrar o pagar más rápido desde Dividir y Saldos.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Link de cobro MP</label>
+          <input
+            type="url"
+            value={mpPaymentLink}
+            onChange={(e) => setMpPaymentLink(e.target.value)}
+            placeholder="https://mpago.la/..."
+            className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            maxLength={200}
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            Opcional. Si tenés un link de cobro de Mercado Pago, pegalo acá.
           </p>
         </div>
 

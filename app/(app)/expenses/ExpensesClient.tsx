@@ -20,7 +20,7 @@ import type { ExpensesView, ArchiveYear } from './page';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { track } from '@/lib/analytics';
-import type { CategoryLite, ContactLite, Expense } from './types';
+import type { CategoryLite, ContactLite, Expense, ExpenseWithSplits } from './types';
 import { monthShift, formatMonth } from './utils';
 import { ExpenseRow } from './ExpenseRow';
 import { ExpenseSheet } from './ExpenseSheet';
@@ -29,6 +29,7 @@ import { CurrencyInlineSelect } from './CurrencyInlineSelect';
 import { FilterChip } from './FilterChip';
 import { ExportMenu } from './ExportMenu';
 import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
+import { PaymentQuickSheet, type PaymentQuickCreditor } from '@/components/PaymentQuickSheet';
 
 type ExpensesSection = 'gastos' | 'saldos';
 
@@ -87,6 +88,32 @@ export const ExpensesClient = ({
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<ExtractedExpense | null>(null);
+  const [splitPay, setSplitPay] = useState<{
+    creditor: PaymentQuickCreditor;
+    amount: number;
+    currency: string;
+    debtorName: string;
+    concept: string;
+  } | null>(null);
+
+  const selfContact = useMemo(
+    () => contacts.find((c) => c.is_self) ?? null,
+    [contacts],
+  );
+
+  const resolveCreditor = (expense: Expense): PaymentQuickCreditor | null => {
+    const payerId = expense.paid_by_contact_id ?? selfContact?.id;
+    if (!payerId) return null;
+    const c = contacts.find((x) => x.id === payerId);
+    if (!c) return null;
+    return {
+      id: c.id,
+      name: c.name,
+      mp_alias: c.mp_alias,
+      mp_payment_link: c.mp_payment_link,
+      phone: c.phone,
+    };
+  };
 
   const onScanClick = () => {
     if (!hasOcrAccess) {
@@ -575,6 +602,18 @@ export const ExpensesClient = ({
                 }
                 router.refresh();
               }}
+              onPaySplit={(contactId, amount) => {
+                const creditor = resolveCreditor(exp);
+                if (!creditor) return;
+                const split = (exp as ExpenseWithSplits)._splits?.find((s) => s.contact_id === contactId);
+                setSplitPay({
+                  creditor,
+                  amount,
+                  currency: exp.currency,
+                  debtorName: split?.contact_name ?? '—',
+                  concept: exp.description ?? t.expenses.default_name,
+                });
+              }}
             />
           ))}
         </div>
@@ -615,6 +654,16 @@ export const ExpensesClient = ({
             ?? (toDelete?.categories?.name ? categoryDisplayName(toDelete.categories.name, t) : null)
             ?? 'este gasto',
         )}
+      />
+
+      <PaymentQuickSheet
+        open={!!splitPay}
+        onClose={() => setSplitPay(null)}
+        creditor={splitPay?.creditor ?? null}
+        amount={splitPay?.amount ?? 0}
+        currency={splitPay?.currency ?? 'ARS'}
+        concept={splitPay?.concept}
+        debtorName={splitPay?.debtorName}
       />
 
       <OcrPaywallSheet

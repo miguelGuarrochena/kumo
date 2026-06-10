@@ -3,7 +3,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Camera, Copy, MessageCircle, Plus, RotateCcw, Save, X, Loader2 } from 'lucide-react';
+import { Camera, Copy, MessageCircle, Plus, RotateCcw, Save, X, Loader2, Wallet } from 'lucide-react';
+import { PaymentQuickSheet } from '@/components/PaymentQuickSheet';
 import { upsertExpense } from '../expenses/actions';
 import { saveSplits } from '../expenses/splitsActions';
 import { createAdHocContact } from '../settings/contactsActions';
@@ -17,6 +18,8 @@ import { formatMoney, trimNumber, newId } from './dividirUtils';
 import { CurrencyPicker } from './CurrencyPicker';
 import { ItemsEditor } from './ItemsEditor';
 import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
+import { PaymentAssistPanel } from '@/components/PaymentAssistPanel';
+import { buildPaymentWhatsAppText } from '@/lib/paymentAssist';
 
 type Props = {
   contacts: ContactLite[];
@@ -52,6 +55,7 @@ export const DividirTab = ({
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
   const [creatingContact, setCreatingContact] = useState(false);
   const [paidParts, setPaidParts] = useState<Set<string>>(() => new Set());
+  const [personPay, setPersonPay] = useState<{ name: string; amount: number } | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const togglePartPaid = (id: string) => {
@@ -247,8 +251,31 @@ export const DividirTab = ({
     parts.forEach((p) => {
       lines.push(t.split.share_text_line.replace('{name}', p.name).replace('{amount}', formatMoney(computed[p.id] ?? 0, currency, locale)));
     });
+    if (selfContact?.mp_alias) {
+      return buildPaymentWhatsAppText(
+        {
+          creditorName: selfContact.name,
+          mpAlias: selfContact.mp_alias,
+          mpPaymentLink: selfContact.mp_payment_link,
+          amount: totalNum,
+          currency,
+          locale,
+        },
+        lines,
+        t,
+      );
+    }
     return lines.join('\n');
   };
+
+  const pendingToCollect = useMemo(() => {
+    if (!selfContact) return 0;
+    return parts.reduce((sum, p) => {
+      if (paidParts.has(p.id)) return sum;
+      if (p.contactId === selfContact.id) return sum;
+      return sum + (computed[p.id] ?? 0);
+    }, 0);
+  }, [parts, paidParts, computed, selfContact]);
 
   const onCopy = async () => {
     try {
@@ -633,14 +660,27 @@ export const DividirTab = ({
           {parts.map((p) => {
             const amount = computed[p.id] ?? 0;
             const paid = paidParts.has(p.id);
+            const isSelf = selfContact && p.contactId === selfContact.id;
+            const canCollect = !paid && !isSelf && selfContact && amount > 0;
             return (
               <div key={p.id} className="flex items-center gap-2 text-sm py-0.5">
                 <span className="truncate flex-1 min-w-0">
-                  {p.name}{selfContact && p.contactId === selfContact.id ? ` ${t.split.who_paid_self_suffix}` : ''}
+                  {p.name}{isSelf ? ` ${t.split.who_paid_self_suffix}` : ''}
                 </span>
                 <span className="font-semibold tabular-nums shrink-0">
                   {formatMoney(amount, currency, locale)}
                 </span>
+                {canCollect && (
+                  <button
+                    type="button"
+                    onClick={() => setPersonPay({ name: p.name, amount })}
+                    className="shrink-0 p-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10"
+                    title={t.split.pay_person_btn}
+                    aria-label={t.split.pay_person_btn}
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => togglePartPaid(p.id)}
@@ -666,6 +706,18 @@ export const DividirTab = ({
                 .replace('{total}', String(N))
                 .replace('{amount}', formatMoney(paidSum, currency, locale))}
             </p>
+          )}
+
+          {selfContact && pendingToCollect > 0 && (
+            <PaymentAssistPanel
+              creditorName={selfContact.name}
+              mpAlias={selfContact.mp_alias}
+              mpPaymentLink={selfContact.mp_payment_link}
+              amount={pendingToCollect}
+              currency={currency}
+              concept={t.split.default_description}
+              compact
+            />
           )}
 
           <div className="grid grid-cols-2 gap-2 pt-2">
@@ -706,6 +758,21 @@ export const DividirTab = ({
           </div>
         </div>
       )}
+      <PaymentQuickSheet
+        open={!!personPay && !!selfContact}
+        onClose={() => setPersonPay(null)}
+        creditor={selfContact ? {
+          id: selfContact.id,
+          name: selfContact.name,
+          mp_alias: selfContact.mp_alias,
+          mp_payment_link: selfContact.mp_payment_link,
+          phone: selfContact.phone,
+        } : null}
+        amount={personPay?.amount ?? 0}
+        currency={currency}
+        concept={t.split.default_description}
+        debtorName={personPay?.name}
+      />
     </div>
   );
 };

@@ -251,6 +251,8 @@ type ContactsRow = {
   workspace_id: string;
   name: string;
   phone: string | null;
+  mp_alias: string | null;
+  mp_payment_link: string | null;
   relationship: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
   is_self: boolean;
   is_split_only: boolean;
@@ -263,6 +265,8 @@ type ContactsInsert = {
   workspace_id: string;
   name: string;
   phone?: string | null;
+  mp_alias?: string | null;
+  mp_payment_link?: string | null;
   relationship?: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
   is_self?: boolean;
   is_split_only?: boolean;
@@ -275,6 +279,8 @@ type ContactsUpdate = {
   workspace_id?: string;
   name?: string;
   phone?: string | null;
+  mp_alias?: string | null;
+  mp_payment_link?: string | null;
   relationship?: 'self' | 'partner' | 'child' | 'parent' | 'sibling' | 'friend' | 'other';
   is_self?: boolean;
   is_split_only?: boolean;

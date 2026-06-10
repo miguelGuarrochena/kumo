@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Scale, ArrowRight, Trash2, Plus, Loader2 } from 'lucide-react';
+import { Scale, ArrowRight, Trash2, Plus, Loader2, Wallet } from 'lucide-react';
+import { PaymentQuickSheet, type PaymentQuickCreditor } from '@/components/PaymentQuickSheet';
 import { Sheet } from '@/components/Sheet';
+import { PaymentAssistPanel } from '@/components/PaymentAssistPanel';
 import { Select } from '@/components/Select';
 import { recordPayment, deletePayment } from '../expenses/splitsActions';
 import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
@@ -29,6 +31,13 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
   const { t, locale } = useT();
   const [recording, setRecording] = useState(false);
   const [paymentDraft, setPaymentDraft] = useState<PaymentDraft>({});
+  const [quickPay, setQuickPay] = useState<{
+    creditor: PaymentQuickCreditor;
+    amount: number;
+    currency: string;
+    debtorName?: string;
+    concept?: string;
+  } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const contactName = (id: string) => contacts.find((c) => c.id === id)?.name ?? '—';
@@ -46,6 +55,46 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
   const openPayment = (draft: PaymentDraft = {}) => {
     setPaymentDraft(draft);
     setRecording(true);
+  };
+
+  const contactToCreditor = (id: string): PaymentQuickCreditor | null => {
+    const c = contacts.find((x) => x.id === id);
+    if (!c) return null;
+    return {
+      id: c.id,
+      name: c.name,
+      mp_alias: c.mp_alias,
+      mp_payment_link: c.mp_payment_link,
+      phone: c.phone,
+    };
+  };
+
+  const openQuickCollect = (contactId: string, amount: number, currency: string, name: string) => {
+    const creditor = contactToCreditor(contactId);
+    if (!creditor) return;
+    setQuickPay({
+      creditor,
+      amount,
+      currency,
+      concept: t.split.balances_page_title,
+    });
+  };
+
+  const openQuickPayDebt = (debtorId: string, amount: number, currency: string, debtorName: string) => {
+    const defaultCreditorId = grouped.owed[0]?.contact_id;
+    if (!defaultCreditorId) {
+      openPayment({ fromId: debtorId, amount: String(amount) });
+      return;
+    }
+    const creditor = contactToCreditor(defaultCreditorId);
+    if (!creditor) return;
+    setQuickPay({
+      creditor,
+      amount,
+      currency,
+      debtorName,
+      concept: t.split.balances_page_title,
+    });
   };
 
   const onDeletePayment = (id: string) => {
@@ -90,20 +139,36 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
             ) : (
               <ul className="space-y-1.5">
                 {grouped.owe.map((b) => (
-                  <li key={b.contact_id}>
+                  <li key={b.contact_id} className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => openPayment({
                         fromId: b.contact_id,
                         amount: String(b.net_amount),
                       })}
-                      className="w-full flex items-center justify-between gap-3 text-sm px-2 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors text-left"
+                      className="flex-1 flex items-center justify-between gap-3 text-sm px-2 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors text-left min-w-0"
                     >
                       <span className="truncate font-medium">{b.contact_name}</span>
                       <span className="font-semibold tabular-nums text-rose-600 dark:text-rose-400 whitespace-nowrap">
                         {formatMoney(b.net_amount, b.currency as Currency, locale)}
                       </span>
                     </button>
+                    {grouped.owed.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => openQuickPayDebt(
+                          b.contact_id,
+                          b.net_amount,
+                          b.currency,
+                          b.contact_name,
+                        )}
+                        className="shrink-0 p-2 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10"
+                        title={t.split.pay_quick_btn}
+                        aria-label={t.split.pay_quick_btn}
+                      >
+                        <Wallet className="w-4 h-4" />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -119,19 +184,33 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
             ) : (
               <ul className="space-y-1.5">
                 {grouped.owed.map((b) => (
-                  <li key={b.contact_id}>
+                  <li key={b.contact_id} className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => openPayment({
                         toId: b.contact_id,
                         amount: String(Math.abs(b.net_amount)),
                       })}
-                      className="w-full flex items-center justify-between gap-3 text-sm px-2 py-2 rounded-lg hover:bg-mint-50 dark:hover:bg-mint-500/10 transition-colors text-left"
+                      className="flex-1 flex items-center justify-between gap-3 text-sm px-2 py-2 rounded-lg hover:bg-mint-50 dark:hover:bg-mint-500/10 transition-colors text-left min-w-0"
                     >
                       <span className="truncate font-medium">{b.contact_name}</span>
                       <span className="font-semibold tabular-nums text-mint-600 dark:text-mint-400 whitespace-nowrap">
                         {formatMoney(Math.abs(b.net_amount), b.currency as Currency, locale)}
                       </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openQuickCollect(
+                        b.contact_id,
+                        Math.abs(b.net_amount),
+                        b.currency,
+                        b.contact_name,
+                      )}
+                      className="shrink-0 p-2 rounded-lg text-mint-600 dark:text-mint-400 hover:bg-mint-50 dark:hover:bg-mint-500/10"
+                      title={t.split.pay_collect_btn}
+                      aria-label={t.split.pay_collect_btn}
+                    >
+                      <Wallet className="w-4 h-4" />
                     </button>
                   </li>
                 ))}
@@ -181,6 +260,16 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
         initialFrom={paymentDraft.fromId}
         initialTo={paymentDraft.toId}
         initialAmount={paymentDraft.amount}
+      />
+
+      <PaymentQuickSheet
+        open={!!quickPay}
+        onClose={() => setQuickPay(null)}
+        creditor={quickPay?.creditor ?? null}
+        amount={quickPay?.amount ?? 0}
+        currency={quickPay?.currency ?? 'ARS'}
+        concept={quickPay?.concept}
+        debtorName={quickPay?.debtorName}
       />
     </div>
   );
@@ -261,6 +350,10 @@ const RecordPaymentSheet = ({
   const otherContacts = contacts.filter(
     (c) => !debtors.some((d) => d.contact_id === c.id) && !creditors.some((d) => d.contact_id === c.id),
   );
+
+  const creditor = contacts.find((c) => c.id === toId);
+  const payAmount = Number(amount);
+  const showPayAssist = !!toId && payAmount > 0;
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -449,6 +542,19 @@ const RecordPaymentSheet = ({
             className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base"
           />
         </div>
+
+        {showPayAssist && creditor && (
+          <PaymentAssistPanel
+            creditorName={creditor.name}
+            mpAlias={creditor.mp_alias}
+            mpPaymentLink={creditor.mp_payment_link}
+            amount={payAmount}
+            currency={currency}
+            concept={note || t.split.default_description}
+            whatsappPhone={creditor.phone}
+            compact
+          />
+        )}
       </form>
     </Sheet>
   );

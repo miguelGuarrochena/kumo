@@ -10,6 +10,9 @@ export type ContactLite = {
   name: string;
   is_self: boolean;
   is_split_only?: boolean;
+  phone?: string | null;
+  mp_alias?: string | null;
+  mp_payment_link?: string | null;
 };
 
 export type PaymentRow = {

@@ -13,6 +13,8 @@ export type ContactLite = {
   relationship: string;
   is_self: boolean;
   phone: string | null;
+  mp_alias: string | null;
+  mp_payment_link: string | null;
   is_split_only: boolean;
 };
 
@@ -28,6 +30,7 @@ export type Expense = {
   is_recurring: boolean;
   recurrence_type: string | null;
   notify_contact_ids: string[];
+  paid_by_contact_id: string | null;
   categories: CategoryLite | null;
 };
 

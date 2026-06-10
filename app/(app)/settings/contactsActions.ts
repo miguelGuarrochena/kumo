@@ -22,6 +22,24 @@ const contactSchema = z.object({
       return digits.length > 0 ? digits : null;
     }),
   relationship: z.enum(RELATIONSHIPS).default('other'),
+  mp_alias: z
+    .string()
+    .max(80)
+    .nullable()
+    .optional()
+    .transform((v) => {
+      const t = v?.trim();
+      return t ? t : null;
+    }),
+  mp_payment_link: z
+    .string()
+    .max(200)
+    .nullable()
+    .optional()
+    .transform((v) => {
+      const t = v?.trim();
+      return t ? t : null;
+    }),
 });
 
 export type ContactFormState = { ok: boolean; error?: string };
@@ -35,6 +53,8 @@ export async function upsertContact(
     name: formData.get('name'),
     phone: formData.get('phone'),
     relationship: formData.get('relationship') || 'other',
+    mp_alias: formData.get('mp_alias'),
+    mp_payment_link: formData.get('mp_payment_link'),
   });
 
   if (!parsed.success) {
@@ -159,6 +179,72 @@ export async function createAdHocContact(name: string): Promise<{ ok: boolean; i
   revalidatePath('/settings');
   revalidatePath('/expenses');
   return { ok: true, id: (created as { id: string }).id };
+}
+
+const mpFieldSchema = z.object({
+  mp_alias: z
+    .string()
+    .max(80)
+    .nullable()
+    .optional()
+    .transform((v) => {
+      const t = v?.trim();
+      return t ? t : null;
+    }),
+  mp_payment_link: z
+    .string()
+    .max(200)
+    .nullable()
+    .optional()
+    .transform((v) => {
+      const t = v?.trim();
+      return t ? t : null;
+    }),
+});
+
+export async function updateSelfMpInfo(params: {
+  contactId: string;
+  mp_alias?: string | null;
+  mp_payment_link?: string | null;
+}): Promise<ContactFormState> {
+  const parsed = mpFieldSchema.safeParse(params);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+  }
+
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from('notification_contacts')
+    .select('id, is_self, user_id')
+    .eq('id', params.contactId)
+    .single();
+
+  const contact = row as { id: string; is_self?: boolean; user_id?: string } | null;
+  if (!contact?.is_self || contact.user_id !== ctx.userId) {
+    return { ok: false, error: 'Solo podés editar tu contacto "Yo".' };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('notification_contacts') as any)
+    .update({
+      mp_alias: parsed.data.mp_alias,
+      mp_payment_link: parsed.data.mp_payment_link,
+    })
+    .eq('id', params.contactId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/settings');
+  revalidatePath('/split');
+  revalidatePath('/expenses');
+  return { ok: true };
 }
 
 export async function cleanupDuplicateSelfContacts(): Promise<{ ok: boolean; deleted?: number; error?: string }> {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Pencil, Trash2 } from 'lucide-react';
+import { Check, Pencil, Trash2, Wallet } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 import { categoryDisplayName } from '@/lib/categoryLabels';
 import { formatMoney, type Currency } from '@/lib/currency';
@@ -15,6 +15,7 @@ type ExpenseRowProps = {
   onDelete: () => void;
   onTogglePaid: () => void;
   onToggleSplitPaid?: (contactId: string, paid: boolean) => void;
+  onPaySplit?: (contactId: string, amount: number) => void;
   showFullDate?: boolean;
 };
 
@@ -26,6 +27,7 @@ export const ExpenseRow = ({
   onDelete,
   onTogglePaid,
   onToggleSplitPaid,
+  onPaySplit,
   showFullDate = false,
 }: ExpenseRowProps) => {
   const { t, locale } = useT();
@@ -82,32 +84,47 @@ export const ExpenseRow = ({
                   ? (total * s.percentage) / 100
                   : null;
               return (
-                <button
+                <span
                   key={`${s.contact_id}-${i}`}
-                  type="button"
-                  onClick={() => onToggleSplitPaid?.(s.contact_id, !s.paid)}
-                  disabled={!onToggleSplitPaid}
-                  title={s.paid ? t.expenses.split_mark_pending : t.expenses.split_mark_paid}
-                  className={`inline-flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+                  className={`inline-flex items-center gap-0.5 pl-2 pr-1 py-1 rounded-lg text-[11px] font-medium border ${
                     s.paid
-                      ? 'bg-mint-50 text-mint-700 border border-mint-200 dark:bg-mint-500/15 dark:text-mint-300 dark:border-mint-500/30'
-                      : 'bg-peach-50 text-peach-700 border border-peach-200 dark:bg-peach-500/15 dark:text-peach-300 dark:border-peach-500/30'
-                  } ${onToggleSplitPaid ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`}
+                      ? 'bg-mint-50 text-mint-700 border-mint-200 dark:bg-mint-500/15 dark:text-mint-300 dark:border-mint-500/30'
+                      : 'bg-peach-50 text-peach-700 border-peach-200 dark:bg-peach-500/15 dark:text-peach-300 dark:border-peach-500/30'
+                  }`}
                 >
-                  <span className="truncate max-w-[5.5rem] sm:max-w-none">{s.contact_name}</span>
-                  {portion !== null && (
-                    <span className="tabular-nums opacity-90 shrink-0">
-                      {formatMoney(portion, expense.currency as Currency, locale)}
-                    </span>
-                  )}
-                  <span
-                    className={`w-4 h-4 rounded-full grid place-items-center shrink-0 ${
-                      s.paid ? 'bg-mint-500 text-white' : 'bg-peach-300/80 text-white dark:bg-peach-500'
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => onToggleSplitPaid?.(s.contact_id, !s.paid)}
+                    disabled={!onToggleSplitPaid}
+                    title={s.paid ? t.expenses.split_mark_pending : t.expenses.split_mark_paid}
+                    className={`inline-flex items-center gap-1 pr-0.5 ${onToggleSplitPaid ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`}
                   >
-                    {s.paid ? <Check className="w-2.5 h-2.5" strokeWidth={3} /> : null}
-                  </span>
-                </button>
+                    <span className="truncate max-w-[5.5rem] sm:max-w-none">{s.contact_name}</span>
+                    {portion !== null && (
+                      <span className="tabular-nums opacity-90 shrink-0">
+                        {formatMoney(portion, expense.currency as Currency, locale)}
+                      </span>
+                    )}
+                    <span
+                      className={`w-4 h-4 rounded-full grid place-items-center shrink-0 ${
+                        s.paid ? 'bg-mint-500 text-white' : 'bg-peach-300/80 text-white dark:bg-peach-500'
+                      }`}
+                    >
+                      {s.paid ? <Check className="w-2.5 h-2.5" strokeWidth={3} /> : null}
+                    </span>
+                  </button>
+                  {!s.paid && onPaySplit && portion !== null && portion > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onPaySplit(s.contact_id, portion)}
+                      className="p-1 rounded-md text-sky-600 dark:text-sky-400 hover:bg-sky-100/80 dark:hover:bg-sky-500/20"
+                      title={t.expenses.split_pay_chip}
+                      aria-label={t.expenses.split_pay_chip}
+                    >
+                      <Wallet className="w-3 h-3" />
+                    </button>
+                  )}
+                </span>
               );
             })}
           </div>

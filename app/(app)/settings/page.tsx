@@ -130,6 +130,9 @@ const SettingsPage = async () => {
         initialSettings={settings}
         userEmail={user?.email ?? ''}
         initialDisplayName={user?.user_metadata?.full_name ?? ''}
+        selfContact={(contacts ?? []).find(
+          (c) => c.is_self && c.user_id === user!.id,
+        ) ?? null}
         vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
         isAdmin={isAdmin(user?.email)}
         isOnboarded={(settings as { onboarded?: boolean } | null)?.onboarded ?? false}
