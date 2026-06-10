@@ -24,6 +24,7 @@ import { ArchiveView } from './ArchiveView';
 import { CurrencyInlineSelect } from './CurrencyInlineSelect';
 import { FilterChip } from './FilterChip';
 import { ExportMenu } from './ExportMenu';
+import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
 
 type Props = {
   view: ExpensesView;
@@ -36,7 +37,11 @@ type Props = {
   displayCurrency: Currency;   // moneda en la que se muestra el TOTAL ahora
   rates: Partial<Record<Currency, number>>;
   filters: Filters;
-  isPro: boolean;
+  hasOcrAccess: boolean;
+  trialDaysLeft: number | null;
+  priceMonthly: string;
+  priceYearly: string;
+  yearlyPct: number;
 };
 
 export const ExpensesClient = ({
@@ -50,7 +55,11 @@ export const ExpensesClient = ({
   displayCurrency,
   rates,
   filters,
-  isPro,
+  hasOcrAccess,
+  trialDaysLeft,
+  priceMonthly,
+  priceYearly,
+  yearlyPct,
 }: Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,13 +71,14 @@ export const ExpensesClient = ({
   const [searchInput, setSearchInput] = useState(filters.q);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<ExtractedExpense | null>(null);
 
   const onScanClick = () => {
-    if (!isPro) {
-      router.push('/settings#plan');
+    if (!hasOcrAccess) {
+      setOcrPaywallOpen(true);
       return;
     }
     fileInputRef.current?.click();
@@ -209,7 +219,7 @@ export const ExpensesClient = ({
           <button
             onClick={onScanClick}
             disabled={ocrLoading}
-            title={isPro ? t.expenses.scan : t.expenses.scan_pro_only}
+            title={hasOcrAccess ? t.expenses.scan : t.expenses.scan_pro_only}
             className="relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait"
           >
             {ocrLoading ? (
@@ -220,9 +230,9 @@ export const ExpensesClient = ({
             <span className="hidden sm:inline text-sm">
               {ocrLoading ? t.common.loading : t.expenses.scan}
             </span>
-            {!isPro && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-white grid place-items-center text-[9px] font-bold shadow-sm">
-                ★
+            {!hasOcrAccess && (
+              <span className="absolute -top-1.5 -right-1.5 text-[9px] px-1 py-0.5 rounded-full bg-amber-500 text-white font-bold shadow-sm">
+                {t.ocr.badge_paid}
               </span>
             )}
           </button>
@@ -311,7 +321,7 @@ export const ExpensesClient = ({
           <div className="text-center">
             <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">{t.expenses.total_month}</p>
             <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
-              {formatMoney(totalInDisplay, displayCurrency)}
+              {formatMoney(totalInDisplay, displayCurrency, locale)}
             </p>
             <div className="text-xs text-slate-400 dark:text-slate-500 mt-2 inline-flex items-center gap-1 flex-wrap justify-center">
               <span>{t.expenses.n_expenses.replace('{n}', String(expenses.length))} · {t.expenses.in_currency}</span>
@@ -436,7 +446,7 @@ export const ExpensesClient = ({
                   />
                 </div>
                 <p className="text-xl font-bold kumo-gradient-text">
-                  {formatMoney(totalInDisplay, displayCurrency)}
+                  {formatMoney(totalInDisplay, displayCurrency, locale)}
                 </p>
                 {currencyBreakdown.length > 1 && (
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
@@ -540,6 +550,15 @@ export const ExpensesClient = ({
         onConfirm={onDelete}
         title={t.expenses.delete_confirm_title}
         description={t.expenses.delete_confirm_desc.replace('{name}', toDelete?.description ?? toDelete?.categories?.name ?? 'este gasto')}
+      />
+
+      <OcrPaywallSheet
+        open={ocrPaywallOpen}
+        onClose={() => setOcrPaywallOpen(false)}
+        priceMonthly={priceMonthly}
+        priceYearly={priceYearly}
+        yearlyPct={yearlyPct}
+        trialDaysLeft={trialDaysLeft}
       />
 
       {ocrLoading && ocrPreviewUrl && (

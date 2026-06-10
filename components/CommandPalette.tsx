@@ -4,13 +4,14 @@
 // Busca gastos, recordatorios, items de compras y categorías.
 // Permite navegar rápido a páginas sin tocar el menú.
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Search, Wallet, Bell, ShoppingCart, Tags, Settings,
   CalendarDays, BarChart3, ArrowRight, Loader2, Plus,
 } from 'lucide-react';
 import { searchEverywhere, type SearchResult } from '@/app/(app)/searchActions';
+import { useT } from '@/lib/i18n/client';
 
 type QuickAction = {
   type: 'action';
@@ -21,16 +22,6 @@ type QuickAction = {
   icon: typeof Wallet;
 };
 
-const QUICK_ACTIONS: QuickAction[] = [
-  { type: 'action', id: 'a-expenses',   title: 'Ir a Gastos',         href: '/expenses',  icon: Wallet },
-  { type: 'action', id: 'a-calendar',   title: 'Ir a Calendario',     href: '/calendar',  icon: CalendarDays },
-  { type: 'action', id: 'a-shopping',   title: 'Ir a Compras',        href: '/shopping',  icon: ShoppingCart },
-  { type: 'action', id: 'a-metrics',    title: 'Ir a Métricas',       href: '/metrics',   icon: BarChart3 },
-  { type: 'action', id: 'a-reminders',  title: 'Ver recordatorios',   href: '/calendar?view=upcoming', icon: Bell },
-  { type: 'action', id: 'a-categories', title: 'Ir a Categorías',     href: '/categories', icon: Tags },
-  { type: 'action', id: 'a-settings',   title: 'Ir a Configuración',  href: '/settings',   icon: Settings },
-];
-
 const ICON_FOR_TYPE: Record<SearchResult['type'], typeof Wallet> = {
   expense:   Wallet,
   reminder:  Bell,
@@ -38,15 +29,9 @@ const ICON_FOR_TYPE: Record<SearchResult['type'], typeof Wallet> = {
   category:  Tags,
 };
 
-const LABEL_FOR_TYPE: Record<SearchResult['type'], string> = {
-  expense:   'Gasto',
-  reminder:  'Recordatorio',
-  shopping:  'Compra',
-  category:  'Categoría',
-};
-
 export const CommandPalette = () => {
   const router = useRouter();
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -54,6 +39,23 @@ export const CommandPalette = () => {
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const quickActions: QuickAction[] = useMemo(() => [
+    { type: 'action', id: 'a-expenses',   title: t.command.action_expenses,   href: '/expenses',  icon: Wallet },
+    { type: 'action', id: 'a-calendar',   title: t.command.action_calendar,   href: '/calendar',  icon: CalendarDays },
+    { type: 'action', id: 'a-shopping',   title: t.command.action_shopping,   href: '/shopping',  icon: ShoppingCart },
+    { type: 'action', id: 'a-metrics',    title: t.command.action_metrics,    href: '/metrics',   icon: BarChart3 },
+    { type: 'action', id: 'a-reminders',  title: t.command.action_reminders,  href: '/calendar?view=upcoming', icon: Bell },
+    { type: 'action', id: 'a-categories', title: t.command.action_categories, href: '/categories', icon: Tags },
+    { type: 'action', id: 'a-settings',   title: t.command.action_settings,   href: '/settings',   icon: Settings },
+  ], [t]);
+
+  const labelForType: Record<SearchResult['type'], string> = useMemo(() => ({
+    expense:   t.command.type_expense,
+    reminder:  t.command.type_reminder,
+    shopping:  t.command.type_shopping,
+    category:  t.command.type_category,
+  }), [t]);
 
   // Atajo de teclado global: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -72,8 +74,8 @@ export const CommandPalette = () => {
   // Focus input al abrir
   useEffect(() => {
     if (open) {
-      const t = setTimeout(() => inputRef.current?.focus(), 50);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
     } else {
       setQuery('');
       setResults([]);
@@ -105,10 +107,10 @@ export const CommandPalette = () => {
 
   // Filtramos quick actions por la query
   const matchedActions: QuickAction[] = query.trim().length >= 1
-    ? QUICK_ACTIONS.filter((a) =>
+    ? quickActions.filter((a) =>
         a.title.toLowerCase().includes(query.toLowerCase().trim()),
       )
-    : QUICK_ACTIONS.slice(0, 4); // primeros 4 si no hay query
+    : quickActions.slice(0, 4);
 
   type Combined = SearchResult | QuickAction;
   const combined: Combined[] = [...matchedActions, ...results];
@@ -144,7 +146,6 @@ export const CommandPalette = () => {
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[70vh]"
       >
-        {/* Search input */}
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-100 dark:border-slate-700/60">
           {pending ? (
             <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />
@@ -157,7 +158,7 @@ export const CommandPalette = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onInputKey}
-            placeholder="Buscar gastos, recordatorios, compras..."
+            placeholder={t.command.placeholder}
             className="flex-1 bg-transparent border-0 focus:outline-none text-base placeholder:text-slate-400"
           />
           <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
@@ -165,14 +166,13 @@ export const CommandPalette = () => {
           </kbd>
         </div>
 
-        {/* Results */}
         <div className="overflow-y-auto py-1">
           {combined.length === 0 ? (
-            <EmptyState query={query} />
+            <EmptyState query={query} minChars={t.command.min_chars} noResults={t.command.no_results} />
           ) : (
             <>
               {matchedActions.length > 0 && (
-                <SectionTitle>Acciones rápidas</SectionTitle>
+                <SectionTitle>{t.command.quick_actions}</SectionTitle>
               )}
               {matchedActions.map((a, i) => (
                 <ResultRow
@@ -182,12 +182,12 @@ export const CommandPalette = () => {
                   onClick={() => navigate(a)}
                   icon={<a.icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                   title={a.title}
-                  subtitle="Navegar"
+                  subtitle={t.command.navigate}
                 />
               ))}
 
               {results.length > 0 && (
-                <SectionTitle>Resultados</SectionTitle>
+                <SectionTitle>{t.command.results}</SectionTitle>
               )}
               {results.map((r, idx) => {
                 const i = matchedActions.length + idx;
@@ -200,8 +200,8 @@ export const CommandPalette = () => {
                     onClick={() => navigate(r)}
                     icon={<Icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                     title={r.title}
-                    subtitle={r.subtitle ?? LABEL_FOR_TYPE[r.type]}
-                    badge={LABEL_FOR_TYPE[r.type]}
+                    subtitle={r.subtitle ?? labelForType[r.type]}
+                    badge={labelForType[r.type]}
                   />
                 );
               })}
@@ -209,31 +209,26 @@ export const CommandPalette = () => {
           )}
         </div>
 
-        {/* Footer hint */}
         <div className="border-t border-slate-100 dark:border-slate-700/60 px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between bg-slate-50 dark:bg-slate-800/40">
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 font-mono text-[10px]">↑↓</kbd>
-              navegar
+              {t.command.navigate_keys}
             </span>
             <span className="inline-flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 font-mono text-[10px]">↵</kbd>
-              abrir
+              {t.command.open_key}
             </span>
           </div>
           <span className="hidden sm:inline">
             <kbd className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 font-mono text-[10px]">⌘K</kbd>
-            {' '}para abrir
+            {' '}{t.command.open_shortcut}
           </span>
         </div>
       </div>
     </div>
   );
 };
-
-// ---------------------------------------------------------------------------
-// Sub-componentes
-// ---------------------------------------------------------------------------
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <p className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold">
@@ -286,14 +281,20 @@ const ResultRow = ({
   </button>
 );
 
-const EmptyState = ({ query }: { query: string }) => (
+const EmptyState = ({
+  query,
+  minChars,
+  noResults,
+}: {
+  query: string;
+  minChars: string;
+  noResults: string;
+}) => (
   <div className="px-6 py-10 text-center">
     {query.trim().length < 2 ? (
       <>
         <Search className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Escribí al menos 2 letras para buscar.
-        </p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{minChars}</p>
       </>
     ) : (
       <>
@@ -301,7 +302,7 @@ const EmptyState = ({ query }: { query: string }) => (
           <Plus className="w-4 h-4 text-slate-400 rotate-45" />
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Sin resultados para &ldquo;<strong>{query}</strong>&rdquo;.
+          {noResults.replace('{query}', query)}
         </p>
       </>
     )}

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
+import { getPricing } from '@/lib/pricing';
 import { DividirClient } from './DividirClient';
 import type { BalanceRow, ContactLite, PaymentRow } from './types';
 
@@ -36,12 +37,18 @@ const DividirPage = async () => {
   const balances = (balancesRes?.data ?? []) as BalanceRow[];
   const payments = (paymentsRaw ?? []) as PaymentRow[];
 
+  const pricing = getPricing();
+
   return (
     <DividirClient
       contacts={contacts as ContactLite[]}
       balances={balances}
       payments={payments}
-      isPro={subscription.tier === 'pro'}
+      hasOcrAccess={subscription.tier === 'pro'}
+      trialDaysLeft={subscription.daysLeftInTrial}
+      priceMonthly={pricing.monthly}
+      priceYearly={pricing.yearly}
+      yearlyPct={pricing.yearlyPct}
     />
   );
 };

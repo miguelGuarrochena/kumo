@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 
 type Props = {
   open: boolean;
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
+  const { t } = useT();
+
   useEffect(() => {
     if (!open) return;
     const original = document.body.style.overflow;
@@ -58,7 +61,7 @@ export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
             type="button"
             onClick={onClose}
             className="p-2 -mr-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500"
-            aria-label="Cerrar"
+            aria-label={t.common.close}
           >
             <X className="w-4 h-4" />
           </button>

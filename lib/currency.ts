@@ -124,9 +124,14 @@ export async function convert(
 // ---------------------------------------------------------------------
 // Format
 // ---------------------------------------------------------------------
-export function formatMoney(amount: number, currency: Currency): string {
+export function formatMoney(
+  amount: number,
+  currency: Currency,
+  locale: 'es' | 'en' = 'es',
+): string {
   const cur = CURRENCIES.find((c) => c.code === currency);
-  const formatter = new Intl.NumberFormat('es-AR', {
+  const tag = locale === 'en' ? 'en-US' : 'es-AR';
+  const formatter = new Intl.NumberFormat(tag, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

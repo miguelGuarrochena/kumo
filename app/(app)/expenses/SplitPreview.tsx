@@ -23,7 +23,7 @@ export const SplitPreview = ({
   sumComputed,
   currency,
 }: SplitPreviewProps) => {
-  const { t } = useT();
+  const { t, locale } = useT();
   const sumOk = Math.abs(sumComputed - totalAmount) < 0.01;
   const diff = totalAmount - sumComputed;
 
@@ -49,7 +49,7 @@ export const SplitPreview = ({
                 )}
               </span>
               <span className="font-semibold text-sm tabular-nums">
-                {formatMoney(amount, currency)}
+                {formatMoney(amount, currency, locale)}
               </span>
             </div>
           );
@@ -65,14 +65,14 @@ export const SplitPreview = ({
           {t.split.preview_total}
         </span>
         <span className="text-sm font-bold tabular-nums">
-          {formatMoney(sumComputed, currency)} / {formatMoney(totalAmount, currency)}
+          {formatMoney(sumComputed, currency, locale)} / {formatMoney(totalAmount, currency, locale)}
         </span>
       </div>
       {!sumOk && (
         <div className="px-4 py-1.5 text-[11px] text-rose-500 bg-rose-50 dark:bg-rose-500/5">
           {diff > 0
-            ? t.split.preview_missing.replace('{amount}', formatMoney(diff, currency))
-            : t.split.preview_extra.replace('{amount}', formatMoney(Math.abs(diff), currency))}
+            ? t.split.preview_missing.replace('{amount}', formatMoney(diff, currency, locale))
+            : t.split.preview_extra.replace('{amount}', formatMoney(Math.abs(diff), currency, locale))}
         </div>
       )}
     </div>

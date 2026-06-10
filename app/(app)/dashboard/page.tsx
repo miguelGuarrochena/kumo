@@ -144,7 +144,7 @@ const DashboardPage = async () => {
               {t.expenses.total_month}
             </p>
             <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
-              {formatMoney(monthTotal, displayCurrency)}
+              {formatMoney(monthTotal, displayCurrency, locale)}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
               {t.expenses.n_expenses.replace('{n}', String(monthCount))} {t.expenses.in_currency} {displayCurrency}
@@ -216,7 +216,7 @@ const DashboardPage = async () => {
                     </p>
                   </div>
                   <p className="text-sm font-semibold tabular-nums whitespace-nowrap">
-                    {formatMoney(Number(e.amount), e.currency as Currency)}
+                    {formatMoney(Number(e.amount), e.currency as Currency, locale)}
                   </p>
                 </div>
               );
@@ -281,7 +281,7 @@ const DashboardPage = async () => {
                   </p>
                 </div>
                 <p className="text-sm font-semibold tabular-nums whitespace-nowrap">
-                  {formatMoney(Number(e.amount), e.currency as Currency)}
+                  {formatMoney(Number(e.amount), e.currency as Currency, locale)}
                 </p>
               </div>
             ))}

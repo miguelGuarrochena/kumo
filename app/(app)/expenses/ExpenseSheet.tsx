@@ -44,7 +44,7 @@ export const ExpenseSheet = ({
   onClose,
 }: ExpenseSheetProps) => {
   const router = useRouter();
-  const { t } = useT();
+  const { t, locale } = useT();
   const [pending, startTransition] = useTransition();
 
   const [amount, setAmount] = useState('');
@@ -328,7 +328,7 @@ export const ExpenseSheet = ({
           <div className="bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800/50 rounded-xl p-3 text-sm flex items-center justify-between">
             <span className="text-sky-700 dark:text-sky-300">{t.expenses.equivalent}:</span>
             <span className="font-semibold text-sky-900 dark:text-sky-200">
-              {formatMoney(convertedAmount, defaultCurrency)}
+              {formatMoney(convertedAmount, defaultCurrency, locale)}
             </span>
           </div>
         )}

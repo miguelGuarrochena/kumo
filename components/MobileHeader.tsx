@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check } from 'lucide-react';
+import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check, BarChart3 } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { WorkspaceSwitcher, type WorkspaceOption } from './WorkspaceSwitcher';
@@ -28,6 +28,7 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
   const pathname = usePathname();
   const { t, locale } = useT();
   const [menuOpen, setMenuOpen] = useState(false);
+  const initial = userEmail.charAt(0).toUpperCase();
 
   const onSignOut = async () => {
     resetAnalytics();
@@ -49,9 +50,10 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
         <div className="flex justify-start">
           {!isDashboard && (
             <button
+              type="button"
               onClick={onBack}
               className="w-9 h-9 rounded-full grid place-items-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              aria-label="Volver"
+              aria-label={t.common.back}
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -66,11 +68,13 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
         <div className="flex justify-end items-center gap-2">
           <ThemeToggle compact />
           <button
+            type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="w-9 h-9 rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 grid place-items-center font-medium text-sm"
-            aria-label="Menú"
+            className="shrink-0 size-9 rounded-full overflow-hidden bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 flex items-center justify-center font-semibold text-sm leading-none ring-1 ring-sky-200/80 dark:ring-sky-700/50 hover:ring-sky-300 dark:hover:ring-sky-600 transition-shadow"
+            aria-label={t.menu.open}
+            title={userEmail}
           >
-            {userEmail.charAt(0).toUpperCase()}
+            <span aria-hidden="true">{initial}</span>
           </button>
         </div>
       </div>
@@ -97,12 +101,15 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
             <MenuItem href="/categories" icon={Tags} onClick={() => setMenuOpen(false)}>
               {t.menu.categories}
             </MenuItem>
+            <MenuItem href="/metrics" icon={BarChart3} onClick={() => setMenuOpen(false)}>
+              {t.menu.metrics}
+            </MenuItem>
 
             <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
 
             <div className="px-4 pt-2 pb-1">
               <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold">
-                Idioma
+                {t.menu.language}
               </p>
             </div>
             {LANGS.map((l) => {
@@ -144,6 +151,7 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
             <div className="h-px bg-slate-100 dark:bg-slate-700/70 my-1" />
 
             <button
+              type="button"
               onClick={onSignOut}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20"
             >

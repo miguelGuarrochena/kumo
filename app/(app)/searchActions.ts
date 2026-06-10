@@ -1,6 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { getLocale, getMessages } from '@/lib/i18n/server';
+import { localeTag } from '@/lib/i18n/locale';
 
 export type SearchResult = {
   type: 'expense' | 'reminder' | 'shopping' | 'category';
@@ -30,6 +32,9 @@ const LIMIT_PER_TYPE = 5;
 export const searchEverywhere = async (query: string): Promise<SearchResponse> => {
   const q = query.trim();
   if (q.length < 2) return { ok: true, results: [] };
+
+  const [t, locale] = await Promise.all([getMessages(), getLocale()]);
+  const tag = localeTag(locale);
 
   const supabase = await createClient();
   const pattern = `%${q.replace(/[%_]/g, '\\$&')}%`;
@@ -69,8 +74,8 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
       results.push({
         type: 'expense',
         id: e.id,
-        title: e.description ?? e.categories?.name ?? 'Gasto',
-        subtitle: `${formatAmount(e.amount, e.currency)} · ${e.expense_date}`,
+        title: e.description ?? e.categories?.name ?? t.expenses.default_name,
+        subtitle: `${formatAmount(e.amount, e.currency, tag)} · ${e.expense_date}`,
         href: '/expenses?view=all',
         color: e.categories?.color,
       });
@@ -82,7 +87,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
         type: 'reminder',
         id: r.id,
         title: r.title,
-        subtitle: `${labelForType(r.reminder_type)} · ${r.reminder_date}`,
+        subtitle: `${labelForType(r.reminder_type, t)} · ${r.reminder_date}`,
         href: `/calendar?month=${r.reminder_date.slice(0, 7)}`,
       });
     }
@@ -90,7 +95,9 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const s of (shoppingRes.data ?? []) as any[]) {
       const qty = s.quantity ? `${s.quantity}${s.unit ? ' ' + s.unit : ''}` : '';
-      const status = s.bought ? '✓ comprado' : 'pendiente';
+      const status = s.bought
+        ? `✓ ${t.command.shopping_bought}`
+        : t.command.shopping_pending;
       results.push({
         type: 'shopping',
         id: s.id,
@@ -106,7 +113,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
         type: 'category',
         id: c.id,
         title: c.name,
-        subtitle: 'Categoría',
+        subtitle: t.command.type_category,
         href: '/categories',
         color: c.color,
         icon: c.icon,
@@ -119,9 +126,15 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
   }
 };
 
-const formatAmount = (amount: number, currency: string) => {
-  return `${currency} ${Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
-};
+const formatAmount = (amount: number, currency: string, locale: string) =>
+  `${currency} ${Number(amount).toLocaleString(locale, { minimumFractionDigits: 2 })}`;
 
-const labelForType = (t: string) =>
-  t === 'medical' ? 'Médico' : t === 'birthday' ? 'Cumpleaños' : 'Recordatorio';
+const labelForType = (
+  type: string,
+  t: Awaited<ReturnType<typeof getMessages>>,
+) =>
+  type === 'medical'
+    ? t.calendar.type_medical
+    : type === 'birthday'
+      ? t.calendar.type_birthday
+      : t.command.type_reminder;

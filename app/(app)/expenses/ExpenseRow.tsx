@@ -84,7 +84,7 @@ export const ExpenseRow = ({
                   className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                 >
                   {s.contact_name}{portion !== null && (
-                    <span className="opacity-70"> · {formatMoney(portion, expense.currency as Currency)}</span>
+                    <span className="opacity-70"> · {formatMoney(portion, expense.currency as Currency, locale)}</span>
                   )}
                 </span>
               );
@@ -96,7 +96,7 @@ export const ExpenseRow = ({
         {isDifferentCurrency && convertedAmount === null ? (
           // No hay tasa para convertir: mostramos el monto original sin inventar 0.
           <p className="font-semibold text-sm whitespace-nowrap">
-            {formatMoney(Number(expense.amount), expense.currency as Currency)}
+            {formatMoney(Number(expense.amount), expense.currency as Currency, locale)}
           </p>
         ) : (
           <>
@@ -104,11 +104,12 @@ export const ExpenseRow = ({
               {formatMoney(
                 isDifferentCurrency ? (convertedAmount ?? 0) : Number(expense.amount),
                 displayCurrency,
+                locale,
               )}
             </p>
             {isDifferentCurrency && (
               <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 whitespace-nowrap">
-                ≈ {formatMoney(Number(expense.amount), expense.currency as Currency)}
+                ≈ {formatMoney(Number(expense.amount), expense.currency as Currency, locale)}
               </p>
             )}
           </>

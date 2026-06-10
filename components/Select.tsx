@@ -15,6 +15,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search as SearchIcon, X } from 'lucide-react';
 import { useClickOutside } from '@/lib/useClickOutside';
+import { useT } from '@/lib/i18n/client';
 
 export type SelectOption = {
   value: string;
@@ -65,6 +66,7 @@ export const Select = ({
   disabled = false,
   renderTrigger,
 }: Props) => {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   // Inicializamos `mounted` con `typeof document !== 'undefined'`. En SSR es
@@ -240,7 +242,7 @@ export const Select = ({
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Buscar..."
+                    placeholder={`${t.common.search}...`}
                     className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
                   />
                   {query && (
@@ -248,7 +250,7 @@ export const Select = ({
                       type="button"
                       onClick={() => setQuery('')}
                       className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600"
-                      aria-label="Limpiar búsqueda"
+                      aria-label={t.common.clear_search}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -260,7 +262,7 @@ export const Select = ({
             <div className="overflow-y-auto py-1">
               {filteredGroups.length === 0 ? (
                 <p className="px-3 py-4 text-xs text-slate-400 italic text-center">
-                  Sin resultados
+                  {t.common.no_results}
                 </p>
               ) : (
                 filteredGroups.map((group, gi) => (

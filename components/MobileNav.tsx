@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Home, Wallet, BarChart3, ShoppingCart, CalendarDays,
+  Home, Wallet, ShoppingCart, CalendarDays, Scale,
 } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 
@@ -12,11 +12,11 @@ export const MobileNav = () => {
   const { t } = useT();
 
   const nav = [
-    { href: '/dashboard', label: t.nav.dashboard,       icon: Home },
-    { href: '/expenses',  label: t.mobileNav.expenses,  icon: Wallet },
-    { href: '/calendar',  label: t.mobileNav.calendar,  icon: CalendarDays },
-    { href: '/shopping',  label: t.mobileNav.shopping,  icon: ShoppingCart },
-    { href: '/metrics',   label: t.mobileNav.metrics,   icon: BarChart3 },
+    { href: '/dashboard', label: t.nav.dashboard, icon: Home },
+    { href: '/expenses',  label: t.mobileNav.expenses, icon: Wallet },
+    { href: '/calendar',  label: t.mobileNav.calendar, icon: CalendarDays },
+    { href: '/shopping',  label: t.mobileNav.shopping, icon: ShoppingCart },
+    { href: '/dividir',   label: t.mobileNav.split,    icon: Scale },
   ] as const;
 
   return (
@@ -27,7 +27,7 @@ export const MobileNav = () => {
           return (
             <li key={href}>
               <Link
-                href={href}
+                href={href as never}
                 className={`flex flex-col items-center justify-center gap-0.5 h-full transition-colors ${
                   active ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                 }`}

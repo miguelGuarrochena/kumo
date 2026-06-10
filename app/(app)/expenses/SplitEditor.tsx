@@ -35,7 +35,7 @@ export const SplitEditor = ({
   state,
   setState,
 }: SplitEditorProps) => {
-  const { t } = useT();
+  const { t, locale } = useT();
   const setMode = (mode: SplitMode) => {
     // Al cambiar de modo reseteamos los valores específicos del modo
     // (porcentajes/montos/items) para no arrastrar datos que no aplican.
@@ -202,7 +202,7 @@ export const SplitEditor = ({
         </div>
         <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
           {state.mode === 'equal' && state.participantIds.length > 0 && totalAmount > 0
-            ? t.split.mode_equal_each.replace('{amount}', formatMoney(totalAmount / state.participantIds.length, currency))
+            ? t.split.mode_equal_each.replace('{amount}', formatMoney(totalAmount / state.participantIds.length, currency, locale))
             : state.mode === 'equal'      ? t.split.mode_equal_hint
             : state.mode === 'percentage' ? t.split.mode_percentage_hint
             : state.mode === 'fixed'      ? t.split.mode_fixed_hint

@@ -1,12 +1,15 @@
+import { localeTag } from '@/lib/i18n/locale';
+import type { Locale } from '@/lib/i18n/types';
+
 // Id estable de cliente para keys de React y referencias sin índice.
 export const newId = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-export const formatMoney = (n: number, ccy: string): string => {
+export const formatMoney = (n: number, ccy: string, locale: Locale = 'es'): string => {
   try {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: ccy, maximumFractionDigits: 2 }).format(n);
+    return new Intl.NumberFormat(localeTag(locale), { style: 'currency', currency: ccy, maximumFractionDigits: 2 }).format(n);
   } catch {
     return `${ccy} ${n.toFixed(2)}`;
   }

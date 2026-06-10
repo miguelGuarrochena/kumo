@@ -34,7 +34,7 @@ export const ParticipantsSection = ({
   onToggle,
   onAdd,
 }: ParticipantsSectionProps) => {
-  const { t } = useT();
+  const { t, locale } = useT();
   const router = useRouter();
   const [text, setText] = useState('');
   const [creating, setCreating] = useState(false);
@@ -46,9 +46,9 @@ export const ParticipantsSection = ({
 
   const helper =
     mode === 'percentage'
-      ? t.split.values_pct_helper.replace('{total}', formatMoney(totalAmount, currency))
+      ? t.split.values_pct_helper.replace('{total}', formatMoney(totalAmount, currency, locale))
       : mode === 'fixed'
-        ? t.split.values_fixed_helper.replace('{total}', formatMoney(totalAmount, currency))
+        ? t.split.values_fixed_helper.replace('{total}', formatMoney(totalAmount, currency, locale))
         : t.split.participants_tap_hint;
 
   const eachEqual =
@@ -100,7 +100,7 @@ export const ParticipantsSection = ({
               </span>
               {mode === 'equal' ? (
                 <span className="text-sm font-medium tabular-nums text-slate-600 dark:text-slate-300">
-                  {totalAmount > 0 ? formatMoney(eachEqual, currency) : '—'}
+                  {totalAmount > 0 ? formatMoney(eachEqual, currency, locale) : '—'}
                 </span>
               ) : (
                 <div className="relative w-28">

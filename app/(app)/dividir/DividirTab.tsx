@@ -15,14 +15,26 @@ import type { Mode, Participant, ItemRow } from './dividirTypes';
 import { formatMoney, trimNumber, newId } from './dividirUtils';
 import { CurrencyPicker } from './CurrencyPicker';
 import { ItemsEditor } from './ItemsEditor';
+import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
 
 type Props = {
   contacts: ContactLite[];
-  isPro: boolean;
+  hasOcrAccess: boolean;
+  trialDaysLeft: number | null;
+  priceMonthly: string;
+  priceYearly: string;
+  yearlyPct: number;
 };
 
-export const DividirTab = ({ contacts, isPro }: Props) => {
-  const { t } = useT();
+export const DividirTab = ({
+  contacts,
+  hasOcrAccess,
+  trialDaysLeft,
+  priceMonthly,
+  priceYearly,
+  yearlyPct,
+}: Props) => {
+  const { t, locale } = useT();
   const [total, setTotal] = useState('');
   // Propina puede ser porcentaje o monto fijo, con toggle.
   const [tipMode, setTipMode] = useState<'percent' | 'amount'>('percent');
@@ -34,6 +46,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
   const [values, setValues] = useState<Record<string, string>>({});
   const [items, setItems] = useState<ItemRow[]>([]);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const addParticipant = (text?: string) => {
@@ -154,14 +167,18 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
     (mode === 'fixed' && N > 0 && Math.abs(sumComputed - totalNum) < 0.01) ||
     (mode === 'items' && Math.abs(sumComputed - totalNum) < 0.01);
 
+  const onScanClick = () => {
+    if (!hasOcrAccess) {
+      setOcrPaywallOpen(true);
+      return;
+    }
+    fileRef.current?.click();
+  };
+
   const onScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    if (!isPro) {
-      toast.error(t.split.scan_pro_required);
-      return;
-    }
     setOcrLoading(true);
     try {
       const compressed = await resizeImage(file);
@@ -188,9 +205,9 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
   };
 
   const buildShareText = (): string => {
-    const lines = [t.split.share_text_header.replace('{total}', formatMoney(totalNum, currency))];
+    const lines = [t.split.share_text_header.replace('{total}', formatMoney(totalNum, currency, locale))];
     parts.forEach((p) => {
-      lines.push(t.split.share_text_line.replace('{name}', p.name).replace('{amount}', formatMoney(computed[p.id] ?? 0, currency)));
+      lines.push(t.split.share_text_line.replace('{name}', p.name).replace('{amount}', formatMoney(computed[p.id] ?? 0, currency, locale)));
     });
     return lines.join('\n');
   };
@@ -364,23 +381,36 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
       {tipAmount > 0 && baseTotal > 0 && (
         <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2">
           {(tipMode === 'percent' ? t.split.subtotal_breakdown_pct : t.split.subtotal_breakdown)
-            .replace('{base}', formatMoney(baseTotal, currency))
-            .replace('{tip}', formatMoney(tipAmount, currency))
+            .replace('{base}', formatMoney(baseTotal, currency, locale))
+            .replace('{tip}', formatMoney(tipAmount, currency, locale))
             .replace('{pct}', String(tipNum))}
-          {' = '}<strong>{formatMoney(totalNum, currency)}</strong>
+          {' = '}<strong>{formatMoney(totalNum, currency, locale)}</strong>
         </p>
       )}
 
       <button
         type="button"
-        onClick={() => fileRef.current?.click()}
+        onClick={onScanClick}
         disabled={ocrLoading}
         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-sky-300 dark:hover:border-sky-500 text-sm font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50"
       >
         {ocrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
         {ocrLoading ? t.split.scanning_ticket : t.split.scan_ticket}
-        {!isPro && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">{t.split.scan_pro}</span>}
+        {!hasOcrAccess && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
+            {t.ocr.badge_paid}
+          </span>
+        )}
       </button>
+
+      <OcrPaywallSheet
+        open={ocrPaywallOpen}
+        onClose={() => setOcrPaywallOpen(false)}
+        priceMonthly={priceMonthly}
+        priceYearly={priceYearly}
+        yearlyPct={yearlyPct}
+        trialDaysLeft={trialDaysLeft}
+      />
 
       <div>
         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
@@ -462,7 +492,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
         </div>
         <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
           {mode === 'equal' && N > 0 && totalNum > 0
-            ? t.split.mode_equal_each.replace('{amount}', formatMoney(totalNum / N, currency))
+            ? t.split.mode_equal_each.replace('{amount}', formatMoney(totalNum / N, currency, locale))
             : mode === 'equal'      ? t.split.mode_equal_hint
             : mode === 'percentage' ? t.split.mode_percentage_hint
             : mode === 'fixed'      ? t.split.mode_fixed_hint
@@ -474,7 +504,7 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-1.5">
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             {(mode === 'percentage' ? t.split.values_pct_helper : t.split.values_fixed_helper)
-              .replace('{total}', formatMoney(totalNum, currency))}
+              .replace('{total}', formatMoney(totalNum, currency, locale))}
           </p>
           {parts.map((p) => (
             <div key={p.id} className="flex items-center justify-between gap-2">
@@ -514,20 +544,20 @@ export const DividirTab = ({ contacts, isPro }: Props) => {
             {!sumOk && (() => {
               const diff = totalNum - sumComputed;
               const label = diff > 0
-                ? t.split.preview_missing.replace('{amount}', formatMoney(diff, currency))
-                : t.split.preview_extra.replace('{amount}', formatMoney(Math.abs(diff), currency));
+                ? t.split.preview_missing.replace('{amount}', formatMoney(diff, currency, locale))
+                : t.split.preview_extra.replace('{amount}', formatMoney(Math.abs(diff), currency, locale));
               return <span className="text-[11px] text-rose-500">{label}</span>;
             })()}
           </div>
           {parts.map((p) => (
             <div key={p.id} className="flex items-center justify-between text-sm">
               <span className="truncate">{p.name}</span>
-              <span className="font-semibold tabular-nums">{formatMoney(computed[p.id] ?? 0, currency)}</span>
+              <span className="font-semibold tabular-nums">{formatMoney(computed[p.id] ?? 0, currency, locale)}</span>
             </div>
           ))}
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/50">
             <span>{t.split.preview_total}</span>
-            <span className="tabular-nums">{formatMoney(sumComputed, currency)} / {formatMoney(totalNum, currency)}</span>
+            <span className="tabular-nums">{formatMoney(sumComputed, currency, locale)} / {formatMoney(totalNum, currency, locale)}</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3">

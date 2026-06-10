@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangle } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 import { Sheet } from './Sheet';
 
 type Props = {
@@ -19,9 +20,13 @@ export const ConfirmDialog = ({
   onConfirm,
   title,
   description,
-  confirmLabel = 'Borrar',
+  confirmLabel,
   destructive = true,
-}: Props) => (
+}: Props) => {
+  const { t } = useT();
+  const confirm = confirmLabel ?? t.common.delete;
+
+  return (
   <Sheet open={open} onClose={onClose} title={title}>
     <div className="flex flex-col items-center text-center pt-2 pb-4">
       <div
@@ -39,7 +44,7 @@ export const ConfirmDialog = ({
         onClick={onClose}
         className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200"
       >
-        Cancelar
+        {t.common.cancel}
       </button>
       <button
         type="button"
@@ -51,8 +56,9 @@ export const ConfirmDialog = ({
           destructive ? 'bg-rose-500 hover:bg-rose-600' : 'kumo-gradient hover:opacity-90'
         }`}
       >
-        {confirmLabel}
+        {confirm}
       </button>
     </div>
   </Sheet>
-);
+  );
+};

@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getCurrentWorkspace, requireAdmin, setActiveWorkspace } from '@/lib/workspace';
-import { getSubscription } from '@/lib/subscription';
 import { sendEmail } from '@/lib/email';
 import { renderInviteEmail } from '@/lib/email/templates';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
@@ -297,18 +296,6 @@ export const createWorkspace = async (
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'No autenticado' };
-
-  // Gate Free: 1 espacio. Pro: ilimitados.
-  const sub = await getSubscription();
-  if (sub.tier !== 'pro') {
-    const { count } = await supabase
-      .from('workspaces')
-      .select('id', { count: 'exact', head: true })
-      .eq('owner_id', user.id);
-    if ((count ?? 0) >= 1) {
-      return { ok: false, error: 'El plan Free permite 1 espacio. Pasate a Pro para crear más.' };
-    }
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: ws, error: wsErr } = await (supabase.from('workspaces') as any)

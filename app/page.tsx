@@ -6,9 +6,10 @@ import { CloudDecorations } from '@/components/CloudDecorations';
 import { Footer } from '@/components/Footer';
 import { StructuredData } from '@/components/StructuredData';
 import {
-  Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight, Sparkles, Check,
+  Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight,
 } from 'lucide-react';
 import { getPricing } from '@/lib/pricing';
+import { getLocale } from '@/lib/i18n/server';
 
 // Landing page pública. Si el user ya está logueado, lo manda al dashboard.
 
@@ -20,9 +21,11 @@ const HomePage = async () => {
 
   if (user) redirect('/dashboard');
 
+  const locale = await getLocale();
+
   return (
     <main className="min-h-screen relative overflow-hidden">
-      <StructuredData />
+      <StructuredData locale={locale} />
       <CloudDecorations />
 
       {/* Nav */}
@@ -135,54 +138,30 @@ const HomePage = async () => {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Precios simples</h2>
-        <p className="text-center text-slate-500 dark:text-slate-400 mb-10 text-sm sm:text-base">
-          Empezás con 90 días gratis del plan Pro. Después elegís.
+      {/* OCR add-on */}
+      <section id="pricing" className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Kumo es gratis</h2>
+        <p className="text-center text-slate-500 dark:text-slate-400 mb-8 text-sm sm:text-base">
+          Gastos, recordatorios, compras, WhatsApp, push y todos los espacios que necesites — sin costo.
         </p>
 
-        <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
-          <PricingCard
-            title="Free"
-            price="$0"
-            period="para siempre"
-            features={[
-              'Gastos, recordatorios, lista de compras',
-              'Notificaciones por WhatsApp',
-              'Notificaciones push web/mobile',
-              '1 espacio personal',
-            ]}
-          />
-          <PricingCard
-            title="Pro Mensual"
-            price={getPricing().monthly}
-            period="/ mes"
-            badge="90 días gratis"
-            highlight
-            features={[
-              'Todo lo del Free',
-              'OCR de tickets desde foto (Gemini)',
-              'Espacios compartidos ilimitados',
-              'Sin límite de historial',
-            ]}
-          />
-          <PricingCard
-            title="Pro Anual"
-            price={getPricing().yearly}
-            period="/ año"
-            badge={`Ahorrás ${getPricing().yearlyPct}%`}
-            features={[
-              'Lo mismo que mensual',
-              'Pagás 1 vez al año',
-              'Mejor relación precio',
-            ]}
-          />
+        <div className="kumo-card p-6 sm:p-8 border-2 border-amber-200/60 dark:border-amber-500/30">
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 grid place-items-center shrink-0">
+              <Camera className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Escanear tickets con IA</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                Es el único complemento de pago: usa Google Gemini y tiene costo por cada foto.
+                Desde {getPricing().monthly}/mes — lo activás cuando lo necesitás, sin suscripción obligatoria al registrarte.
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-3">
+                Lo activás cuando tocás &quot;Escanear ticket&quot; en la app — ahí ves el precio y pagás con MercadoPago.
+              </p>
+            </div>
+          </div>
         </div>
-
-        <p className="text-center text-xs text-slate-500 dark:text-slate-500 mt-6">
-          Pagás con MercadoPago. Cancelás cuando quieras desde Configuración.
-        </p>
       </section>
 
       {/* How it works */}
@@ -254,49 +233,6 @@ const Feature = ({ icon, title, description, tone }: FeatureProps) => {
       </div>
       <h3 className="font-semibold mb-1">{title}</h3>
       <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
-    </div>
-  );
-};
-
-type PricingCardProps = {
-  title: string;
-  price: string;
-  period: string;
-  features: string[];
-  badge?: string;
-  highlight?: boolean;
-};
-
-const PricingCard = ({
-  title, price, period, features, badge, highlight,
-}: PricingCardProps) => {
-  return (
-    <div
-      className={`relative kumo-card p-6 ${
-        highlight ? 'border-amber-300 dark:border-amber-500/50 bg-amber-50/40 dark:bg-amber-500/5' : ''
-      }`}
-    >
-      {badge && (
-        <span className="absolute -top-2.5 right-4 text-[10px] px-2.5 py-1 rounded-full bg-amber-500 text-white font-medium shadow-sm">
-          {badge}
-        </span>
-      )}
-      <div className="flex items-center gap-2 mb-3">
-        {highlight && <Sparkles className="w-4 h-4 text-amber-500" />}
-        <h3 className="font-semibold text-lg">{title}</h3>
-      </div>
-      <div className="flex items-baseline gap-1.5 mb-5">
-        <span className="text-3xl font-bold">{price}</span>
-        <span className="text-sm text-slate-500 dark:text-slate-400">{period}</span>
-      </div>
-      <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-2">
-            <Check className="w-4 h-4 mt-0.5 text-mint-500 shrink-0" />
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 };

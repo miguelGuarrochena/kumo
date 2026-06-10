@@ -3,18 +3,20 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Cookie, X } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 
 const KEY = 'kumo-cookie-consent';
 
 export const CookieBanner = () => {
+  const { t } = useT();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(KEY);
       if (!stored) {
-        const t = setTimeout(() => setVisible(true), 800);
-        return () => clearTimeout(t);
+        const timer = setTimeout(() => setVisible(true), 800);
+        return () => clearTimeout(timer);
       }
     } catch {}
   }, []);
@@ -42,11 +44,11 @@ export const CookieBanner = () => {
             <Cookie className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">Usamos cookies</p>
+            <p className="text-sm font-medium">{t.cookies.title}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Esenciales para mantenerte logueado, y analíticas anónimas para mejorar Kumo. Más detalle en la{' '}
+              {t.cookies.description_before}{' '}
               <Link href="/legal/privacy" className="underline hover:text-sky-500">
-                política de privacidad
+                {t.cookies.privacy_link}
               </Link>
               .
             </p>
@@ -56,14 +58,14 @@ export const CookieBanner = () => {
                 onClick={() => accept(true)}
                 className="px-3 py-1.5 rounded-lg kumo-gradient text-white text-xs font-medium hover:opacity-90"
               >
-                Aceptar todo
+                {t.cookies.accept_all}
               </button>
               <button
                 type="button"
                 onClick={() => accept(false)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                Solo esenciales
+                {t.cookies.essential_only}
               </button>
             </div>
           </div>
@@ -71,7 +73,7 @@ export const CookieBanner = () => {
             type="button"
             onClick={() => accept(true)}
             className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"
-            aria-label="Cerrar"
+            aria-label={t.common.close}
           >
             <X className="w-4 h-4" />
           </button>

@@ -4,20 +4,22 @@ import { useTheme } from '@/lib/theme';
 import { useEffect, useState } from 'react';
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { track } from '@/lib/analytics';
+import { useT } from '@/lib/i18n/client';
 
 type Props = {
   compact?: boolean;
 };
 
-const options = [
-  { value: 'light',  label: 'Claro',  icon: Sun },
-  { value: 'dark',   label: 'Oscuro', icon: Moon },
-  { value: 'system', label: 'Auto',   icon: Monitor },
-] as const;
-
 export const ThemeToggle = ({ compact = false }: Props) => {
+  const { t } = useT();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+
+  const options = [
+    { value: 'light' as const, label: t.theme.light, icon: Sun },
+    { value: 'dark' as const, label: t.theme.dark, icon: Moon },
+    { value: 'system' as const, label: t.theme.system, icon: Monitor },
+  ];
 
   useEffect(() => setMounted(true), []);
   if (!mounted) return <div className="w-9 h-9" aria-hidden="true" />;

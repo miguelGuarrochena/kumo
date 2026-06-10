@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Crea los 2 planes de suscripción de Kumo Pro en MercadoPago, en ARS.
-# Sin free_trial en MP — el trial 90 días lo maneja Kumo (tabla subscriptions).
+# Sin free_trial en MP — el trial de 7 días lo maneja Kumo (tabla subscriptions).
 # Uso:
 #   export MP_ACCESS_TOKEN="APP_USR-tu-access-token"
 #   bash scripts/create-mp-plans.sh
@@ -56,5 +56,5 @@ echo ""
 echo "MP_PLAN_MONTHLY=$MONTHLY_ID"
 echo "MP_PLAN_YEARLY=$YEARLY_ID"
 echo ""
-echo "(el trial 90 días lo maneja Kumo, no MP)"
+echo "(el trial de 7 días lo maneja Kumo, no MP)"
 echo "========================================"

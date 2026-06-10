@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ExpensesClient } from './ExpensesClient';
 import { getRates, convertAmount, type Currency } from '@/lib/currency';
 import { getSubscription } from '@/lib/subscription';
+import { getPricing } from '@/lib/pricing';
 import { getCurrentWorkspace } from '@/lib/workspace';
 
 export type ExpensesView = 'month' | 'all' | 'archive';
@@ -170,6 +171,8 @@ const ExpensesPage = async ({
     }
   }
 
+  const pricing = getPricing();
+
   return (
     <ExpensesClient
       view={view}
@@ -181,7 +184,11 @@ const ExpensesPage = async ({
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}
       rates={rates.rates}
-      isPro={subscription.tier === 'pro'}
+      hasOcrAccess={subscription.tier === 'pro'}
+      trialDaysLeft={subscription.daysLeftInTrial}
+      priceMonthly={pricing.monthly}
+      priceYearly={pricing.yearly}
+      yearlyPct={pricing.yearlyPct}
       filters={{
         q: params.q ?? '',
         cat: params.cat?.split(',').filter(Boolean) ?? [],

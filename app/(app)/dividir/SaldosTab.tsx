@@ -81,7 +81,7 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
                   <li key={b.contact_id} className="flex items-center justify-between gap-3 text-sm">
                     <span className="truncate">{b.contact_name}</span>
                     <span className="font-semibold tabular-nums text-rose-600 dark:text-rose-400 whitespace-nowrap">
-                      {formatMoney(b.net_amount, b.currency as Currency)}
+                      {formatMoney(b.net_amount, b.currency as Currency, locale)}
                     </span>
                   </li>
                 ))}
@@ -101,7 +101,7 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
                   <li key={b.contact_id} className="flex items-center justify-between gap-3 text-sm">
                     <span className="truncate">{b.contact_name}</span>
                     <span className="font-semibold tabular-nums text-mint-600 dark:text-mint-400 whitespace-nowrap">
-                      {formatMoney(Math.abs(b.net_amount), b.currency as Currency)}
+                      {formatMoney(Math.abs(b.net_amount), b.currency as Currency, locale)}
                     </span>
                   </li>
                 ))}
@@ -123,7 +123,7 @@ export const SaldosTab = ({ balances, contacts, payments }: Props) => {
                   <span className="truncate">{contactName(p.to_contact_id)}</span>
                 </span>
                 <span className="font-medium tabular-nums whitespace-nowrap">
-                  {formatMoney(Number(p.amount), p.currency as Currency)}
+                  {formatMoney(Number(p.amount), p.currency as Currency, locale)}
                 </span>
                 <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap hidden sm:inline">
                   {new Date(p.paid_at).toLocaleDateString(localeTag(locale))}

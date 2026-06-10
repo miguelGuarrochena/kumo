@@ -49,21 +49,18 @@ const TermsPage = () => {
         </li>
       </ul>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">4. Planes y suscripción</h2>
-      <p>Kumo tiene dos planes:</p>
-      <ul className="list-disc pl-5 space-y-1">
-        <li>
-          <strong>Free</strong>: gastos, recordatorios, lista de compras, notificaciones por WhatsApp y push, 1
-          espacio personal.
-        </li>
-        <li>
-          <strong>Pro</strong>: incluye todo lo de Free más OCR de tickets desde foto, espacios compartidos ilimitados
-          y sin límite de historial. Precio publicado en la página de Configuración → Plan.
-        </li>
-      </ul>
+      <h2 className="text-xl font-bold mt-8 mb-3">4. Uso gratuito y complemento OCR</h2>
       <p>
-        Todos los usuarios nuevos arrancan con <strong>90 días de prueba gratis del plan Pro</strong>. Al terminar la
-        prueba, si no te suscribiste pasás automáticamente al plan Free.
+        <strong>Kumo es gratuito</strong> para gastos, recordatorios, lista de compras, notificaciones por WhatsApp y push,
+        y espacios compartidos (los que necesites).
+      </p>
+      <p className="mt-3">
+        El <strong>escaneo de tickets con IA</strong> (OCR) es un complemento de pago porque utiliza servicios de terceros
+        con costo por imagen. El precio se muestra al intentar usar esa función y en Configuración → Escanear tickets.
+      </p>
+      <p className="mt-3">
+        No hay suscripción obligatoria al registrarte. Si no activás el complemento OCR, podés usar Kumo con normalidad
+        cargando gastos a mano.
       </p>
 
       <h2 className="text-xl font-bold mt-8 mb-3">5. Pagos, cancelación y reembolso</h2>

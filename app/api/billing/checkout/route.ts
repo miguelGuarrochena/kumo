@@ -27,7 +27,7 @@ export const POST = async (req: Request) => {
       planId,
       payerEmail: user.email,
       userId: user.id,
-      reason: interval === 'year' ? 'Kumo Pro · Anual' : 'Kumo Pro · Mensual',
+      reason: interval === 'year' ? 'Kumo · Escaneo OCR · Anual' : 'Kumo · Escaneo OCR · Mensual',
       backUrl: `${origin}/settings?subscribed=1`,
     });
 

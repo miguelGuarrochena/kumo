@@ -2,6 +2,7 @@
 
 import { Archive } from 'lucide-react';
 import { formatMoney, type Currency } from '@/lib/currency';
+import { useT } from '@/lib/i18n/client';
 import type { ArchiveYear } from './page';
 import { CurrencyInlineSelect } from './CurrencyInlineSelect';
 
@@ -19,15 +20,16 @@ export const ArchiveView = ({
   onSelectYear,
   onChangeCurrency,
 }: ArchiveViewProps) => {
+  const { t, locale } = useT();
   const currentYear = new Date().getFullYear();
 
   if (years.length === 0) {
     return (
       <div className="kumo-card p-10 text-center">
         <Archive className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-        <h3 className="font-semibold mb-1">Sin histórico todavía</h3>
+        <h3 className="font-semibold mb-1">{t.expenses.archive_empty_title}</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Cuando tengas gastos cargados, vas a poder navegar por año desde acá.
+          {t.expenses.archive_empty_desc}
         </p>
       </div>
     );
@@ -40,15 +42,17 @@ export const ArchiveView = ({
       <div className="kumo-card p-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
           <div className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
-            <span>Histórico total · en</span>
+            <span>{t.expenses.archive_total_in}</span>
             <CurrencyInlineSelect value={displayCurrency} onChange={onChangeCurrency} />
           </div>
           <p className="text-2xl font-bold kumo-gradient-text">
-            {formatMoney(grandTotal, displayCurrency)}
+            {formatMoney(grandTotal, displayCurrency, locale)}
           </p>
         </div>
         <p className="text-xs text-slate-400 dark:text-slate-500">
-          {years.length} {years.length === 1 ? 'año' : 'años'} con datos
+          {years.length === 1
+            ? t.expenses.archive_year_with_data
+            : t.expenses.archive_years_with_data.replace('{n}', String(years.length))}
         </p>
       </div>
 
@@ -59,6 +63,7 @@ export const ArchiveView = ({
           return (
             <button
               key={y.year}
+              type="button"
               onClick={() => onSelectYear(y.year)}
               className="kumo-card p-5 text-left hover:scale-[1.01] active:scale-[0.99] transition-transform group"
             >
@@ -66,21 +71,26 @@ export const ArchiveView = ({
                 <h3 className="text-2xl font-bold tracking-tight">{y.year}</h3>
                 {isCurrent ? (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 font-medium">
-                    Activo
+                    {t.expenses.archive_active}
                   </span>
                 ) : (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium">
-                    {yearsAgo === 1 ? 'Año pasado' : `Hace ${yearsAgo} años`}
+                    {yearsAgo === 1
+                      ? t.expenses.archive_last_year
+                      : t.expenses.archive_years_ago.replace('{n}', String(yearsAgo))}
                   </span>
                 )}
               </div>
               <p className="text-xl font-bold kumo-gradient-text mb-1">
-                {formatMoney(y.total, displayCurrency)}
+                {formatMoney(y.total, displayCurrency, locale)}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                <span>{y.count} {y.count === 1 ? 'gasto' : 'gastos'}</span>
+                <span>
+                  {y.count}{' '}
+                  {y.count === 1 ? t.expenses.archive_one_expense : t.expenses.archive_n_expenses}
+                </span>
                 <span className="text-sky-600 dark:text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Ver detalle →
+                  {t.expenses.archive_see_detail}
                 </span>
               </p>
             </button>

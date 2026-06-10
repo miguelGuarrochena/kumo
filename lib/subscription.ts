@@ -74,10 +74,16 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
   };
 };
 
-export const requirePro = async () => {
+/** Acceso a escanear tickets (suscripción activa o trial OCR). */
+export const hasOcrAccess = (sub: SubscriptionInfo): boolean => sub.tier === 'pro';
+
+export const requireOcrAccess = async () => {
   const sub = await getSubscription();
-  if (sub.tier !== 'pro') {
-    throw new Error('Esta función requiere Pro. Suscribite para acceder.');
+  if (!hasOcrAccess(sub)) {
+    throw new Error('Escanear tickets requiere activar el complemento OCR.');
   }
   return sub;
 };
+
+/** @deprecated Usar requireOcrAccess */
+export const requirePro = requireOcrAccess;

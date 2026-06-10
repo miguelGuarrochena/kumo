@@ -221,7 +221,7 @@ export const MetricsClient = ({
         <div className="text-center">
           <p className="text-xs uppercase tracking-wider text-slate-400 mb-1">{t.metrics.total}</p>
           <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
-            {formatMoney(total, displayCurrency)}
+            {formatMoney(total, displayCurrency, locale)}
           </p>
           <div className="mt-2 inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 flex-wrap justify-center">
             <span>{t.expenses.n_expenses.replace('{n}', String(currentExpenses.length))} · {t.expenses.in_currency}</span>
@@ -294,7 +294,7 @@ export const MetricsClient = ({
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => formatMoney(value, displayCurrency)}
+                        formatter={(value: number) => formatMoney(value, displayCurrency, locale)}
                         contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                       />
                     </PieChart>
@@ -315,7 +315,7 @@ export const MetricsClient = ({
                           {pct.toFixed(0)}%
                         </span>
                         <span className="font-medium tabular-nums whitespace-nowrap text-xs sm:text-sm">
-                          {formatMoney(c.total, displayCurrency)}
+                          {formatMoney(c.total, displayCurrency, locale)}
                         </span>
                       </div>
                     );
@@ -343,7 +343,7 @@ export const MetricsClient = ({
                         </p>
                       </div>
                       <p className="font-semibold text-sm tabular-nums whitespace-nowrap">
-                        {formatMoney(e.normalized, displayCurrency)}
+                        {formatMoney(e.normalized, displayCurrency, locale)}
                       </p>
                     </div>
                   );
@@ -370,7 +370,7 @@ export const MetricsClient = ({
                     width={50}
                   />
                   <Tooltip
-                    formatter={(value: number) => formatMoney(value, displayCurrency)}
+                    formatter={(value: number) => formatMoney(value, displayCurrency, locale)}
                     contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   />
                   <Bar dataKey="total" radius={[8, 8, 0, 0]} fill="url(#kumoBarGrad)" />

@@ -22,14 +22,14 @@ export const WorkspaceSetup = ({ userEmail, userName }: Props) => {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const result = await bootstrapWorkspace(name.trim() || 'Mi espacio');
+      const result = await bootstrapWorkspace(name.trim() || t.workspace.default_name);
       if (result.ok) {
-        toast.success('Espacio creado');
+        toast.success(t.workspace.created_toast);
         // Hard navigation para garantizar que el layout (server) se rehidrate
         // con el nuevo workspace en lugar de quedarse en el setup screen.
         window.location.href = '/dashboard';
       } else {
-        toast.error(result.error ?? 'No se pudo crear el espacio');
+        toast.error(result.error ?? t.workspace.create_failed);
       }
     });
   };
@@ -42,7 +42,7 @@ export const WorkspaceSetup = ({ userEmail, userName }: Props) => {
           <div>
             <h1 className="font-bold text-xl kumo-gradient-text">Kumo</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {greeting ? `¡Hola ${greeting}! 👋` : '¡Hola! 👋'}
+              {greeting ? t.workspace.setup_greeting.replace('{name}', greeting) : t.workspace.setup_greeting_short}
             </p>
           </div>
         </div>
@@ -50,31 +50,29 @@ export const WorkspaceSetup = ({ userEmail, userName }: Props) => {
         <div className="space-y-2">
           <h2 className="font-semibold text-lg flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-sky-500" />
-            Creá tu primer espacio
+            {t.workspace.setup_title}
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            Un <strong>espacio</strong> es donde viven tus gastos, recordatorios y compras.
-            Podés tener uno personal y, si querés, compartir uno con tu pareja o familia más
-            adelante.
+            {t.workspace.setup_desc}
           </p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Nombre del espacio
+              {t.workspace.setup_name_label}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ej: Mi espacio, Casa, Familia..."
+              placeholder={t.workspace.setup_name_placeholder}
               maxLength={60}
               autoFocus
               className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
             />
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
-              Si lo dejás vacío, se llamará &quot;Mi espacio&quot;.
+              {t.workspace.setup_name_hint}
             </p>
           </div>
 
@@ -86,7 +84,7 @@ export const WorkspaceSetup = ({ userEmail, userName }: Props) => {
             {pending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Creando…
+                {t.workspace.setup_creating}
               </>
             ) : (
               <>{t.workspace.create_workspace}</>
@@ -96,7 +94,7 @@ export const WorkspaceSetup = ({ userEmail, userName }: Props) => {
 
         <div className="pt-3 border-t border-slate-100 dark:border-slate-700/50">
           <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
-            Vas a ser el dueño y admin. Después podés invitar a otras personas desde Configuración.
+            {t.workspace.setup_footer}
           </p>
         </div>
       </div>

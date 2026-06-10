@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Search, Gift, XCircle, Clock, Sparkles, Loader2 } from 'lucide-react';
 import { grantPro, cancelImmediate, cancelAtPeriodEnd, extendTrial } from './actions';
+import { useT } from '@/lib/i18n/client';
 
 export type AdminRow = {
   id: string;
@@ -23,6 +24,8 @@ type Props = {
 };
 
 export const AdminClient = ({ rows, totalUsers }: Props) => {
+  const { t } = useT();
+  const a = t.admin;
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -46,12 +49,22 @@ export const AdminClient = ({ rows, totalUsers }: Props) => {
     return { active, trial, free };
   }, [rows]);
 
+  const filterLabel = (s: 'all' | 'active' | 'trial' | 'free') =>
+    s === 'all' ? a.filter_all
+    : s === 'active' ? a.filter_active
+    : s === 'trial' ? a.filter_trial
+    : a.filter_free;
+
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{a.title}</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          {totalUsers} usuarios · {stats.active} pagos · {stats.trial} en trial · {stats.free} free
+          {a.subtitle
+            .replace('{total}', String(totalUsers))
+            .replace('{active}', String(stats.active))
+            .replace('{trial}', String(stats.trial))
+            .replace('{free}', String(stats.free))}
         </p>
       </header>
 
@@ -61,7 +74,7 @@ export const AdminClient = ({ rows, totalUsers }: Props) => {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por email o nombre..."
+            placeholder={a.search_placeholder}
             className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
           />
         </div>
@@ -77,7 +90,7 @@ export const AdminClient = ({ rows, totalUsers }: Props) => {
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              {s === 'all' ? 'Todos' : s === 'active' ? 'Pagos' : s === 'trial' ? 'Trial' : 'Free'}
+              {filterLabel(s)}
             </button>
           ))}
         </div>
@@ -85,14 +98,14 @@ export const AdminClient = ({ rows, totalUsers }: Props) => {
 
       <div className="kumo-card overflow-hidden">
         <div className="hidden md:grid grid-cols-12 gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
-          <div className="col-span-4">Usuario</div>
-          <div className="col-span-2">Estado</div>
-          <div className="col-span-3">Vence</div>
-          <div className="col-span-3 text-right">Acciones</div>
+          <div className="col-span-4">{a.col_user}</div>
+          <div className="col-span-2">{a.col_status}</div>
+          <div className="col-span-3">{a.col_expires}</div>
+          <div className="col-span-3 text-right">{a.col_actions}</div>
         </div>
         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
           {filtered.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-10">Sin resultados.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-10">{a.no_results}</p>
           ) : (
             filtered.map((r) => <Row key={r.id} row={r} />)
           )}
@@ -111,6 +124,8 @@ const computeTier = (r: AdminRow): 'active' | 'trial' | 'free' => {
 };
 
 const Row = ({ row }: { row: AdminRow }) => {
+  const { t } = useT();
+  const a = t.admin;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
@@ -125,7 +140,7 @@ const Row = ({ row }: { row: AdminRow }) => {
         toast.success(`${label}: ${row.email}`);
         router.refresh();
       } else {
-        toast.error(r.error ?? 'Error');
+        toast.error(r.error ?? t.common.error);
       }
       setConfirmAction(null);
     });
@@ -146,40 +161,40 @@ const Row = ({ row }: { row: AdminRow }) => {
       <div className="md:col-span-3 flex flex-wrap gap-1 md:justify-end">
         <ActionButton
           icon={<Gift className="w-3.5 h-3.5" />}
-          label="Regalar 3m"
+          label={a.grant_3m}
           loading={pending && confirmAction === 'grant-3'}
-          onClick={() => { setConfirmAction('grant-3'); run('Pro x3 meses concedido', () => grantPro(row.email, 3)); }}
+          onClick={() => { setConfirmAction('grant-3'); run(a.toast_grant_3m, () => grantPro(row.email, 3)); }}
         />
         <ActionButton
           icon={<Sparkles className="w-3.5 h-3.5" />}
-          label="Lifetime"
+          label={a.lifetime}
           loading={pending && confirmAction === 'grant-life'}
-          onClick={() => { setConfirmAction('grant-life'); run('Lifetime concedido', () => grantPro(row.email, 1200)); }}
+          onClick={() => { setConfirmAction('grant-life'); run(a.toast_lifetime, () => grantPro(row.email, 1200)); }}
         />
         <ActionButton
           icon={<Clock className="w-3.5 h-3.5" />}
-          label="+30 trial"
+          label={a.trial_ext}
           loading={pending && confirmAction === 'trial-ext'}
-          onClick={() => { setConfirmAction('trial-ext'); run('Trial extendido +30 días', () => extendTrial(row.email, 30)); }}
+          onClick={() => { setConfirmAction('trial-ext'); run(a.toast_trial_ext, () => extendTrial(row.email, 30)); }}
         />
         <ActionButton
           icon={<XCircle className="w-3.5 h-3.5" />}
-          label="Cancelar ya"
+          label={a.cancel_now}
           danger
           loading={pending && confirmAction === 'cancel-now'}
           onClick={() => {
-            if (!confirm(`Cancelar Pro INMEDIATAMENTE para ${row.email}?`)) return;
+            if (!confirm(a.confirm_cancel.replace('{email}', row.email))) return;
             setConfirmAction('cancel-now');
-            run('Pro cancelado', () => cancelImmediate(row.email));
+            run(a.toast_cancel_now, () => cancelImmediate(row.email));
           }}
         />
         <ActionButton
           icon={<XCircle className="w-3.5 h-3.5" />}
-          label="Cancelar fin"
+          label={a.cancel_end}
           loading={pending && confirmAction === 'cancel-end'}
           onClick={() => {
             setConfirmAction('cancel-end');
-            run('Cancelará al fin del período', () => cancelAtPeriodEnd(row.email));
+            run(a.toast_cancel_end, () => cancelAtPeriodEnd(row.email));
           }}
         />
       </div>
@@ -188,11 +203,13 @@ const Row = ({ row }: { row: AdminRow }) => {
 };
 
 const TierBadge = ({ tier }: { tier: 'active' | 'trial' | 'free' }) => {
+  const { t } = useT();
+  const a = t.admin;
   const styles =
     tier === 'active' ? 'bg-mint-100 text-mint-700 dark:bg-mint-500/20 dark:text-mint-200'
     : tier === 'trial' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200'
     : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
-  const label = tier === 'active' ? 'Pro' : tier === 'trial' ? 'Trial' : 'Free';
+  const label = tier === 'active' ? a.tier_pro : tier === 'trial' ? a.tier_trial : a.tier_free;
   return <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-medium ${styles}`}>{label}</span>;
 };
 

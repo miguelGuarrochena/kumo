@@ -165,7 +165,7 @@ export const DayDetailSheet = ({
                         </p>
                       </div>
                       <p className="font-semibold text-sm whitespace-nowrap">
-                        {formatMoney(Number(e.amount), e.currency as Currency)}
+                        {formatMoney(Number(e.amount), e.currency as Currency, locale)}
                       </p>
                     </div>
                   );

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import { getLocale, getMessages } from '@/lib/i18n/server';
+import { localeTag } from '@/lib/i18n/locale';
 import * as XLSX from 'xlsx';
 
 // Exporta los gastos del usuario a Excel (.xlsx) o CSV (.csv).
@@ -26,27 +28,33 @@ type ExpenseRow = {
   recurrence_type: string | null;
 };
 
-const ROW_HEADERS = [
-  'Fecha',
-  'Vencimiento',
-  'Descripción',
-  'Categoría',
-  'Monto',
-  'Moneda',
-  'Estado',
-  'Recurrente',
-];
-
-const RECURRENCE_LABEL: Record<string, string> = {
-  weekly:  'Semanal',
-  monthly: 'Mensual',
-  yearly:  'Anual',
-};
-
 export async function GET(request: Request) {
+  const [t, locale] = await Promise.all([getMessages(), getLocale()]);
+  const dateLocale = localeTag(locale);
+
+  const rowHeaders = [
+    t.export.col_date,
+    t.export.col_due,
+    t.export.col_description,
+    t.export.col_category,
+    t.export.col_amount,
+    t.export.col_currency,
+    t.export.col_status,
+    t.export.col_recurring,
+  ];
+
+  const recurrenceLabel = (type: string | null): string => {
+    const map: Record<string, string> = {
+      weekly: t.expenses.recurrence_weekly,
+      monthly: t.expenses.recurrence_monthly,
+      yearly: t.expenses.recurrence_yearly,
+    };
+    return type ? (map[type] ?? t.common.yes) : t.common.yes;
+  };
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return new NextResponse('No autenticado', { status: 401 });
+  if (!user) return new NextResponse(t.export.not_authenticated, { status: 401 });
 
   const url = new URL(request.url);
   const format = (url.searchParams.get('format') ?? 'xlsx').toLowerCase();
@@ -56,7 +64,7 @@ export async function GET(request: Request) {
   const paid = url.searchParams.get('paid'); // 'paid' | 'pending' | null
 
   if (format !== 'xlsx' && format !== 'csv') {
-    return new NextResponse('format inválido — usá xlsx o csv', { status: 400 });
+    return new NextResponse(t.export.invalid_format, { status: 400 });
   }
 
   // Filtramos explícitamente por el workspace activo además de RLS, para no
@@ -92,7 +100,7 @@ export async function GET(request: Request) {
   }));
 
   const sheetData: (string | number)[][] = [
-    ROW_HEADERS,
+    rowHeaders,
     ...rows.map((r) => [
       r.expense_date,
       r.due_date ?? '',
@@ -100,8 +108,8 @@ export async function GET(request: Request) {
       r.category_name,
       r.amount,
       r.currency,
-      r.paid ? 'Pagado' : 'Pendiente',
-      r.is_recurring ? (RECURRENCE_LABEL[r.recurrence_type ?? ''] ?? 'Sí') : 'No',
+      r.paid ? t.expenses.paid : t.expenses.pending,
+      r.is_recurring ? recurrenceLabel(r.recurrence_type) : t.common.no,
     ]),
   ];
 
@@ -154,7 +162,7 @@ export async function GET(request: Request) {
   }
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Gastos');
+  XLSX.utils.book_append_sheet(wb, ws, t.export.sheet_expenses);
 
   // Hoja resumen
   const totalsByCurrency = rows.reduce<Record<string, number>>((acc, r) => {
@@ -167,23 +175,23 @@ export async function GET(request: Request) {
   }, {});
 
   const summarySheet: (string | number)[][] = [
-    ['Resumen exportación'],
-    [`Generado: ${new Date().toLocaleString('es-AR')}`],
-    [`Total de filas: ${rows.length}`],
+    [t.export.summary_title],
+    [t.export.generated_at.replace('{at}', new Date().toLocaleString(dateLocale))],
+    [t.export.total_rows.replace('{n}', String(rows.length))],
     [],
-    ['Por moneda'],
-    ['Moneda', 'Total'],
+    [t.export.by_currency],
+    [t.export.currency_col, t.export.total_col],
     ...Object.entries(totalsByCurrency).map(([k, v]) => [k, Number(v.toFixed(2))]),
     [],
-    ['Por categoría'],
-    ['Categoría', 'Total (suma sin convertir)'],
+    [t.export.by_category],
+    [t.export.col_category, t.export.category_total_col],
     ...Object.entries(totalsByCategory)
       .sort((a, b) => b[1] - a[1])
       .map(([k, v]) => [k, Number(v.toFixed(2))]),
   ];
   const summaryWs = XLSX.utils.aoa_to_sheet(summarySheet);
   summaryWs['!cols'] = [{ wch: 24 }, { wch: 16 }];
-  XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
+  XLSX.utils.book_append_sheet(wb, summaryWs, t.export.sheet_summary);
 
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   const filename = `kumo-gastos-${today}.xlsx`;

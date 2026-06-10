@@ -20,7 +20,7 @@ export const SplitItemsEditor = ({
   totalAmount,
   currency,
 }: SplitItemsEditorProps) => {
-  const { t } = useT();
+  const { t, locale } = useT();
   const updateItem = (i: number, patch: Partial<SplitItem>) =>
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
   const removeItem = (i: number) =>
@@ -138,7 +138,7 @@ export const SplitItemsEditor = ({
         <div className={`text-xs flex items-center justify-between ${matches ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500'}`}>
           <span>{t.split.items_sum}</span>
           <span className="tabular-nums">
-            {formatMoney(itemsTotal, currency)} / {formatMoney(totalAmount, currency)}
+            {formatMoney(itemsTotal, currency, locale)} / {formatMoney(totalAmount, currency, locale)}
           </span>
         </div>
       )}

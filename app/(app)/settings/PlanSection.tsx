@@ -59,16 +59,27 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
   };
 
   const isPaying = sub.status === 'active';
-  const isInTrial = sub.status === 'trialing';
-  const trialDaysLeft = sub.daysLeftInTrial ?? 0;
   const now = Date.now();
+  const isInActiveTrial =
+    sub.status === 'trialing' &&
+    sub.trialEndsAt !== null &&
+    sub.trialEndsAt.getTime() > now &&
+    sub.daysLeftInTrial !== null &&
+    sub.daysLeftInTrial > 0;
+  const trialDaysLeft = sub.daysLeftInTrial ?? 0;
+  const trialEnded = sub.trialEndsAt !== null && sub.trialEndsAt.getTime() <= now;
+  const subscriptionEnded =
+    sub.status === 'canceled' &&
+    sub.currentPeriodEnd !== null &&
+    sub.currentPeriodEnd.getTime() <= now;
   const isCanceledWithAccess =
     sub.status === 'canceled' && sub.currentPeriodEnd !== null && sub.currentPeriodEnd.getTime() > now;
-  const showCheckout = !isPaying && !isCanceledWithAccess && (!isInTrial || trialDaysLeft <= 7 || showPlansDuringTrial);
+  const showCheckout =
+    !isPaying && !isCanceledWithAccess && (!isInActiveTrial || trialDaysLeft <= 7 || showPlansDuringTrial);
   const dateFmt = (d: Date) => d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR');
 
   return (
-    <div id="plan" className="kumo-card p-5">
+    <div id="ocr" className="kumo-card p-5">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 grid place-items-center">
           <Sparkles className="w-5 h-5" />
@@ -77,12 +88,14 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
           <h3 className="font-semibold">{tb.title}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {isPaying && (sub.isLifetime ? tb.lifetime_label : sub.isCourtesy ? tb.courtesy_label : tb.subtitle_active)}
-            {sub.status === 'trialing' && sub.daysLeftInTrial !== null && (
+            {isInActiveTrial && (
               sub.daysLeftInTrial === 1
                 ? tb.subtitle_trial_day
                 : tb.subtitle_trial_days.replace('{n}', String(sub.daysLeftInTrial))
             )}
-            {sub.tier === 'free' && sub.status !== 'trialing' && tb.subtitle_expired}
+            {!isPaying && !isInActiveTrial && !isCanceledWithAccess && (
+              trialEnded || subscriptionEnded ? tb.subtitle_expired : tb.subtitle_inactive
+            )}
           </p>
         </div>
       </div>
@@ -184,7 +197,7 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
         </div>
       )}
 
-      {!isPaying && !isCanceledWithAccess && isInTrial && !showCheckout && (
+      {!isPaying && !isCanceledWithAccess && isInActiveTrial && !showCheckout && (
         <div className="space-y-3">
           <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
             <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-200">
@@ -200,17 +213,16 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
               </div>
             </div>
           </div>
-          <ul className="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-slate-600 dark:text-slate-300">{tb.section_free_note}</p>
+          <ul className="mt-2 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
             <Feature>{tb.feature_ocr}</Feature>
-            <Feature>{tb.feature_spaces}</Feature>
-            <Feature>{tb.feature_history}</Feature>
           </ul>
           <button
             type="button"
             onClick={() => setShowPlansDuringTrial(true)}
             className="text-xs text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 underline-offset-2 hover:underline"
           >
-            Ver planes y precios →
+            Ver precio y activar →
           </button>
         </div>
       )}
@@ -241,10 +253,9 @@ export const PlanSection = ({ sub, priceMonthly, priceYearly, yearlySavingsPct }
             />
           </div>
 
-          <ul className="mt-4 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">{tb.section_free_note}</p>
+          <ul className="mt-2 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
             <Feature>{tb.feature_ocr}</Feature>
-            <Feature>{tb.feature_spaces}</Feature>
-            <Feature>{tb.feature_history}</Feature>
           </ul>
         </>
       )}

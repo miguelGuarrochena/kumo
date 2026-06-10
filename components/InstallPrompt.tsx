@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react';
 import { Download, X, Share, Plus } from 'lucide-react';
 import { track } from '@/lib/analytics';
+import { useT } from '@/lib/i18n/client';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -53,6 +54,7 @@ const wasDismissedRecently = (): boolean => {
 };
 
 export const InstallPrompt = () => {
+  const { t } = useT();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIOSHelp, setShowIOSHelp] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -120,29 +122,29 @@ export const InstallPrompt = () => {
               <Download className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Instalá Kumo</p>
+              <p className="text-sm font-medium">{t.install.title}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Acceso rápido desde tu pantalla de inicio, sin abrir el navegador.
+                {t.install.description}
               </p>
               <div className="flex gap-2 mt-2.5">
                 <button
                   onClick={onInstall}
                   className="px-3 py-1.5 rounded-lg kumo-gradient text-white text-xs font-medium hover:opacity-90"
                 >
-                  Instalar
+                  {t.install.install}
                 </button>
                 <button
                   onClick={dismiss}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
-                  Más tarde
+                  {t.install.later}
                 </button>
               </div>
             </div>
             <button
               onClick={dismiss}
               className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 shrink-0"
-              aria-label="Cerrar"
+              aria-label={t.common.close}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -164,11 +166,11 @@ export const InstallPrompt = () => {
               <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-600" />
             </div>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Instalar en iPhone</h3>
+              <h3 className="font-semibold">{t.install.ios_title}</h3>
               <button
                 onClick={dismiss}
                 className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                aria-label="Cerrar"
+                aria-label={t.common.close}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -177,25 +179,29 @@ export const InstallPrompt = () => {
               <li className="flex items-start gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 grid place-items-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
                 <span>
-                  Tocá el botón <strong>Compartir</strong>{' '}
+                  {t.install.ios_step1_before} <strong>{t.install.ios_share}</strong>{' '}
                   <Share className="w-3.5 h-3.5 inline-block align-middle mx-0.5 text-sky-500" />
-                  en la barra inferior de Safari.
+                  {t.install.ios_step1_after}
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 grid place-items-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
                 <span>
-                  Seleccioná <strong>Agregar a la pantalla de inicio</strong>{' '}
-                  <Plus className="w-3.5 h-3.5 inline-block align-middle mx-0.5 text-sky-500" />.
+                  {t.install.ios_step2_before} <strong>{t.install.ios_add_home}</strong>{' '}
+                  <Plus className="w-3.5 h-3.5 inline-block align-middle mx-0.5 text-sky-500" />
+                  {t.install.ios_step2_after}
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 grid place-items-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
-                <span>Tocá <strong>Agregar</strong>. Listo, ya tenés Kumo en tu pantalla de inicio.</span>
+                <span>
+                  {t.install.ios_step3_before} <strong>{t.install.ios_add}</strong>
+                  {t.install.ios_step3_after}
+                </span>
               </li>
             </ol>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center pt-1">
-              Funciona offline para ver tus datos cacheados.
+              {t.install.ios_offline_hint}
             </p>
           </div>
         </div>

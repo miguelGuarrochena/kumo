@@ -11,12 +11,19 @@ type Props = {
   contacts: ContactLite[];
   balances: BalanceRow[];
   payments: PaymentRow[];
-  isPro: boolean;
+  hasOcrAccess: boolean;
+  trialDaysLeft: number | null;
+  priceMonthly: string;
+  priceYearly: string;
+  yearlyPct: number;
 };
 
 type Tab = 'dividir' | 'saldos';
 
-export const DividirClient = ({ contacts, balances, payments, isPro }: Props) => {
+export const DividirClient = ({
+  contacts, balances, payments,
+  hasOcrAccess, trialDaysLeft, priceMonthly, priceYearly, yearlyPct,
+}: Props) => {
   const { t } = useT();
   const [tab, setTab] = useState<Tab>('dividir');
 
@@ -57,7 +64,14 @@ export const DividirClient = ({ contacts, balances, payments, isPro }: Props) =>
       </div>
 
       {tab === 'dividir' ? (
-        <DividirTab contacts={contacts} isPro={isPro} />
+        <DividirTab
+          contacts={contacts}
+          hasOcrAccess={hasOcrAccess}
+          trialDaysLeft={trialDaysLeft}
+          priceMonthly={priceMonthly}
+          priceYearly={priceYearly}
+          yearlyPct={yearlyPct}
+        />
       ) : (
         <SaldosTab balances={balances} contacts={contacts} payments={payments} />
       )}

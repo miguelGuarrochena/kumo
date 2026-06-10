@@ -45,7 +45,7 @@ test.describe('Public routes', () => {
 });
 
 test.describe('Protected routes (sin auth, deben redirigir)', () => {
-  for (const path of ['/dashboard', '/expenses', '/calendar', '/shopping', '/metrics', '/categories', '/settings']) {
+  for (const path of ['/dashboard', '/expenses', '/calendar', '/shopping', '/dividir', '/metrics', '/categories', '/settings']) {
     test(`${path} redirige a /auth/login`, async ({ page }) => {
       await page.goto(path);
       // El middleware redirige a login
