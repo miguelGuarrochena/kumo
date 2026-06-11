@@ -7,7 +7,11 @@ import { getPricing } from '@/lib/pricing';
 export const TrialBanner = async () => {
   const [sub, messages] = await Promise.all([getSubscription(), getMessages()]);
   const tb = messages.billing;
-  const priceMonthly = getPricing().bundle.monthly;
+  const pricing = getPricing();
+  const priceMonthly =
+    sub.planType === 'ocr' ? pricing.ocr.monthly
+    : sub.planType === 'wa' ? pricing.wa.monthly
+    : pricing.bundle.monthly;
   const now = Date.now();
 
   const inGrace =

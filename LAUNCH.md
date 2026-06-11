@@ -10,6 +10,7 @@ Lo que hay que tener listo antes de compartir Kumo.
   - **WhatsApp automático** — Meta cobra por mensaje; Kumo avisa solo vía API.
   - **Kumo Pro (combo)** — OCR + WhatsApp automático a precio menor.
 - **Sin trial automático** al registrarse (migración `0023`).
+- **Early adopters** (registrados antes del 11-jun-2026): 3 meses OCR gratis vía `0029_early_adopter_ocr_trial.sql`.
 
 ## 1. Env vars en Vercel + `.env.local`
 
@@ -72,7 +73,7 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0028_subscription_plan_type.sql`:
+Aplicar todas en orden hasta `0029_early_adopter_ocr_trial.sql`:
 
 ```bash
 supabase db push
