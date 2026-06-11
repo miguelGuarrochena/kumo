@@ -26,6 +26,7 @@ type SplitEditorProps = {
   contacts: ContactLite[];
   state: SplitState;
   setState: React.Dispatch<React.SetStateAction<SplitState>>;
+  onContactCreated?: (contact: ContactLite) => void;
 };
 
 export const SplitEditor = ({
@@ -34,6 +35,7 @@ export const SplitEditor = ({
   contacts,
   state,
   setState,
+  onContactCreated,
 }: SplitEditorProps) => {
   const { t, locale } = useT();
   const setMode = (mode: SplitMode) => {
@@ -227,6 +229,7 @@ export const SplitEditor = ({
             currency={currency}
             onToggle={toggleParticipant}
             onAdd={addParticipant}
+            onContactCreated={onContactCreated}
           />
         </div>
       )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 import { Sheet } from './Sheet';
@@ -30,6 +31,12 @@ export const ConfirmDialog = ({
 }: Props) => {
   const { t } = useT();
   const confirm = confirmLabel ?? t.common.delete;
+  const [confirming, setConfirming] = useState(false);
+  const busy = loading || confirming;
+
+  useEffect(() => {
+    if (!open) setConfirming(false);
+  }, [open]);
 
   return (
   <Sheet open={open} onClose={onClose} title={title}>
@@ -47,25 +54,31 @@ export const ConfirmDialog = ({
       <button
         type="button"
         onClick={onClose}
-        disabled={loading}
+        disabled={busy}
         className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50"
       >
         {t.common.cancel}
       </button>
       <button
         type="button"
-        disabled={loading}
+        disabled={busy}
         onClick={() => {
+          if (busy) return;
           void (async () => {
-            await onConfirm();
-            if (closeOnConfirm) onClose();
+            setConfirming(true);
+            try {
+              await onConfirm();
+              if (closeOnConfirm) onClose();
+            } finally {
+              setConfirming(false);
+            }
           })();
         }}
         className={`px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50 ${
           destructive ? 'bg-rose-500 hover:bg-rose-600' : 'kumo-gradient hover:opacity-90'
         }`}
       >
-        {loading ? t.common.saving : confirm}
+        {busy ? t.common.saving : confirm}
       </button>
     </div>
   </Sheet>

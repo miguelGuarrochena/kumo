@@ -40,8 +40,13 @@ export const ContactsSection = ({ contacts, hasWa = false, waBillingEnabled = tr
   const [editing, setEditing] = useState<Contact | null>(null);
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<Contact | null>(null);
+  const [localContacts, setLocalContacts] = useState(contacts);
 
-  const sorted = [...contacts].sort((a, b) => {
+  useEffect(() => {
+    setLocalContacts(contacts);
+  }, [contacts]);
+
+  const sorted = [...localContacts].sort((a, b) => {
     if (a.is_self && !b.is_self) return -1;
     if (!a.is_self && b.is_self) return 1;
     return a.name.localeCompare(b.name);
@@ -49,11 +54,16 @@ export const ContactsSection = ({ contacts, hasWa = false, waBillingEnabled = tr
 
   const onDelete = async () => {
     if (!toDelete) return;
-    const result = await deleteContact(toDelete.id);
+    const target = toDelete;
+    setToDelete(null);
+    setLocalContacts((prev) => prev.filter((c) => c.id !== target.id));
+    const result = await deleteContact(target.id);
     if (result.ok) {
-      toast.success(`"${toDelete.name}" eliminado`);
-      router.refresh();
+      toast.success(`"${target.name}" eliminado`);
     } else {
+      setLocalContacts((prev) =>
+        prev.some((c) => c.id === target.id) ? prev : [...prev, target],
+      );
       toast.error(result.error ?? 'No se pudo eliminar');
     }
   };
@@ -80,7 +90,7 @@ export const ContactsSection = ({ contacts, hasWa = false, waBillingEnabled = tr
         </button>
       </div>
 
-      {!hasWa && contacts.some((c) => c.phone) && (
+      {!hasWa && localContacts.some((c) => c.phone) && (
         <div className="mb-4 rounded-xl border border-amber-200/60 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 p-3">
           <div className="flex items-start gap-2">
             <MessageCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
@@ -134,6 +144,7 @@ export const ContactsSection = ({ contacts, hasWa = false, waBillingEnabled = tr
         open={!!toDelete}
         onClose={() => setToDelete(null)}
         onConfirm={onDelete}
+        closeOnConfirm={false}
         title="Borrar contacto"
         description={`¿Borrar a "${toDelete?.name}"? No vas a poder avisarle más.`}
       />

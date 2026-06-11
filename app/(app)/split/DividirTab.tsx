@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Camera, Copy, MessageCircle, Plus, RotateCcw, Save, X, Loader2 } from 'lucide-react';
@@ -41,7 +41,13 @@ export const DividirTab = ({
 }: Props) => {
   const { t, locale } = useT();
   const router = useRouter();
-  const selfContact = useMemo(() => contacts.find((c) => c.is_self) ?? null, [contacts]);
+  const [localContacts, setLocalContacts] = useState(contacts);
+
+  useEffect(() => {
+    setLocalContacts(contacts);
+  }, [contacts]);
+
+  const selfContact = useMemo(() => localContacts.find((c) => c.is_self) ?? null, [localContacts]);
 
   const [total, setTotal] = useState('');
   const [tipMode, setTipMode] = useState<'percent' | 'amount'>('percent');
@@ -92,7 +98,7 @@ export const DividirTab = ({
   const addParticipant = async (text?: string) => {
     const v = (text ?? partInput).trim();
     if (!v) return;
-    const existing = contacts.find((c) => c.name.toLowerCase() === v.toLowerCase());
+    const existing = localContacts.find((c) => c.name.toLowerCase() === v.toLowerCase());
     if (existing) {
       addFromContact(existing);
       setPartInput('');
@@ -102,13 +108,18 @@ export const DividirTab = ({
     try {
       const r = await createAdHocContact(v);
       if (r.ok && r.id) {
+        const contactId = r.id;
         const id = newId();
-        const next = [...parts, { id, name: v, contactId: r.id }];
+        const next = [...parts, { id, name: v, contactId }];
         setParts(next);
         autocompleteValue(id, next);
         setPartInput('');
+        setLocalContacts((prev) =>
+          prev.some((c) => c.id === contactId)
+            ? prev
+            : [...prev, { id: contactId, name: v, is_self: false, is_split_only: true }],
+        );
         toast.success(t.split.person_added.replace('{name}', v));
-        router.refresh();
       } else {
         toast.error(r.error ?? t.split.person_could_not_create);
       }
@@ -304,7 +315,7 @@ export const DividirTab = ({
     const amount = computed[p.id] ?? 0;
     const info = selfPaymentInfo(amount);
     if (!info) return;
-    const contact = contacts.find((c) => c.id === p.contactId);
+    const contact = localContacts.find((c) => c.id === p.contactId);
     openPaymentWhatsApp(info, t, contact?.phone);
   };
 
@@ -382,7 +393,7 @@ export const DividirTab = ({
       }
 
       if (splits.length > 0) {
-        const payer = selfContact ?? contacts.find((c) => c.is_self);
+        const payer = selfContact ?? localContacts.find((c) => c.is_self);
         const splitResult = await saveSplits({
           expenseId: r.expenseId,
           mode: 'fixed',
@@ -594,13 +605,13 @@ export const DividirTab = ({
 
           <p className="text-[11px] text-slate-500 dark:text-slate-400">{t.split.participants_tap_hint}</p>
 
-          {contacts.filter((c) => !parts.some((p) => p.contactId === c.id)).length > 0 && (
+          {localContacts.filter((c) => !parts.some((p) => p.contactId === c.id)).length > 0 && (
             <div>
               <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5 font-semibold">
                 {parts.length <= 1 ? t.split.participants_available : t.split.participants_others}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {contacts
+                {localContacts
                   .filter((c) => !parts.some((p) => p.contactId === c.id))
                   .map((c) => (
                     <button

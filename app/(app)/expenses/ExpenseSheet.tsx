@@ -22,6 +22,7 @@ import {
 import { saveSplits } from './splitsActions';
 import { todayKey } from '@/lib/date';
 import type { CategoryLite, ContactLite, Expense } from './types';
+import type { ContactLite as SplitContactLite } from './splitTypes';
 import { toggleNotifyContactId } from '@/lib/notifyContacts';
 import { WA_MAX_RECIPIENTS } from '@/lib/notifications/waLimitsClient';
 
@@ -66,6 +67,11 @@ export const ExpenseSheet = ({
 
   const [splitOn, setSplitOn] = useState(false);
   const [splitState, setSplitState] = useState<SplitState>(emptySplitState);
+  const [extraSplitContacts, setExtraSplitContacts] = useState<SplitContactLite[]>([]);
+
+  useEffect(() => {
+    if (!open) setExtraSplitContacts([]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -268,12 +274,22 @@ export const ExpenseSheet = ({
     });
   };
 
-  const splitContacts = contacts.map((c) => ({
-    id: c.id,
-    name: c.name,
-    is_self: c.is_self,
-    is_split_only: c.is_split_only,
-  }));
+  const splitContacts = useMemo((): SplitContactLite[] => {
+    const base: SplitContactLite[] = contacts.map((c) => ({
+      id: c.id,
+      name: c.name,
+      is_self: c.is_self,
+      is_split_only: c.is_split_only,
+    }));
+    const seen = new Set(base.map((c) => c.id));
+    for (const c of extraSplitContacts) {
+      if (!seen.has(c.id)) {
+        base.push(c);
+        seen.add(c.id);
+      }
+    }
+    return base;
+  }, [contacts, extraSplitContacts]);
 
   const notifyContacts = contacts.filter((c) => !c.is_split_only);
 
@@ -553,6 +569,11 @@ export const ExpenseSheet = ({
               contacts={splitContacts}
               state={splitState}
               setState={setSplitState}
+              onContactCreated={(c) =>
+                setExtraSplitContacts((prev) =>
+                  prev.some((x) => x.id === c.id) ? prev : [...prev, c],
+                )
+              }
             />
           )}
         </div>

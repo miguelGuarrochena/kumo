@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, Plus, X } from 'lucide-react';
 import { formatMoney, type Currency } from '@/lib/currency';
@@ -19,6 +18,7 @@ type ParticipantsSectionProps = {
   currency: Currency;
   onToggle: (id: string) => void;
   onAdd: (id: string) => void;
+  onContactCreated?: (contact: ContactLite) => void;
 };
 
 // Fusión de "elegir participantes" + "poner valores". Los seleccionados
@@ -33,9 +33,9 @@ export const ParticipantsSection = ({
   currency,
   onToggle,
   onAdd,
+  onContactCreated,
 }: ParticipantsSectionProps) => {
   const { t, locale } = useT();
-  const router = useRouter();
   const [text, setText] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -69,10 +69,15 @@ export const ParticipantsSection = ({
     try {
       const r = await createAdHocContact(v);
       if (r.ok && r.id) {
+        onContactCreated?.({
+          id: r.id,
+          name: v,
+          is_self: false,
+          is_split_only: true,
+        });
         onAdd(r.id);
         setText('');
         toast.success(t.split.person_added.replace('{name}', v));
-        router.refresh();
       } else {
         toast.error(r.error ?? t.split.person_could_not_create);
       }

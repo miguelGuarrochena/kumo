@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, Shield, Eye, Trash2, Copy, Check, AlertTriangle, Pencil } from 'lucide-react';
@@ -49,6 +49,11 @@ export const WorkspaceSection = ({
   const [role, setRole] = useState<WorkspaceRole>('reader');
   const [linkJustCreated, setLinkJustCreated] = useState<string | null>(null);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
+  const [localMembers, setLocalMembers] = useState(members);
+
+  useEffect(() => {
+    setLocalMembers(members);
+  }, [members]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const [emailErrorMsg, setEmailErrorMsg] = useState<string | null>(null);
@@ -136,10 +141,18 @@ export const WorkspaceSection = ({
 
   const onRemove = async () => {
     if (!memberToRemove) return;
-    const result = await removeMember(memberToRemove.user_id);
-    if (result.ok) { toast.success(t.workspace.member_removed); router.refresh(); }
-    else toast.error(result.error ?? 'Error');
+    const target = memberToRemove;
     setMemberToRemove(null);
+    setLocalMembers((prev) => prev.filter((m) => m.user_id !== target.user_id));
+    const result = await removeMember(target.user_id);
+    if (result.ok) {
+      toast.success(t.workspace.member_removed);
+    } else {
+      setLocalMembers((prev) =>
+        prev.some((m) => m.user_id === target.user_id) ? prev : [...prev, target],
+      );
+      toast.error(result.error ?? 'Error');
+    }
   };
 
   const WsIcon = getWorkspaceIcon(workspaceIcon);
@@ -264,9 +277,9 @@ export const WorkspaceSection = ({
       {/* Miembros */}
       <div className="space-y-1.5">
         <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold px-1">
-          {t.workspace.members_n.replace('{n}', String(members.length))}
+          {t.workspace.members_n.replace('{n}', String(localMembers.length))}
         </p>
-        {members.map((m) => (
+        {localMembers.map((m) => (
           <div key={m.user_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
             <div className={`w-8 h-8 rounded-full grid place-items-center text-sm font-medium ${
               m.role === 'admin'
@@ -393,6 +406,7 @@ export const WorkspaceSection = ({
         open={!!memberToRemove}
         onClose={() => setMemberToRemove(null)}
         onConfirm={onRemove}
+        closeOnConfirm={false}
         title={t.workspace.remove_title}
         description={t.workspace.remove_confirm.replace(
           '{who}',
