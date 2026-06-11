@@ -454,6 +454,7 @@
     "contacts_wa_upsell_title": "WhatsApp automático es de pago",
     "contacts_wa_upsell_desc": "Estos contactos reciben push gratis. El plan de WhatsApp automático incluye hasta 200 avisos por mes y máx. 3 contactos por recordatorio.",
     "contacts_wa_upsell_cta": "Ver planes",
+    "contacts_wa_upsell_pending": "El plan de WhatsApp automático estará disponible cuando Meta apruebe la integración. Mientras tanto, usá push y WhatsApp manual (gratis).",
     "whatsapp_label": "Tu WhatsApp principal",
     "calendar_feed_title": "Google Calendar",
     "calendar_feed_desc": "Suscribí tus recordatorios y vencimientos a Google Calendar (solo lectura). Google no permite pegar el link automáticamente — te guiamos paso a paso.",
@@ -494,7 +495,7 @@
     "calendar_feed_rotate_toast": "Link regenerado — copiá el nuevo y actualizá Google Calendar",
     "calendar_feed_version": "Versión del link: {n}",
     "whatsapp_pending_title": "WhatsApp en revisión",
-    "whatsapp_pending_desc": "Los avisos por WhatsApp pueden tardar en activarse. Mientras tanto, activá las notificaciones push abajo para no perderte ningún vencimiento.",
+    "whatsapp_pending_desc": "WhatsApp automático y combo no se pueden contratar hasta que Meta apruebe la app. Solo el escaneo OCR está disponible. Activá push abajo para no perderte vencimientos.",
     "onboarding_reopen_title": "Guía de inicio",
     "onboarding_reopen_desc": "Volvé a ver el checklist del dashboard: primer gasto, contactos, recordatorio y Google Calendar.",
     "onboarding_reopen_cta": "Reabrir guía",
@@ -705,7 +706,8 @@
     "terms_checkout_checkbox": "Leí y acepto los términos y condiciones de Kumo",
     "terms_checkout_link": "Ver términos completos",
     "terms_checkout_continue": "Continuar a MercadoPago",
-    "terms_checkout_footer": "Al suscribirte aceptás los"
+    "terms_checkout_footer": "Al suscribirte aceptás los",
+    "wa_billing_soon": "WhatsApp automático y combo: próximamente (revisión con Meta). Por ahora solo podés suscribirte al escaneo OCR."
   },
   "split": {
     "page_title": "Dividir una cuenta",

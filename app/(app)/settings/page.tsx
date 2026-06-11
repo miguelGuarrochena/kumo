@@ -131,7 +131,11 @@ const SettingsPage = async () => {
 
       {whatsappPending && <WhatsAppPendingBanner />}
 
-      <ContactsSection contacts={contacts ?? []} hasWa={subscription.hasWa} />
+      <ContactsSection
+        contacts={contacts ?? []}
+        hasWa={subscription.hasWa}
+        waBillingEnabled={!whatsappPending}
+      />
 
       <CalendarFeedSection
         feedUrl={buildCalendarFeedUrl(user!.id, origin, feedVersion)}

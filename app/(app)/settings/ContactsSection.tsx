@@ -31,9 +31,10 @@ const RELATIONSHIP_LABEL: Record<string, string> = Object.fromEntries(
 type ContactsSectionProps = {
   contacts: Contact[];
   hasWa?: boolean;
+  waBillingEnabled?: boolean;
 };
 
-export const ContactsSection = ({ contacts, hasWa = false }: ContactsSectionProps) => {
+export const ContactsSection = ({ contacts, hasWa = false, waBillingEnabled = true }: ContactsSectionProps) => {
   const router = useRouter();
   const { t } = useT();
   const [editing, setEditing] = useState<Contact | null>(null);
@@ -85,17 +86,19 @@ export const ContactsSection = ({ contacts, hasWa = false }: ContactsSectionProp
             <MessageCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
             <div className="min-w-0">
               <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                {t.settings.contacts_wa_upsell_title}
+                {waBillingEnabled ? t.settings.contacts_wa_upsell_title : t.settings.whatsapp_pending_title}
               </p>
               <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-0.5">
-                {t.settings.contacts_wa_upsell_desc}
+                {waBillingEnabled ? t.settings.contacts_wa_upsell_desc : t.settings.contacts_wa_upsell_pending}
               </p>
-              <a
-                href="#plans"
-                className="inline-block mt-2 text-xs font-semibold text-amber-700 dark:text-amber-300 underline"
-              >
-                {t.settings.contacts_wa_upsell_cta}
-              </a>
+              {waBillingEnabled && (
+                <a
+                  href="#plans"
+                  className="inline-block mt-2 text-xs font-semibold text-amber-700 dark:text-amber-300 underline"
+                >
+                  {t.settings.contacts_wa_upsell_cta}
+                </a>
+              )}
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import {
   Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight,
 } from 'lucide-react';
 import { getPricing } from '@/lib/pricing';
+import { isWaBillingEnabled } from '@/lib/billing/waBilling';
 import { getLocale } from '@/lib/i18n/server';
 
 const HomePage = async () => {
@@ -20,6 +21,8 @@ const HomePage = async () => {
   if (user) redirect('/dashboard');
 
   const locale = await getLocale();
+  const waBillingOn = isWaBillingEnabled();
+  const pricing = getPricing();
 
   return (
     <main className="min-h-screen relative overflow-hidden">
@@ -132,22 +135,31 @@ const HomePage = async () => {
 
         <div className="space-y-3">
           {([
-            { icon: Camera, title: 'Escaneo OCR', price: getPricing().ocr.monthly, desc: 'Foto del ticket → IA extrae monto y categoría.' },
-            { icon: MessageCircle, title: 'WhatsApp automático', price: getPricing().wa.monthly, desc: 'Kumo avisa solo antes de vencimientos y recordatorios.' },
-            { icon: Wallet, title: 'Kumo Pro (combo)', price: getPricing().bundle.monthly, desc: 'Escaneá tickets y que Kumo avise solo por WhatsApp.', highlight: true },
-          ] as { icon: typeof Camera; title: string; price: string; desc: string; highlight?: boolean }[]).map(({ icon: Icon, title, price, desc, highlight }) => (
+            { icon: Camera, title: 'Escaneo OCR', price: pricing.ocr.monthly, desc: 'Foto del ticket → IA extrae monto y categoría.', available: true, highlight: !waBillingOn },
+            { icon: MessageCircle, title: 'WhatsApp automático', price: pricing.wa.monthly, desc: 'Kumo avisa solo antes de vencimientos y recordatorios.', available: waBillingOn },
+            { icon: Wallet, title: 'Kumo Pro (combo)', price: pricing.bundle.monthly, desc: 'Escaneá tickets y que Kumo avise solo por WhatsApp.', available: waBillingOn, highlight: waBillingOn },
+          ] as { icon: typeof Camera; title: string; price: string; desc: string; available: boolean; highlight?: boolean }[]).map(({ icon: Icon, title, price, desc, available, highlight }) => (
             <div
               key={title}
-              className={`kumo-card p-5 sm:p-6 border-2 ${highlight ? 'border-amber-300/60 dark:border-amber-500/40' : 'border-slate-200/80 dark:border-slate-700'}`}
+              className={`kumo-card p-5 sm:p-6 border-2 ${highlight ? 'border-amber-300/60 dark:border-amber-500/40' : 'border-slate-200/80 dark:border-slate-700'} ${!available ? 'opacity-75' : ''}`}
             >
               <div className="flex items-start gap-4">
                 <div className={`w-11 h-11 rounded-xl grid place-items-center shrink-0 ${highlight ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600' : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600'}`}>
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">{title}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg font-semibold">{title}</h3>
+                    {!available && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-medium">
+                        Próximamente
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{desc}</p>
-                  <p className="text-sm font-bold mt-2">{price}/mes</p>
+                  <p className="text-sm font-bold mt-2">
+                    {available ? `${price}/mes` : 'En revisión con Meta'}
+                  </p>
                 </div>
               </div>
             </div>

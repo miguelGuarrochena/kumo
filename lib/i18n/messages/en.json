@@ -454,6 +454,7 @@
     "contacts_wa_upsell_title": "Automatic WhatsApp is paid",
     "contacts_wa_upsell_desc": "These contacts get push for free. The automatic WhatsApp plan includes up to 200 alerts per month and max 3 contacts per reminder.",
     "contacts_wa_upsell_cta": "View plans",
+    "contacts_wa_upsell_pending": "The automatic WhatsApp plan will be available once Meta approves the integration. Until then, use push and manual WhatsApp (free).",
     "whatsapp_label": "Your main WhatsApp",
     "calendar_feed_title": "Google Calendar",
     "calendar_feed_desc": "Subscribe your reminders and due dates to Google Calendar (read-only). Google can't auto-fill the URL — we'll guide you step by step.",
@@ -494,7 +495,7 @@
     "calendar_feed_rotate_toast": "Link regenerated — copy the new one and update Google Calendar",
     "calendar_feed_version": "Link version: {n}",
     "whatsapp_pending_title": "WhatsApp under review",
-    "whatsapp_pending_desc": "WhatsApp alerts may take a while to activate. In the meantime, enable push notifications below so you don't miss due dates.",
+    "whatsapp_pending_desc": "Automatic WhatsApp and the bundle can't be purchased until Meta approves the app. Only OCR scanning is available for now. Enable push below so you don't miss due dates.",
     "onboarding_reopen_title": "Getting started guide",
     "onboarding_reopen_desc": "See the dashboard checklist again: first expense, contacts, reminder, and Google Calendar.",
     "onboarding_reopen_cta": "Reopen guide",
@@ -705,7 +706,8 @@
     "terms_checkout_checkbox": "I have read and accept Kumo’s terms and conditions",
     "terms_checkout_link": "View full terms",
     "terms_checkout_continue": "Continue to MercadoPago",
-    "terms_checkout_footer": "By subscribing you accept the"
+    "terms_checkout_footer": "By subscribing you accept the",
+    "wa_billing_soon": "Automatic WhatsApp and bundle: coming soon (Meta review). For now you can only subscribe to OCR scanning."
   },
   "split": {
     "page_title": "Split a bill",

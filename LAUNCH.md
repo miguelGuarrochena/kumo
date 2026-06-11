@@ -69,7 +69,7 @@ CRON_SECRET=<algo-largo-aleatorio>
 WA_MONTHLY_CAP=200
 WA_MAX_RECIPIENTS=3
 
-# WhatsApp: mostrar banner "en revisión" aunque tengas credenciales (hasta aprobación Meta)
+# WhatsApp: hasta aprobación Meta — oculta suscripción WA/combo, solo OCR en checkout
 NEXT_PUBLIC_WHATSAPP_PENDING=true
 
 # Monitoring (opcional)

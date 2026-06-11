@@ -10,6 +10,7 @@ import {
   type PlanProduct,
 } from '@/lib/plans';
 import { BILLING_TERMS_VERSION } from '@/lib/legal/billingTerms';
+import { isWaBillingEnabled } from '@/lib/billing/waBilling';
 
 export const POST = async (req: Request) => {
   const supabase = await createClient();
@@ -28,6 +29,13 @@ export const POST = async (req: Request) => {
     : 'monthly';
 
   const billingInterval = checkoutIntervalToPlan(checkoutInterval);
+
+  if ((product === 'wa' || product === 'bundle') && !isWaBillingEnabled()) {
+    return NextResponse.json(
+      { error: 'WhatsApp automático y combo aún no están disponibles. Por ahora solo podés suscribirte al escaneo OCR.', code: 'WA_BILLING_DISABLED' },
+      { status: 403 },
+    );
+  }
 
   if (body.acceptTerms !== true) {
     return NextResponse.json({ error: 'Debés aceptar los términos y condiciones' }, { status: 400 });

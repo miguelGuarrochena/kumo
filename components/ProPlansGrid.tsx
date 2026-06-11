@@ -7,10 +7,11 @@ import type { Pricing } from '@/lib/pricing';
 import type { CheckoutInterval, PlanProduct } from '@/lib/plans';
 import { useT } from '@/lib/i18n/client';
 import { BillingTermsSheet } from '@/components/BillingTermsSheet';
+import { availableCheckoutProducts, isWaBillingEnabled } from '@/lib/billing/waBilling';
 
 type Props = {
   pricing: Pricing;
-  highlightProduct?: PlanProduct;
+  highlightProduct?: PlanProduct; // default: bundle si WA habilitado, si no OCR
   onCheckout: (product: PlanProduct, interval: CheckoutInterval) => void;
   loadingKey: string | null;
   compact?: boolean;
@@ -24,14 +25,21 @@ const PRODUCT_META: Record<PlanProduct, { icon: typeof Camera; tone: string }> =
 
 export const ProPlansGrid = ({
   pricing,
-  highlightProduct = 'bundle',
+  highlightProduct,
   onCheckout,
   loadingKey,
   compact = false,
 }: Props) => {
   const { t } = useT();
   const b = t.billing;
-  const [selected, setSelected] = useState<PlanProduct>(highlightProduct);
+  const products = availableCheckoutProducts();
+  const waBillingOn = isWaBillingEnabled();
+  const defaultProduct = products.includes('bundle')
+    ? 'bundle'
+    : products.includes(highlightProduct ?? 'ocr')
+      ? (highlightProduct ?? 'ocr')
+      : 'ocr';
+  const [selected, setSelected] = useState<PlanProduct>(defaultProduct);
   const [yearlyRenew, setYearlyRenew] = useState<'once' | 'auto'>('once');
   const [termsOpen, setTermsOpen] = useState(false);
   const [pendingCheckout, setPendingCheckout] = useState<{
@@ -56,7 +64,6 @@ export const ProPlansGrid = ({
 
   const pendingKey = pendingCheckout ? `${pendingCheckout.product}-${pendingCheckout.interval}` : null;
 
-  const products: PlanProduct[] = ['ocr', 'wa', 'bundle'];
   const labels: Record<PlanProduct, { title: string; desc: string; features: string[] }> = {
     ocr: { title: b.product_ocr_title, desc: b.product_ocr_desc, features: [b.feature_ocr] },
     wa: { title: b.product_wa_title, desc: b.product_wa_desc, features: [b.feature_wa_auto] },
@@ -72,7 +79,12 @@ export const ProPlansGrid = ({
 
   return (
     <div className="space-y-4">
-      <div className={`grid gap-2 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'}`}>
+      {!waBillingOn && (
+        <p className="text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/30 rounded-lg px-3 py-2">
+          {b.wa_billing_soon}
+        </p>
+      )}
+      <div className={`grid gap-2 ${compact || products.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'}`}>
         {products.map((product) => {
           const meta = PRODUCT_META[product];
           const Icon = meta.icon;
