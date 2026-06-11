@@ -64,6 +64,10 @@ NEXT_PUBLIC_DONATE_URL=https://cafecito.app/miguelguarrochena
 # Cron + feeds firmados
 CRON_SECRET=<algo-largo-aleatorio>
 
+# WhatsApp automático — límites de costo (opcional, defaults: 200 y 3)
+WA_MONTHLY_CAP=200
+WA_MAX_RECIPIENTS=3
+
 # WhatsApp: mostrar banner "en revisión" aunque tengas credenciales (hasta aprobación Meta)
 NEXT_PUBLIC_WHATSAPP_PENDING=true
 
@@ -76,7 +80,7 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0030_subscription_reminders.sql`:
+Aplicar todas en orden hasta `0031_wa_usage.sql`:
 
 ```bash
 supabase db push

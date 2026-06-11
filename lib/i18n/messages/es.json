@@ -552,7 +552,7 @@
   "admin": {
     "title": "Admin",
     "subtitle": "{total} usuarios · {active} con plan · {trial} en trial · {free} gratis",
-    "search_placeholder": "Buscar por email o nombre...",
+    "search_placeholder": "Buscar por email o nombre (todos los usuarios)...",
     "filter_all": "Todos",
     "filter_active": "Plan activo",
     "filter_trial": "En trial",
@@ -595,7 +595,8 @@
     "toast_cancel_end": "Plan se quita al fin del período",
     "tier_pro": "Plan activo",
     "tier_trial": "Trial",
-    "tier_free": "Gratis"
+    "tier_free": "Gratis",
+    "wa_usage_month": "WA: {used}/{cap} este mes"
   },
   "pagination": {
     "prev": "Anterior",
@@ -669,7 +670,7 @@
     "checkout_error": "No se pudo abrir el checkout",
     "connect_error": "Error al conectar con MercadoPago",
     "feature_ocr": "Escanear tickets con IA — monto, fecha y categoría",
-    "feature_wa_auto": "WhatsApp automático — Kumo avisa solo a vos y tus contactos",
+    "feature_wa_auto": "WhatsApp automático — hasta 200 avisos/mes, máx. 3 contactos por aviso",
     "feature_bundle_save": "Ahorrás vs contratar escaneo y WhatsApp por separado",
     "section_free_note": "Gratis: gastos, recordatorios, compras, dividir, espacios, push y avisar por WhatsApp manualmente (vos enviás el mensaje).",
     "trial_active_label": "Prueba activa",
@@ -686,7 +687,7 @@
     "product_wa_title": "WhatsApp automático",
     "product_bundle_title": "Kumo Pro (combo)",
     "product_ocr_desc": "Google Gemini lee tu ticket. Vos solo confirmás.",
-    "product_wa_desc": "Meta cobra por mensaje — Kumo avisa solo antes de vencimientos y recordatorios.",
+    "product_wa_desc": "Kumo avisa solo por WhatsApp. Hasta 200 mensajes/mes y 3 contactos por aviso (tu número primero).",
     "product_bundle_desc": "Escaneá tickets y que Kumo avise solo por WhatsApp.",
     "recommended": "Recomendado",
     "price_adjustment_note": "Precios en pesos argentinos. Si los costos internacionales suben mucho, podemos ajustarlos con aviso previo. Tu período pagado se mantiene."

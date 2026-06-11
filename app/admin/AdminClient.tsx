@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Search, Gift, XCircle, Clock, Sparkles, Loader2, Camera, MessageCircle, Wallet } from 'lucide-react';
@@ -21,6 +21,7 @@ export type AdminRow = {
   trialEndsAt: string | null;
   currentPeriodEnd: string | null;
   provider: string | null;
+  waMessagesThisMonth: number;
 };
 
 type Props = {
@@ -30,6 +31,8 @@ type Props = {
   totalCount: number;
   hasMore: boolean;
   stats: { active: number; trial: number; free: number };
+  searchQuery?: string;
+  waMonthlyCap?: number;
 };
 
 type PendingGrant = 'grant-3' | 'grant-life' | 'trial-ext' | 'cancel-end' | null;
@@ -46,23 +49,41 @@ const PLAN_OPTIONS: { id: PlanProduct; icon: typeof Camera }[] = [
   { id: 'bundle', icon: Wallet },
 ];
 
-export const AdminClient = ({ rows, page, pageSize, totalCount, hasMore, stats }: Props) => {
+export const AdminClient = ({ rows, page, pageSize, totalCount, hasMore, stats, searchQuery = '', waMonthlyCap = 200 }: Props) => {
   const { t } = useT();
   const a = t.admin;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(searchQuery);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [grantPlan, setGrantPlan] = useState<PlanProduct>('bundle');
+  const serverSearch = searchQuery.length > 0;
+
+  useEffect(() => {
+    setQ(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      const trimmed = q.trim();
+      if (trimmed === searchQuery) return;
+      const params = new URLSearchParams(searchParams.toString());
+      if (trimmed) params.set('q', trimmed);
+      else params.delete('q');
+      params.delete('page');
+      router.replace(`/admin?${params.toString()}`);
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [q, searchQuery, searchParams, router]);
 
   const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
+    const needle = serverSearch ? '' : q.trim().toLowerCase();
     return rows.filter((r) => {
       if (statusFilter !== 'all' && computeTier(r) !== statusFilter) return false;
       if (!needle) return true;
       return r.email.toLowerCase().includes(needle) || (r.name ?? '').toLowerCase().includes(needle);
     });
-  }, [rows, q, statusFilter]);
+  }, [rows, q, statusFilter, serverSearch]);
 
   const filterLabel = (s: 'all' | 'active' | 'trial' | 'free') =>
     s === 'all' ? a.filter_all
@@ -83,7 +104,7 @@ export const AdminClient = ({ rows, page, pageSize, totalCount, hasMore, stats }
     router.push(`/admin?${params.toString()}`);
   };
 
-  const displayTotal = q.trim() || statusFilter !== 'all' ? filtered.length : totalCount;
+  const displayTotal = statusFilter !== 'all' ? filtered.length : totalCount;
 
   return (
     <div className="space-y-5">
@@ -161,11 +182,11 @@ export const AdminClient = ({ rows, page, pageSize, totalCount, hasMore, stats }
             <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-10">{a.no_results}</p>
           ) : (
             filtered.map((r) => (
-              <Row key={r.id} row={r} grantPlan={grantPlan} planLabel={planLabel} />
+              <Row key={r.id} row={r} grantPlan={grantPlan} planLabel={planLabel} waMonthlyCap={waMonthlyCap} />
             ))
           )}
         </div>
-        {!q.trim() && statusFilter === 'all' && (
+        {statusFilter === 'all' && (serverSearch || !q.trim()) && (
           <Pagination
             page={page}
             pageSize={pageSize}
@@ -197,10 +218,12 @@ const Row = ({
   row,
   grantPlan,
   planLabel,
+  waMonthlyCap,
 }: {
   row: AdminRow;
   grantPlan: PlanProduct;
   planLabel: (p: PlanProduct | null) => string | null;
+  waMonthlyCap: number;
 }) => {
   const { t } = useT();
   const a = t.admin;
@@ -271,9 +294,22 @@ const Row = ({
         </div>
         <div className="md:col-span-2">
           {tier !== 'free' && plan ? (
-            <div className="flex flex-wrap gap-1">
-              <FeatureChip on={planIncludesOcr(plan)} label="OCR" />
-              <FeatureChip on={planIncludesWa(plan)} label="WA" />
+            <div className="space-y-1">
+              <div className="flex flex-wrap gap-1">
+                <FeatureChip on={planIncludesOcr(plan)} label="OCR" />
+                <FeatureChip on={planIncludesWa(plan)} label="WA" />
+              </div>
+              {planIncludesWa(plan) && (
+                <p className={`text-[10px] font-medium ${
+                  row.waMessagesThisMonth >= waMonthlyCap * 0.85
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}>
+                  {a.wa_usage_month
+                    .replace('{used}', String(row.waMessagesThisMonth))
+                    .replace('{cap}', String(waMonthlyCap))}
+                </p>
+              )}
             </div>
           ) : (
             <span className="text-xs text-slate-400">—</span>

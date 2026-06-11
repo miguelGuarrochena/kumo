@@ -552,7 +552,7 @@
   "admin": {
     "title": "Admin",
     "subtitle": "{total} users · {active} with plan · {trial} on trial · {free} free",
-    "search_placeholder": "Search by email or name...",
+    "search_placeholder": "Search by email or name (all users)...",
     "filter_all": "All",
     "filter_active": "Active plan",
     "filter_trial": "On trial",
@@ -595,7 +595,8 @@
     "toast_cancel_end": "Plan will end at period end",
     "tier_pro": "Active plan",
     "tier_trial": "Trial",
-    "tier_free": "Free"
+    "tier_free": "Free",
+    "wa_usage_month": "WA: {used}/{cap} this month"
   },
   "pagination": {
     "prev": "Previous",
@@ -669,7 +670,7 @@
     "checkout_error": "Couldn't open checkout",
     "connect_error": "Failed to connect to MercadoPago",
     "feature_ocr": "AI receipt scanning — amount, date, and category",
-    "feature_wa_auto": "Automatic WhatsApp — Kumo notifies you and your contacts",
+    "feature_wa_auto": "Automatic WhatsApp — up to 200 alerts/month, max 3 contacts per alert",
     "feature_bundle_save": "Save vs buying scanning and WhatsApp separately",
     "section_free_note": "Free: expenses, reminders, shopping, split, spaces, push, and manual WhatsApp (you send the message).",
     "trial_active_label": "Trial active",
@@ -686,7 +687,7 @@
     "product_wa_title": "Automatic WhatsApp",
     "product_bundle_title": "Kumo Pro (bundle)",
     "product_ocr_desc": "Google Gemini reads your receipt. You just confirm.",
-    "product_wa_desc": "Meta charges per message — Kumo sends reminders automatically.",
+    "product_wa_desc": "Kumo sends WhatsApp for you. Up to 200 messages/month and 3 contacts per alert (your number first).",
     "product_bundle_desc": "Scan tickets and let Kumo send WhatsApp reminders for you.",
     "recommended": "Recommended",
     "price_adjustment_note": "Prices are in Argentine pesos. If international costs rise significantly, we may adjust prices with prior notice. Your paid period stays unchanged."

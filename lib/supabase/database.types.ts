@@ -412,6 +412,15 @@ type SubscriptionsRow = {
 type SubscriptionsInsert = Partial<SubscriptionsRow> & { user_id: string };
 type SubscriptionsUpdate = Partial<SubscriptionsRow>;
 
+type WaUsageRow = {
+  user_id: string;
+  month: string;
+  count: number;
+  updated_at: string;
+};
+type WaUsageInsert = Partial<WaUsageRow> & { user_id: string; month: string };
+type WaUsageUpdate = Partial<WaUsageRow>;
+
 export type Database = {
   public: {
     Tables: {
@@ -475,6 +484,12 @@ export type Database = {
         Update: SubscriptionsUpdate;
         Relationships: [];
       };
+      wa_usage: {
+        Row: WaUsageRow;
+        Insert: WaUsageInsert;
+        Update: WaUsageUpdate;
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: PushSubscriptionsRow;
         Insert: PushSubscriptionsInsert;
@@ -532,6 +547,14 @@ export type Database = {
       };
       increment_ocr_usage: {
         Args: Record<string, never>;
+        Returns: number;
+      };
+      increment_wa_usage: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      current_month_wa_count: {
+        Args: { p_user_id: string };
         Returns: number;
       };
       workspace_balances: {

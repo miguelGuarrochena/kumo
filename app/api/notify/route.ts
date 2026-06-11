@@ -4,6 +4,11 @@ import { tryGetWhatsAppAdapter } from '@/lib/notifications/whatsapp';
 import { sendPush, type PushSubscriptionRow } from '@/lib/push/server';
 import { todayKey, toIsoLocal, daysBetween, dayKey } from '@/lib/date';
 import { subscriptionRowHasWa } from '@/lib/subscription';
+import {
+  currentWaMonthKey,
+  WA_MAX_RECIPIENTS_PER_ALERT,
+  WA_MONTHLY_CAP,
+} from '@/lib/notifications/waLimits';
 import type { Database } from '@/lib/supabase/database.types';
 
 type Contact = Database['public']['Tables']['notification_contacts']['Row'];
@@ -52,7 +57,9 @@ export async function POST(request: Request) {
     ...reminders.map((r) => r.user_id),
   ]);
 
-  const [{ data: contactsRaw }, { data: settingsRaw }, { data: pushRaw }, { data: subsRaw }] =
+  const waMonth = currentWaMonthKey();
+
+  const [{ data: contactsRaw }, { data: settingsRaw }, { data: pushRaw }, { data: subsRaw }, { data: waUsageRaw }] =
     await Promise.all([
       supabase
         .from('notification_contacts')
@@ -67,6 +74,13 @@ export async function POST(request: Request) {
         .from('subscriptions')
         .select('user_id, status, trial_ends_at, current_period_end, provider_subscription_id, plan_type')
         .in('user_id', [...allUserIds]),
+      allUserIds.size > 0
+        ? supabase
+            .from('wa_usage')
+            .select('user_id, count')
+            .eq('month', waMonth)
+            .in('user_id', [...allUserIds])
+        : Promise.resolve({ data: [] }),
     ]);
 
   type SubRow = {
@@ -114,6 +128,20 @@ export async function POST(request: Request) {
 
   const wa = tryGetWhatsAppAdapter();
   let waSkipped = 0;
+  let waCapSkipped = 0;
+
+  const waCountByUser = new Map<string, number>(
+    ((waUsageRaw ?? []) as { user_id: string; count: number }[]).map((r) => [r.user_id, r.count]),
+  );
+
+  const waUsedByUser = (userId: string): number => waCountByUser.get(userId) ?? 0;
+
+  const recordWaSend = async (userId: string): Promise<void> => {
+    const { data, error } = await supabase.rpc('increment_wa_usage', { p_user_id: userId });
+    if (!error && typeof data === 'number') {
+      waCountByUser.set(userId, data);
+    }
+  };
 
   function resolveRecipients(userId: string, workspaceId: string, contactIds: string[]): { id: string; name: string; phone: string }[] {
     let pool: Contact[] = [];
@@ -122,6 +150,10 @@ export async function POST(request: Request) {
       pool = contactIds
         .map((id) => contactsById.get(id))
         .filter((c): c is Contact => !!c);
+      pool.sort((a, b) => {
+        if (a.is_self === b.is_self) return 0;
+        return a.is_self ? -1 : 1;
+      });
     } else {
       const self = selfContactByUser.get(selfKey(userId, workspaceId));
       const settingsRow = settingsByUser.get(userId);
@@ -147,8 +179,43 @@ export async function POST(request: Request) {
 
     return pool
       .filter((c) => !!c.phone)
+      .slice(0, WA_MAX_RECIPIENTS_PER_ALERT)
       .map((c) => ({ id: c.id, name: c.name, phone: c.phone! }));
   }
+
+  const sendWaMessages = async (
+    userId: string,
+    recipients: { id: string; name: string; phone: string }[],
+    build: (r: { id: string; name: string; phone: string }) => { title: string; body: string },
+    ref: { type: 'expense' | 'reminder'; id: string },
+  ): Promise<boolean> => {
+    if (!wa) {
+      waSkipped += recipients.length;
+      return false;
+    }
+    let anyOk = false;
+    for (const r of recipients) {
+      if (waUsedByUser(userId) >= WA_MONTHLY_CAP) {
+        waCapSkipped += 1;
+        continue;
+      }
+      const payload = build(r);
+      const result = await wa.send({
+        to: r.phone,
+        title: payload.title,
+        body: payload.body,
+        ref: { type: ref.type, id: ref.id },
+      });
+      if (result.ok) {
+        anyOk = true;
+        sent += 1;
+        await recordWaSend(userId);
+      } else {
+        failed += 1;
+      }
+    }
+    return anyOk;
+  };
 
   for (const exp of dueExpenses) {
     const userSettings = settingsByUser.get(exp.user_id);
@@ -164,18 +231,18 @@ export async function POST(request: Request) {
 
     const recipients = resolveRecipients(exp.user_id, exp.workspace_id, exp.notify_contact_ids ?? []);
     const userHasWa = waAccessByUser.get(exp.user_id) ?? false;
-    if (!wa || !userHasWa) {
+    if (!userHasWa) {
       waSkipped += recipients.length;
     } else {
-      for (const r of recipients) {
-        const result = await wa.send({
-          to: r.phone,
+      await sendWaMessages(
+        exp.user_id,
+        recipients,
+        () => ({
           title,
           body: `${exp.description ?? 'Gasto'} vence el ${exp.due_date}.\nMonto: ${exp.amount} ${exp.currency}`,
-          ref: { type: 'expense', id: exp.id },
-        });
-        result.ok ? sent++ : failed++;
-      }
+        }),
+        { type: 'expense', id: exp.id },
+      );
     }
   }
 
@@ -220,29 +287,25 @@ export async function POST(request: Request) {
       rem.reminder_type === 'birthday' ? 'Cumpleaños' :
       'Recordatorio';
 
-    let anyOk = false;
     const userHasWa = waAccessByUser.get(rem.user_id) ?? false;
-    if (!wa || !userHasWa) {
+    const selfPhone = selfContactByUser.get(selfKey(rem.user_id, rem.workspace_id))?.phone;
+    let anyOk = false;
+    if (!userHasWa) {
       waSkipped += recipients.length;
     } else {
-      for (const r of recipients) {
-        const selfPhone = selfContactByUser.get(selfKey(rem.user_id, rem.workspace_id))?.phone;
-        const isOwner = r.phone === selfPhone;
-        const greeting = isOwner ? '' : `Hola ${r.name}, te aviso de parte de Kumo: `;
-
-        const result = await wa.send({
-          to: r.phone,
-          title: `${prefix} · ${rem.title} · Kumo`,
-          body: `${greeting}Es ${diffDays === 0 ? 'hoy' : diffDays === 1 ? 'mañana' : `en ${diffDays} días`} (${rem.reminder_date})`,
-          ref: { type: 'reminder', id: rem.id },
-        });
-        if (result.ok) {
-          anyOk = true;
-          sent++;
-        } else {
-          failed++;
-        }
-      }
+      anyOk = await sendWaMessages(
+        rem.user_id,
+        recipients,
+        (r) => {
+          const isOwner = r.phone === selfPhone;
+          const greeting = isOwner ? '' : `Hola ${r.name}, te aviso de parte de Kumo: `;
+          return {
+            title: `${prefix} · ${rem.title} · Kumo`,
+            body: `${greeting}Es ${diffDays === 0 ? 'hoy' : diffDays === 1 ? 'mañana' : `en ${diffDays} días`} (${rem.reminder_date})`,
+          };
+        },
+        { type: 'reminder', id: rem.id },
+      );
     }
 
     if (anyOk) {
@@ -262,6 +325,9 @@ export async function POST(request: Request) {
     failed,
     skipped,
     waSkipped,
+    waCapSkipped,
+    waMonthlyCap: WA_MONTHLY_CAP,
+    waMaxRecipients: WA_MAX_RECIPIENTS_PER_ALERT,
     whatsapp: wa ? 'active' : 'disabled',
     stalePush: stalePushIds.length,
   });

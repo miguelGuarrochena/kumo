@@ -3,29 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdminUser } from '@/lib/admin';
 import type { PlanProduct } from '@/lib/plans';
+import { findUserByEmail } from '@/lib/admin/users';
 import { createServiceClient } from '@/lib/supabase/service';
 
 export type AdminActionState = { ok: boolean; error?: string };
-
-const findUserByEmail = async (email: string): Promise<{ id: string } | null> => {
-  const supabase = createServiceClient();
-  const target = email.trim().toLowerCase();
-  if (!target) return null;
-
-  let page = 1;
-  const perPage = 200;
-  while (page <= 50) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).auth.admin.listUsers({ page, perPage });
-    if (error) return null;
-    const users = (data?.users ?? []) as { id: string; email: string | null }[];
-    const match = users.find((u) => (u.email ?? '').toLowerCase() === target);
-    if (match) return { id: match.id };
-    if (users.length < perPage) break;
-    page += 1;
-  }
-  return null;
-};
 
 const revalidateBilling = () => {
   revalidatePath('/admin');
