@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import { Sparkles, Check, Loader2, XCircle } from 'lucide-react';
 import type { SubscriptionInfo } from '@/lib/subscription';
 import type { Pricing } from '@/lib/pricing';
-import type { PlanProduct } from '@/lib/plans';
+import type { CheckoutInterval, PlanProduct } from '@/lib/plans';
+import { checkoutIntervalToPlan } from '@/lib/plans';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ProPlansGrid } from '@/components/ProPlansGrid';
 import { useT } from '@/lib/i18n/client';
@@ -21,7 +22,7 @@ export const PlanSection = ({ sub, pricing }: Props) => {
   const [loading, setLoading] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
-  const openCheckout = async (product: PlanProduct, interval: 'monthly' | 'yearly') => {
+  const openCheckout = async (product: PlanProduct, interval: CheckoutInterval) => {
     const key = `${product}-${interval}`;
     setLoading(key);
     try {
@@ -30,7 +31,7 @@ export const PlanSection = ({ sub, pricing }: Props) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           product,
-          interval: interval === 'yearly' ? 'year' : 'month',
+          interval: checkoutIntervalToPlan(interval),
         }),
       });
       const data = await res.json();
@@ -142,7 +143,7 @@ export const PlanSection = ({ sub, pricing }: Props) => {
             <p className="text-xs opacity-80 mt-2">
               {isCanceledWithAccess
                 ? tb.canceled_keep_until.replace('{date}', dateFmt(sub.currentPeriodEnd))
-                : sub.isYearly
+                : sub.isYearlyOneTime
                   ? tb.plan_expires.replace('{date}', dateFmt(sub.currentPeriodEnd))
                   : tb.next_charge.replace('{date}', dateFmt(sub.currentPeriodEnd))}
             </p>
@@ -150,7 +151,7 @@ export const PlanSection = ({ sub, pricing }: Props) => {
         </div>
       )}
 
-      {isPaying && !sub.isLifetime && !sub.isCourtesy && !sub.isYearly && (
+      {isPaying && !sub.isLifetime && !sub.isCourtesy && !sub.isYearlyOneTime && (
         <button
           type="button"
           onClick={() => setConfirmCancel(true)}

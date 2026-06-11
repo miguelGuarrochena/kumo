@@ -4,7 +4,7 @@ import { Camera, MessageCircle } from 'lucide-react';
 import { Sheet } from '@/components/Sheet';
 import { ProPlansGrid } from '@/components/ProPlansGrid';
 import type { Pricing } from '@/lib/pricing';
-import type { PlanProduct } from '@/lib/plans';
+import type { CheckoutInterval, PlanProduct } from '@/lib/plans';
 import { useT } from '@/lib/i18n/client';
 
 type Props = {
@@ -12,7 +12,7 @@ type Props = {
   onClose: () => void;
   pricing: Pricing;
   product?: PlanProduct;
-  onCheckout: (product: PlanProduct, interval: 'monthly' | 'yearly') => Promise<void>;
+  onCheckout: (product: PlanProduct, interval: CheckoutInterval) => Promise<void>;
   loadingKey: string | null;
   trialDaysLeft?: number | null;
 };

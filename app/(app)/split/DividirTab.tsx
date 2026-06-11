@@ -19,6 +19,7 @@ import { formatMoney, trimNumber, newId } from './dividirUtils';
 import { CurrencyPicker } from './CurrencyPicker';
 import { ItemsEditor } from './ItemsEditor';
 import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
+import { checkoutIntervalToPlan } from '@/lib/plans';
 import {
   buildPaymentWhatsAppText,
   copyPaymentDetails,
@@ -520,7 +521,7 @@ export const DividirTab = ({
             const res = await fetch('/api/billing/checkout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ product, interval: interval === 'yearly' ? 'year' : 'month' }),
+              body: JSON.stringify({ product, interval: checkoutIntervalToPlan(interval) }),
             });
             const data = await res.json();
             if (data.url) window.location.href = data.url;

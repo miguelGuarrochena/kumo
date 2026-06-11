@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { sendEmail } from '@/lib/email';
 import { renderSubscriptionReminderEmail } from '@/lib/email/templates';
-import { isYearlyPlanVariant } from '@/lib/plans';
+import { isYearlyOneTimeVariant } from '@/lib/plans';
 
 const DAY_MS = 86_400_000;
 
@@ -58,7 +58,7 @@ const handler = async (req: Request) => {
 
   for (const raw of (data ?? []) as SubRow[]) {
     const left = daysUntil(raw.current_period_end);
-    const isYearly = isYearlyPlanVariant(raw.provider_variant_id);
+    const isYearly = isYearlyOneTimeVariant(raw.provider_variant_id);
     const planLabel = PLAN_LABELS[raw.plan_type ?? ''] ?? 'Kumo Pro';
 
     const sendFor = (window: 30 | 7): boolean => {

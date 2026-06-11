@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createPreapproval, isMpProductConfigured } from '@/lib/mercadopago';
-import { checkoutReason, getMpPlanId, type PlanInterval, type PlanProduct } from '@/lib/plans';
+import {
+  checkoutIntervalToPlan,
+  checkoutReason,
+  getMpPlanId,
+  type CheckoutInterval,
+  type PlanProduct,
+} from '@/lib/plans';
 
 export const POST = async (req: Request) => {
   const supabase = await createClient();
@@ -11,15 +17,21 @@ export const POST = async (req: Request) => {
   }
 
   const body = await req.json().catch(() => ({}));
-  const interval: PlanInterval = body.interval === 'year' ? 'year' : 'month';
   const product: PlanProduct =
     body.product === 'wa' || body.product === 'bundle' ? body.product : 'ocr';
+
+  const checkoutInterval: CheckoutInterval =
+    body.interval === 'yearly_auto' || body.interval === 'year_auto' ? 'yearly_auto'
+    : body.interval === 'yearly_once' || body.interval === 'year' ? 'yearly_once'
+    : 'monthly';
+
+  const billingInterval = checkoutIntervalToPlan(checkoutInterval);
 
   if (!isMpProductConfigured(product)) {
     return NextResponse.json({ error: 'MercadoPago no configurado para este plan' }, { status: 503 });
   }
 
-  const planId = getMpPlanId(product, interval);
+  const planId = getMpPlanId(product, billingInterval);
   if (!planId) {
     return NextResponse.json({ error: 'Plan no configurado' }, { status: 503 });
   }
@@ -31,7 +43,7 @@ export const POST = async (req: Request) => {
       planId,
       payerEmail: user.email,
       userId: user.id,
-      reason: checkoutReason(product, interval),
+      reason: checkoutReason(product, billingInterval),
       backUrl: `${origin}/settings?subscribed=1`,
     });
 

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import {
+  isYearlyOneTimeVariant,
   isYearlyPlanVariant,
   planIncludesOcr,
   planIncludesWa,
@@ -21,6 +22,7 @@ export type SubscriptionInfo = {
   isLifetime: boolean;
   isCourtesy: boolean;
   isYearly: boolean;
+  isYearlyOneTime: boolean;
 };
 
 const hasPaidAccess = (
@@ -66,6 +68,7 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
     isLifetime: false,
     isCourtesy: false,
     isYearly: false,
+    isYearlyOneTime: false,
   };
 
   if (!user) return emptyInfo;
@@ -103,6 +106,7 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
     currentPeriodEnd !== null && currentPeriodEnd.getTime() - Date.now() > fiftyYears;
   const isCourtesy = row.status === 'active' && !row.provider_subscription_id;
   const isYearly = isYearlyPlanVariant(row.provider_variant_id);
+  const isYearlyOneTime = isYearlyOneTimeVariant(row.provider_variant_id);
 
   return {
     tier,
@@ -117,6 +121,7 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
     isLifetime,
     isCourtesy,
     isYearly,
+    isYearlyOneTime,
   };
 };
 

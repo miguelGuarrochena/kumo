@@ -82,8 +82,12 @@ const TermsPage = () => {
           El plan <strong>mensual</strong> se renueva automáticamente cada mes hasta que lo canceles.
         </li>
         <li>
-          El plan <strong>anual</strong> es un pago único por 12 meses y <strong>no se renueva solo</strong>.
+          El plan <strong>anual sin renovación</strong> es un pago único por 12 meses y no se renueva solo.
           Te avisamos por email 30 y 7 días antes de que termine; si querés seguir, renovás manualmente desde Configuración.
+        </li>
+        <li>
+          El plan <strong>anual con renovación automática</strong> se cobra cada año hasta que lo canceles.
+          Te avisamos por email 30 y 7 días antes de cada renovación.
         </li>
         <li>
           Podés <strong>cancelar en cualquier momento</strong> desde Configuración → Complementos de pago → Cancelar

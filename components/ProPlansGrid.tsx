@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { Loader2, Sparkles, Check, MessageCircle, Camera, Layers } from 'lucide-react';
 import type { Pricing } from '@/lib/pricing';
-import type { PlanProduct } from '@/lib/plans';
+import type { CheckoutInterval, PlanProduct } from '@/lib/plans';
 import { useT } from '@/lib/i18n/client';
 
 type Props = {
   pricing: Pricing;
   highlightProduct?: PlanProduct;
-  onCheckout: (product: PlanProduct, interval: 'monthly' | 'yearly') => void;
+  onCheckout: (product: PlanProduct, interval: CheckoutInterval) => void;
   loadingKey: string | null;
   compact?: boolean;
 };
@@ -30,6 +30,7 @@ export const ProPlansGrid = ({
   const { t } = useT();
   const b = t.billing;
   const [selected, setSelected] = useState<PlanProduct>(highlightProduct);
+  const [yearlyRenew, setYearlyRenew] = useState<'once' | 'auto'>('once');
 
   const products: PlanProduct[] = ['ocr', 'wa', 'bundle'];
   const labels: Record<PlanProduct, { title: string; desc: string; features: string[] }> = {
@@ -43,6 +44,7 @@ export const ProPlansGrid = ({
   };
 
   const prices = pricing[selected];
+  const yearlyInterval: CheckoutInterval = yearlyRenew === 'once' ? 'yearly_once' : 'yearly_auto';
 
   return (
     <div className="space-y-4">
@@ -102,22 +104,63 @@ export const ProPlansGrid = ({
           subscribeLabel={b.subscribe_button}
           openingLabel={b.opening_provider}
         />
-        <CheckoutBtn
-          title={b.plan_yearly}
-          price={prices.yearly}
-          period={b.per_year}
-          saveLabel={b.save_label.replace('{pct}', String(pricing.yearlyPct))}
-          highlight
-          loading={loadingKey === `${selected}-yearly`}
-          onClick={() => onCheckout(selected, 'yearly')}
-          subscribeLabel={b.subscribe_button}
-          openingLabel={b.opening_provider}
-        />
+        <div className="relative rounded-xl border-2 border-amber-300 dark:border-amber-500/50 bg-amber-50/60 dark:bg-amber-500/5 p-3">
+          <span className="absolute -top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-medium">
+            {b.save_label.replace('{pct}', String(pricing.yearlyPct))}
+          </span>
+          <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{b.plan_yearly}</p>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-xl font-bold">{prices.yearly}</span>
+            <span className="text-xs text-slate-500">{b.per_year}</span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              onClick={() => setYearlyRenew('once')}
+              className={`rounded-lg border px-2 py-1.5 text-left text-xs transition-colors ${
+                yearlyRenew === 'once'
+                  ? 'border-amber-400 bg-white dark:bg-slate-900 font-medium text-amber-700 dark:text-amber-300'
+                  : 'border-transparent bg-amber-100/50 dark:bg-amber-500/10 text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {b.yearly_once_label}
+            </button>
+            <button
+              type="button"
+              onClick={() => setYearlyRenew('auto')}
+              className={`rounded-lg border px-2 py-1.5 text-left text-xs transition-colors ${
+                yearlyRenew === 'auto'
+                  ? 'border-amber-400 bg-white dark:bg-slate-900 font-medium text-amber-700 dark:text-amber-300'
+                  : 'border-transparent bg-amber-100/50 dark:bg-amber-500/10 text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {b.yearly_auto_label}
+            </button>
+          </div>
+
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+            {yearlyRenew === 'once' ? b.yearly_once_desc : b.yearly_auto_desc}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => onCheckout(selected, yearlyInterval)}
+            disabled={loadingKey === `${selected}-${yearlyInterval}`}
+            className="mt-3 w-full text-sm font-medium text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5 disabled:opacity-50"
+          >
+            {loadingKey === `${selected}-${yearlyInterval}`
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Sparkles className="w-4 h-4" />}
+            {loadingKey === `${selected}-${yearlyInterval}` ? b.opening_provider : b.subscribe_button}
+          </button>
+        </div>
       </div>
 
       <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-disc pl-4">
         <li>{b.checkout_monthly_note}</li>
-        <li>{b.checkout_yearly_note}</li>
+        <li>{b.checkout_yearly_once_note}</li>
+        <li>{b.checkout_yearly_auto_note}</li>
       </ul>
       <p className="text-xs text-slate-500 dark:text-slate-400">{b.price_adjustment_note}</p>
     </div>
@@ -125,13 +168,11 @@ export const ProPlansGrid = ({
 };
 
 const CheckoutBtn = ({
-  title, price, period, saveLabel, highlight, loading, onClick, subscribeLabel, openingLabel,
+  title, price, period, loading, onClick, subscribeLabel, openingLabel,
 }: {
   title: string;
   price: string;
   period: string;
-  saveLabel?: string;
-  highlight?: boolean;
   loading: boolean;
   onClick: () => void;
   subscribeLabel: string;
@@ -141,17 +182,8 @@ const CheckoutBtn = ({
     type="button"
     onClick={onClick}
     disabled={loading}
-    className={`relative text-left rounded-xl border-2 p-3 transition-all hover:scale-[1.01] disabled:opacity-50 ${
-      highlight
-        ? 'border-amber-300 dark:border-amber-500/50 bg-amber-50/60 dark:bg-amber-500/5'
-        : 'border-slate-200 dark:border-slate-700'
-    }`}
+    className="relative text-left rounded-xl border-2 p-3 transition-all hover:scale-[1.01] disabled:opacity-50 border-slate-200 dark:border-slate-700"
   >
-    {saveLabel && (
-      <span className="absolute -top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-medium">
-        {saveLabel}
-      </span>
-    )}
     <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{title}</p>
     <div className="mt-1 flex items-baseline gap-1">
       <span className="text-xl font-bold">{price}</span>

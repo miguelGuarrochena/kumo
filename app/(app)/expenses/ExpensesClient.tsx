@@ -21,6 +21,7 @@ import { Pagination } from '@/components/Pagination';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { track } from '@/lib/analytics';
+import { checkoutIntervalToPlan } from '@/lib/plans';
 import type { CategoryLite, ContactLite, Expense, ExpenseWithSplits } from './types';
 import { monthShift, formatMonth } from './utils';
 import { ExpenseRow } from './ExpenseRow';
@@ -688,7 +689,7 @@ export const ExpensesClient = ({
             const res = await fetch('/api/billing/checkout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ product, interval: interval === 'yearly' ? 'year' : 'month' }),
+              body: JSON.stringify({ product, interval: checkoutIntervalToPlan(interval) }),
             });
             const data = await res.json();
             if (data.url) window.location.href = data.url;
