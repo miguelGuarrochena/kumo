@@ -65,7 +65,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Falta el archivo "image"' }, { status: 400 });
   }
 
-  if (!ALLOWED_TYPES.includes(file.type)) {
+  const mimeType =
+    file.type && ALLOWED_TYPES.includes(file.type)
+      ? file.type
+      : file.name?.toLowerCase().endsWith('.png')
+        ? 'image/png'
+        : file.name?.toLowerCase().endsWith('.webp')
+          ? 'image/webp'
+          : 'image/jpeg';
+
+  if (file.type && !ALLOWED_TYPES.includes(file.type)) {
     return NextResponse.json(
       { error: `Tipo no soportado: ${file.type}. Usá JPEG, PNG, WEBP o HEIC.` },
       { status: 400 },
@@ -83,14 +92,22 @@ export async function POST(request: Request) {
   try {
     const provider = getOcrProvider();
     const buffer = await file.arrayBuffer();
-    const result = await provider.extractFromImage(buffer, file.type);
+    const result = await provider.extractFromImage(buffer, mimeType);
     await supabase.rpc('increment_ocr_usage');
     return NextResponse.json(result);
   } catch (error) {
     console.error('[OCR] error:', error);
     const message = error instanceof Error ? error.message : 'Error desconocido';
+    const userError =
+      message.includes('503') || message.includes('UNAVAILABLE')
+        ? 'El servicio de IA está saturado. Probá de nuevo en unos segundos.'
+        : message.includes('429') || message.includes('quota')
+          ? 'Límite de uso de IA alcanzado. Probá más tarde o contactanos.'
+          : message.includes('GOOGLE_AI_API_KEY')
+            ? 'OCR no configurado en el servidor.'
+            : 'No se pudo procesar la imagen';
     return NextResponse.json(
-      { error: 'No se pudo procesar la imagen', detail: message },
+      { error: userError, detail: message, code: 'OCR_FAILED' },
       { status: 500 },
     );
   }

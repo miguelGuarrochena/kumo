@@ -19,34 +19,44 @@ export const resizeImage = async (
   }
 
   const ratio = Math.min(maxSide / bitmap.width, maxSide / bitmap.height, 1);
+
+  const toJpeg = async (source: ImageBitmap, w: number, h: number): Promise<Blob> => {
+    if (typeof OffscreenCanvas !== 'undefined') {
+      const canvas = new OffscreenCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('no canvas');
+      ctx.drawImage(source, 0, 0, w, h);
+      return await canvas.convertToBlob({ type: 'image/jpeg', quality });
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('no canvas');
+    ctx.drawImage(source, 0, 0, w, h);
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', quality);
+    });
+  };
+
   if (ratio === 1) {
-    bitmap.close?.();
-    return file;
+    try {
+      const blob = await toJpeg(bitmap, bitmap.width, bitmap.height);
+      bitmap.close?.();
+      return blob;
+    } catch {
+      bitmap.close?.();
+      return file;
+    }
   }
 
   const w = Math.round(bitmap.width * ratio);
   const h = Math.round(bitmap.height * ratio);
 
   try {
-    if (typeof OffscreenCanvas !== 'undefined') {
-      const canvas = new OffscreenCanvas(w, h);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return file;
-      ctx.drawImage(bitmap, 0, 0, w, h);
-      bitmap.close?.();
-      return await canvas.convertToBlob({ type: 'image/jpeg', quality });
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, w, h);
+    const blob = await toJpeg(bitmap, w, h);
     bitmap.close?.();
-    return await new Promise<Blob>((resolve) => {
-      canvas.toBlob((b) => resolve(b ?? file), 'image/jpeg', quality);
-    });
+    return blob;
   } catch {
     bitmap.close?.();
     return file;

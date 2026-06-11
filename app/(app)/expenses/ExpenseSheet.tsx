@@ -88,8 +88,13 @@ export const ExpenseSheet = ({
       setCurrency(CURRENCIES.some((c) => c.code === cur) ? cur : defaultCurrency);
       setDescription(aiSuggestion.description ?? aiSuggestion.merchant ?? '');
       setExpenseDate(aiSuggestion.date ?? todayKey());
-      setDueDate('');
-      setHasDueDate(false);
+      if (aiSuggestion.dueDate) {
+        setDueDate(aiSuggestion.dueDate);
+        setHasDueDate(true);
+      } else {
+        setDueDate('');
+        setHasDueDate(false);
+      }
       setPaid(true);
       setIsRecurring(false);
       setRecurrenceType('monthly');
