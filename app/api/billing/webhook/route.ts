@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getPreapproval, verifyMpSignature, mapStatus } from '@/lib/mercadopago';
+import { resolvePlanTypeFromVariantId } from '@/lib/plans';
 
 export const POST = async (req: Request) => {
   const url = new URL(req.url);
@@ -40,11 +41,13 @@ export const POST = async (req: Request) => {
 
   const supabase = createServiceClient();
   const status = mapStatus(pre.status);
+  const planType = resolvePlanTypeFromVariantId(pre.preapproval_plan_id) ?? 'ocr';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.from('subscriptions') as any).upsert({
     user_id: userId,
     status,
+    plan_type: status === 'active' || status === 'trialing' ? planType : null,
     provider: 'mercadopago',
     provider_customer_id: String(pre.payer_id ?? ''),
     provider_subscription_id: pre.id,

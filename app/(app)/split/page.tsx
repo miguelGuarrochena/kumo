@@ -36,11 +36,9 @@ const DividirPage = async () => {
   return (
     <DividirClient
       contacts={contacts as ContactLite[]}
-      hasOcrAccess={subscription.tier === 'pro'}
+      hasOcrAccess={subscription.hasOcr}
       trialDaysLeft={subscription.daysLeftInTrial}
-      priceMonthly={pricing.monthly}
-      priceYearly={pricing.yearly}
-      yearlyPct={pricing.yearlyPct}
+      pricing={pricing}
     />
   );
 };

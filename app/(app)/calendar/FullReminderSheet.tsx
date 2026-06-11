@@ -3,7 +3,8 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Check } from 'lucide-react';
+import { Check, MessageCircle } from 'lucide-react';
+import { openReminderWhatsApp } from '@/lib/reminderWhatsApp';
 import { Sheet } from '@/components/Sheet';
 import { upsertReminder } from '@/app/(app)/reminders/actions';
 import { track } from '@/lib/analytics';
@@ -16,10 +17,11 @@ type FullReminderSheetProps = {
   open: boolean;
   reminder: ReminderCal | null;
   contacts: ContactLite[];
+  hasWa: boolean;
   onClose: () => void;
 };
 
-export const FullReminderSheet = ({ open, reminder, contacts, onClose }: FullReminderSheetProps) => {
+export const FullReminderSheet = ({ open, reminder, contacts, hasWa, onClose }: FullReminderSheetProps) => {
   const router = useRouter();
   const { t } = useT();
   const [pending, startTransition] = useTransition();
@@ -59,6 +61,17 @@ export const FullReminderSheet = ({ open, reminder, contacts, onClose }: FullRem
     setNotifyContactIds((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
     );
+  };
+
+  const waContact = reminder
+    ? notifyContactIds
+        .map((id) => contacts.find((c) => c.id === id))
+        .find((c) => c?.phone)
+    : null;
+
+  const onManualWhatsApp = () => {
+    if (!reminder || !waContact?.phone) return;
+    openReminderWhatsApp(reminder, waContact.phone, waContact.name, t);
   };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -103,6 +116,16 @@ export const FullReminderSheet = ({ open, reminder, contacts, onClose }: FullRem
       title={reminder ? t.calendar.edit_reminder : t.calendar.new_reminder}
       footer={
         <div className="flex gap-2">
+          {reminder && waContact?.phone && (
+            <button
+              type="button"
+              onClick={onManualWhatsApp}
+              title={t.reminders.wa_manual}
+              className="px-4 py-3 rounded-xl text-sm font-medium text-mint-700 dark:text-mint-300 bg-mint-100 dark:bg-mint-900/30 hover:bg-mint-200 dark:hover:bg-mint-900/50"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -283,6 +306,14 @@ export const FullReminderSheet = ({ open, reminder, contacts, onClose }: FullRem
                 );
               })}
             </div>
+          )}
+          {!hasWa && notifyContactIds.length > 0 && (
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+              {t.calendar.wa_auto_note}{' '}
+              <a href="/settings#plans" className="underline font-medium">
+                {t.settings.contacts_wa_upsell_cta}
+              </a>
+            </p>
           )}
         </div>
       </form>

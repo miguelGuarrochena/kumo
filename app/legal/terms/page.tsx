@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'Reglas de uso de Kumo.',
 };
 
-const UPDATED = '6 de junio de 2026';
+const UPDATED = '10 de junio de 2026';
 
 const TermsPage = () => {
   return (
@@ -49,18 +49,27 @@ const TermsPage = () => {
         </li>
       </ul>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">4. Uso gratuito y complemento OCR</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">4. Uso gratuito y complementos de pago</h2>
       <p>
-        <strong>Kumo es gratuito</strong> para gastos, recordatorios, lista de compras, notificaciones por WhatsApp y push,
-        y espacios compartidos (los que necesites).
+        <strong>Kumo es gratuito</strong> para gastos, recordatorios, lista de compras, dividir cuentas, espacios
+        compartidos, exportación, notificaciones push y avisos por WhatsApp <strong>manuales</strong> (vos enviás el
+        mensaje desde tu teléfono).
       </p>
       <p className="mt-3">
-        El <strong>escaneo de tickets con IA</strong> (OCR) es un complemento de pago porque utiliza servicios de terceros
-        con costo por imagen. El precio se muestra al intentar usar esa función y en Configuración → Escanear tickets.
+        Los <strong>complementos de pago</strong> cubren servicios con costo de terceros:
+      </p>
+      <ul className="list-disc pl-5 space-y-1 mt-2">
+        <li><strong>Escaneo OCR</strong> — Google Gemini, costo por imagen.</li>
+        <li><strong>WhatsApp automático</strong> — Meta cobra por cada mensaje que Kumo envía solo.</li>
+        <li><strong>Kumo Pro (combo)</strong> — incluye ambos a un precio menor que por separado.</li>
+      </ul>
+      <p className="mt-3">
+        Los precios están en <strong>pesos argentinos</strong> y se muestran en Configuración → Complementos de pago.
+        Si los costos internacionales suben significativamente, podemos ajustar los precios con <strong>aviso previo</strong>.
+        Tu período ya pagado se mantiene hasta su vencimiento.
       </p>
       <p className="mt-3">
-        No hay suscripción obligatoria al registrarte. Si no activás el complemento OCR, podés usar Kumo con normalidad
-        cargando gastos a mano.
+        No hay suscripción obligatoria al registrarte.
       </p>
 
       <h2 className="text-xl font-bold mt-8 mb-3">5. Pagos, cancelación y reembolso</h2>
@@ -70,16 +79,15 @@ const TermsPage = () => {
           tarjeta.
         </li>
         <li>
-          El <strong>complemento OCR</strong> se renueva automáticamente al final de cada período (mensual o anual)
-          hasta que lo canceles.
+          El plan contratado se renueva automáticamente al final de cada período (mensual o anual) hasta que lo canceles.
         </li>
         <li>
-          Podés <strong>cancelar en cualquier momento</strong> desde Configuración → Plan → Cancelar suscripción.
-          Mantenés acceso al escaneo hasta el final del período ya pagado.
+          Podés <strong>cancelar en cualquier momento</strong> desde Configuración → Complementos de pago → Cancelar
+          suscripción. Mantenés acceso hasta el final del período ya pagado.
         </li>
         <li>
-          <strong>No hacemos reembolsos por períodos parciales</strong>. Si cancelás a la mitad del mes, mantenés el
-          complemento OCR hasta el final del mes y no se renueva.
+          <strong>No hacemos reembolsos por períodos parciales</strong>. Si cancelás a la mitad del mes, mantenés el plan
+          hasta el final del mes y no se renueva.
         </li>
         <li>
           Si tenés un problema con un cobro, escribinos a <a href="mailto:info@kumo-app.com">info@kumo-app.com</a> y

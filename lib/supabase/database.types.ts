@@ -397,6 +397,7 @@ type PushSubscriptionsUpdate = Partial<PushSubscriptionsRow>;
 type SubscriptionsRow = {
   user_id: string;
   status: SubscriptionStatus;
+  plan_type: 'ocr' | 'wa' | 'bundle' | null;
   trial_ends_at: string | null;
   current_period_end: string | null;
   provider: string;

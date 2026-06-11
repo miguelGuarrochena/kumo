@@ -7,7 +7,7 @@ import { getPricing } from '@/lib/pricing';
 export const TrialBanner = async () => {
   const [sub, messages] = await Promise.all([getSubscription(), getMessages()]);
   const tb = messages.billing;
-  const priceMonthly = getPricing().monthly;
+  const priceMonthly = getPricing().bundle.monthly;
   const now = Date.now();
 
   const inGrace =
@@ -49,7 +49,7 @@ export const TrialBanner = async () => {
 
   return (
     <Link
-      href="/settings#ocr"
+      href="/settings#plans"
       className="block px-4 py-2 text-sm text-center text-amber-800 dark:text-amber-100 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200/60 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors"
     >
       <Sparkles className="inline-block w-4 h-4 mr-1.5 -mt-0.5" />

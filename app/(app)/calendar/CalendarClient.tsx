@@ -43,6 +43,7 @@ type Props = {
   workspaces: WorkspaceLite[];
   activeWorkspaceId: string;
   feedUrl: string;
+  hasWa: boolean;
 };
 
 type WithWorkspace<T> = T & { workspace_id: string };
@@ -60,6 +61,7 @@ export const CalendarClient = ({
   workspaces,
   activeWorkspaceId,
   feedUrl,
+  hasWa,
 }: Props) => {
   const router = useRouter();
   const { t } = useT();
@@ -289,6 +291,7 @@ export const CalendarClient = ({
         open={editingReminder !== null}
         reminder={editingReminder && editingReminder.id ? editingReminder : null}
         contacts={contacts}
+        hasWa={hasWa}
         onClose={() => setEditingReminder(null)}
       />
 

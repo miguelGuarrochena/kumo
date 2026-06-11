@@ -4,8 +4,9 @@ import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  Users, Plus, Pencil, Trash2, User, Heart, Baby, UserCircle2, UserRound, Check,
+  Users, Plus, Pencil, Trash2, User, Heart, Baby, UserCircle2, UserRound, Check, MessageCircle,
 } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { upsertContact, deleteContact } from './contactsActions';
@@ -27,8 +28,14 @@ const RELATIONSHIP_LABEL: Record<string, string> = Object.fromEntries(
   RELATIONSHIP_OPTIONS.map((o) => [o.value, o.label]),
 );
 
-export const ContactsSection = ({ contacts }: { contacts: Contact[] }) => {
+type ContactsSectionProps = {
+  contacts: Contact[];
+  hasWa?: boolean;
+};
+
+export const ContactsSection = ({ contacts, hasWa = false }: ContactsSectionProps) => {
   const router = useRouter();
+  const { t } = useT();
   const [editing, setEditing] = useState<Contact | null>(null);
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<Contact | null>(null);
@@ -71,6 +78,28 @@ export const ContactsSection = ({ contacts }: { contacts: Contact[] }) => {
           <span className="hidden sm:inline">Agregar</span>
         </button>
       </div>
+
+      {!hasWa && contacts.some((c) => c.phone) && (
+        <div className="mb-4 rounded-xl border border-amber-200/60 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 p-3">
+          <div className="flex items-start gap-2">
+            <MessageCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                {t.settings.contacts_wa_upsell_title}
+              </p>
+              <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-0.5">
+                {t.settings.contacts_wa_upsell_desc}
+              </p>
+              <a
+                href="#plans"
+                className="inline-block mt-2 text-xs font-semibold text-amber-700 dark:text-amber-300 underline"
+              >
+                {t.settings.contacts_wa_upsell_cta}
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6">

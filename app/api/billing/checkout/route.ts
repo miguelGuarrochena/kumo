@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createPreapproval, isMpConfigured, MP_PLAN_MONTHLY, MP_PLAN_YEARLY } from '@/lib/mercadopago';
+import { createPreapproval, isMpProductConfigured } from '@/lib/mercadopago';
+import { checkoutReason, getMpPlanId, type PlanInterval, type PlanProduct } from '@/lib/plans';
 
 export const POST = async (req: Request) => {
-  if (!isMpConfigured()) {
-    return NextResponse.json({ error: 'MercadoPago no configurado' }, { status: 503 });
-  }
-
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) {
@@ -14,8 +11,15 @@ export const POST = async (req: Request) => {
   }
 
   const body = await req.json().catch(() => ({}));
-  const interval: 'month' | 'year' = body.interval === 'year' ? 'year' : 'month';
-  const planId = interval === 'year' ? MP_PLAN_YEARLY : MP_PLAN_MONTHLY;
+  const interval: PlanInterval = body.interval === 'year' ? 'year' : 'month';
+  const product: PlanProduct =
+    body.product === 'wa' || body.product === 'bundle' ? body.product : 'ocr';
+
+  if (!isMpProductConfigured(product)) {
+    return NextResponse.json({ error: 'MercadoPago no configurado para este plan' }, { status: 503 });
+  }
+
+  const planId = getMpPlanId(product, interval);
   if (!planId) {
     return NextResponse.json({ error: 'Plan no configurado' }, { status: 503 });
   }
@@ -27,7 +31,7 @@ export const POST = async (req: Request) => {
       planId,
       payerEmail: user.email,
       userId: user.id,
-      reason: interval === 'year' ? 'Kumo · Escaneo OCR · Anual' : 'Kumo · Escaneo OCR · Mensual',
+      reason: checkoutReason(product, interval),
       backUrl: `${origin}/settings?subscribed=1`,
     });
 

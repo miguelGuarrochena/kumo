@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Bell, Stethoscope, Cake, Calendar, Check, Users,
+  Plus, Pencil, Trash2, Bell, Stethoscope, Cake, Calendar, Check, Users, MessageCircle,
 } from 'lucide-react';
+import { openReminderWhatsApp } from '@/lib/reminderWhatsApp';
 import { Sheet } from '@/components/Sheet';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { upsertReminder, deleteReminder } from './actions';
@@ -230,6 +231,15 @@ const ReminderRow = ({ reminder, contactsById, onEdit, onDelete }: ReminderRowPr
     .map((id) => contactsById[id]?.name)
     .filter(Boolean) as string[];
 
+  const waContact = reminder.notify_contact_ids
+    .map((id) => contactsById[id])
+    .find((c) => c?.phone);
+
+  const onManualWhatsApp = () => {
+    if (!waContact?.phone) return;
+    openReminderWhatsApp(reminder, waContact.phone, waContact.name, t);
+  };
+
   return (
     <div className="p-3.5 flex items-center gap-3 group">
       <div className={`w-10 h-10 rounded-xl ${toneCls} grid place-items-center shrink-0`}>
@@ -258,6 +268,16 @@ const ReminderRow = ({ reminder, contactsById, onEdit, onDelete }: ReminderRowPr
         )}
       </div>
       <div className="flex gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+        {waContact?.phone && (
+          <button
+            type="button"
+            onClick={onManualWhatsApp}
+            title={t.reminders.wa_manual}
+            className="p-2 rounded-lg hover:bg-mint-100 dark:hover:bg-mint-900/20 text-mint-600 dark:text-mint-400"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </button>
+        )}
         <button onClick={onEdit} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500">
           <Pencil className="w-4 h-4" />
         </button>

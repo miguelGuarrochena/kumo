@@ -4,6 +4,7 @@ import { getRates, convertAmount, type Currency } from '@/lib/currency';
 import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import { EXPENSES_PAGE_SIZE, clampPage, pageRange } from '@/lib/pagination';
 import type { BalanceRow, PaymentRow } from '../split/types';
 
 export type ExpensesView = 'month' | 'all' | 'archive';
@@ -12,6 +13,13 @@ export type ArchiveYear = {
   year: number;
   total: number; // ya convertido a displayCurrency
   count: number;
+};
+
+export type ExpenseListSummary = {
+  totalCount: number;
+  totalInDisplay: number;
+  someRateMissing: boolean;
+  currencyBreakdown: { currency: string; count: number }[];
 };
 
 type SearchParams = {
@@ -29,6 +37,50 @@ type SearchParams = {
   asCurrency?: string;
   sort?: string;
   section?: string;
+  page?: string;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const applyExpenseFilters = (
+  query: any,
+  view: ExpensesView,
+  monthStr: string,
+  params: SearchParams,
+) => {
+  if (view === 'month') {
+    const [y, m] = monthStr.split('-').map(Number) as [number, number];
+    const monthStart = `${y}-${String(m).padStart(2, '0')}-01`;
+    const nextMonth = m === 12
+      ? `${y + 1}-01-01`
+      : `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    return query.gte('expense_date', monthStart).lt('expense_date', nextMonth);
+  }
+  if (params.from) query = query.gte('expense_date', params.from);
+  if (params.to) query = query.lte('expense_date', params.to);
+  if (params.cat) {
+    const ids = params.cat.split(',').filter(Boolean);
+    if (ids.length > 0) query = query.in('category_id', ids);
+  }
+  if (params.paid === 'paid') query = query.eq('paid', true);
+  if (params.paid === 'pending') query = query.eq('paid', false);
+  if (params.rec === 'recurring') query = query.eq('is_recurring', true);
+  if (params.rec === 'one-time') query = query.eq('is_recurring', false);
+  if (params.cur) query = query.eq('currency', params.cur);
+  if (params.min) query = query.gte('amount', Number(params.min));
+  if (params.max) query = query.lte('amount', Number(params.max));
+  if (params.q) query = query.ilike('description', `%${params.q}%`);
+  return query;
+};
+
+const applyExpenseSort = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  sort: string,
+) => {
+  if (sort === 'date-asc') return query.order('expense_date', { ascending: true });
+  if (sort === 'amount-desc') return query.order('amount', { ascending: false });
+  if (sort === 'amount-asc') return query.order('amount', { ascending: true });
+  return query.order('expense_date', { ascending: false });
 };
 
 const ExpensesPage = async ({
@@ -47,6 +99,13 @@ const ExpensesPage = async ({
 
   let expenses: Array<Record<string, unknown>> = [];
   let archiveYears: ArchiveYear[] = [];
+  let expensePage = 1;
+  let expenseSummary: ExpenseListSummary = {
+    totalCount: 0,
+    totalInDisplay: 0,
+    someRateMissing: false,
+    currencyBreakdown: [],
+  };
 
   const ctx = await getCurrentWorkspace();
 
@@ -135,47 +194,53 @@ const ExpensesPage = async ({
       .map(([year, { total, count }]) => ({ year, total, count }))
       .sort((a, b) => b.year - a.year);
   } else {
-    // Vista month o all
-    let query = supabase
-      .from('expenses')
-      .select('*, categories(id, name, icon, color)')
-      .eq('workspace_id', ctx.workspaceId);
+    const sort = params.sort ?? 'date-desc';
+    const base = applyExpenseFilters(
+      supabase.from('expenses').select('amount, currency').eq('workspace_id', ctx.workspaceId),
+      view,
+      monthStr,
+      params,
+    );
+    const { data: summaryRows } = await applyExpenseSort(base, sort);
 
-    if (view === 'month') {
-      const [y, m] = monthStr.split('-').map(Number) as [number, number];
-      const monthStart = `${y}-${String(m).padStart(2, '0')}-01`;
-      const nextMonth = m === 12
-        ? `${y + 1}-01-01`
-        : `${y}-${String(m + 1).padStart(2, '0')}-01`;
-      query = query.gte('expense_date', monthStart).lt('expense_date', nextMonth);
-    } else {
-      // Filtros para vista "Todos"
-      if (params.from) query = query.gte('expense_date', params.from);
-      if (params.to) query = query.lte('expense_date', params.to);
-      if (params.cat) {
-        const ids = params.cat.split(',').filter(Boolean);
-        if (ids.length > 0) query = query.in('category_id', ids);
-      }
-      if (params.paid === 'paid') query = query.eq('paid', true);
-      if (params.paid === 'pending') query = query.eq('paid', false);
-      if (params.rec === 'recurring') query = query.eq('is_recurring', true);
-      if (params.rec === 'one-time') query = query.eq('is_recurring', false);
-      if (params.cur) query = query.eq('currency', params.cur);
-      if (params.min) query = query.gte('amount', Number(params.min));
-      if (params.max) query = query.lte('amount', Number(params.max));
-      if (params.q) query = query.ilike('description', `%${params.q}%`);
+    type Mini = { amount: number; currency: string };
+    const counts = new Map<string, number>();
+    let totalInDisplay = 0;
+    let someRateMissing = false;
+    for (const row of (summaryRows ?? []) as Mini[]) {
+      counts.set(row.currency, (counts.get(row.currency) ?? 0) + 1);
+      const converted = convertAmount(
+        Number(row.amount),
+        row.currency as Currency,
+        displayCurrency,
+        rates.rates,
+      );
+      if (converted === null) someRateMissing = true;
+      else totalInDisplay += converted;
     }
 
-    const sort = params.sort ?? 'date-desc';
-    if (sort === 'date-asc') query = query.order('expense_date', { ascending: true });
-    else if (sort === 'amount-desc') query = query.order('amount', { ascending: false });
-    else if (sort === 'amount-asc') query = query.order('amount', { ascending: true });
-    else query = query.order('expense_date', { ascending: false });
+    const totalCount = summaryRows?.length ?? 0;
+    expensePage = clampPage(Number(params.page) || 1, totalCount, EXPENSES_PAGE_SIZE);
+    const { from, to } = pageRange(expensePage, EXPENSES_PAGE_SIZE);
 
-    if (view === 'all') query = query.limit(200);
-
-    const { data } = await query;
+    let listQuery = applyExpenseFilters(
+      supabase.from('expenses').select('*, categories(id, name, icon, color)').eq('workspace_id', ctx.workspaceId),
+      view,
+      monthStr,
+      params,
+    );
+    listQuery = applyExpenseSort(listQuery, sort);
+    const { data } = await listQuery.range(from, to);
     expenses = data ?? [];
+
+    expenseSummary = {
+      totalCount,
+      totalInDisplay,
+      someRateMissing,
+      currencyBreakdown: Array.from(counts.entries())
+        .map(([currency, count]) => ({ currency, count }))
+        .sort((a, b) => b.count - a.count),
+    };
 
     // Cargo splits + nombres de contactos para los expenses visibles.
     const expIds = (expenses as Array<{ id: string }>).map((e) => e.id);
@@ -212,6 +277,9 @@ const ExpensesPage = async ({
       view={view}
       monthStr={monthStr}
       expenses={expenses as never}
+      expensePage={expensePage}
+      expensePageSize={EXPENSES_PAGE_SIZE}
+      expenseSummary={expenseSummary}
       archiveYears={archiveYears}
       categories={categories ?? []}
       contacts={contacts ?? []}
@@ -220,11 +288,9 @@ const ExpensesPage = async ({
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}
       rates={rates.rates}
-      hasOcrAccess={subscription.tier === 'pro'}
+      hasOcrAccess={subscription.hasOcr}
       trialDaysLeft={subscription.daysLeftInTrial}
-      priceMonthly={pricing.monthly}
-      priceYearly={pricing.yearly}
-      yearlyPct={pricing.yearlyPct}
+      pricing={pricing}
       filters={{
         q: params.q ?? '',
         cat: params.cat?.split(',').filter(Boolean) ?? [],

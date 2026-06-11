@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
+import { planIncludesOcr, planIncludesWa, type PlanProduct } from '@/lib/plans';
 
 export type SubscriptionTier = 'pro' | 'free';
 
 export type SubscriptionInfo = {
   tier: SubscriptionTier;
+  planType: PlanProduct | null;
+  hasOcr: boolean;
+  hasWa: boolean;
   status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'free';
   trialEndsAt: Date | null;
   daysLeftInTrial: number | null;
@@ -13,20 +17,55 @@ export type SubscriptionInfo = {
   isCourtesy: boolean;
 };
 
+const hasPaidAccess = (
+  status: SubscriptionInfo['status'],
+  trialEndsAt: Date | null,
+  currentPeriodEnd: Date | null,
+): boolean => {
+  const now = Date.now();
+  const isTrialActive = status === 'trialing' && trialEndsAt !== null && trialEndsAt.getTime() > now;
+  const isActive = status === 'active';
+  const inGracePeriod =
+    status === 'canceled' && currentPeriodEnd !== null && currentPeriodEnd.getTime() > now;
+  return isTrialActive || isActive || inGracePeriod;
+};
+
+const resolvePlanType = (
+  raw: string | null,
+  hasAccess: boolean,
+  providerSubscriptionId: string | null,
+  status: SubscriptionInfo['status'],
+): PlanProduct | null => {
+  if (!hasAccess) return null;
+  if (raw === 'ocr' || raw === 'wa' || raw === 'bundle') return raw;
+  // Retrocompat: MP activo sin tipo → OCR; cortesía/trial sin MP → bundle
+  if (providerSubscriptionId) return 'ocr';
+  if (status === 'trialing' || status === 'active') return 'bundle';
+  return null;
+};
+
 export const getSubscription = async (): Promise<SubscriptionInfo> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const emptyInfo: SubscriptionInfo = {
-    tier: 'free', status: 'free',
-    trialEndsAt: null, daysLeftInTrial: null, currentPeriodEnd: null,
-    providerSubscriptionId: null, isLifetime: false, isCourtesy: false,
+    tier: 'free',
+    planType: null,
+    hasOcr: false,
+    hasWa: false,
+    status: 'free',
+    trialEndsAt: null,
+    daysLeftInTrial: null,
+    currentPeriodEnd: null,
+    providerSubscriptionId: null,
+    isLifetime: false,
+    isCourtesy: false,
   };
 
   if (!user) return emptyInfo;
 
   const { data } = await supabase
     .from('subscriptions')
-    .select('status, trial_ends_at, current_period_end, provider_subscription_id')
+    .select('status, trial_ends_at, current_period_end, provider_subscription_id, plan_type')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -35,35 +74,32 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
     trial_ends_at: string | null;
     current_period_end: string | null;
     provider_subscription_id: string | null;
+    plan_type: string | null;
   } | null;
 
   if (!row) return emptyInfo;
 
   const trialEndsAt = row.trial_ends_at ? new Date(row.trial_ends_at) : null;
   const currentPeriodEnd = row.current_period_end ? new Date(row.current_period_end) : null;
-
-  const now = new Date();
-  const isTrialActive  = row.status === 'trialing' && trialEndsAt !== null && trialEndsAt > now;
-  const isActive       = row.status === 'active';
-  // Después de cancelar, mantenemos Pro hasta el fin del período pagado.
-  const inGracePeriod  = row.status === 'canceled' && currentPeriodEnd !== null && currentPeriodEnd > now;
-
-  const tier: SubscriptionTier = isTrialActive || isActive || inGracePeriod ? 'pro' : 'free';
+  const paid = hasPaidAccess(row.status, trialEndsAt, currentPeriodEnd);
+  const planType = resolvePlanType(row.plan_type, paid, row.provider_subscription_id, row.status);
+  const tier: SubscriptionTier = paid ? 'pro' : 'free';
 
   let daysLeftInTrial: number | null = null;
-  if (isTrialActive && trialEndsAt) {
-    daysLeftInTrial = Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (row.status === 'trialing' && trialEndsAt && trialEndsAt.getTime() > Date.now()) {
+    daysLeftInTrial = Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   }
 
-  // Lifetime: si la fecha está a más de 50 años de distancia (en la práctica,
-  // 2099-12-31 que es lo que setea el admin para "Lifetime").
   const fiftyYears = 50 * 365 * 86400_000;
-  const isLifetime = currentPeriodEnd !== null && currentPeriodEnd.getTime() - now.getTime() > fiftyYears;
-  // Cortesía: active pero sin suscripción real en MP (regalo manual desde admin).
+  const isLifetime =
+    currentPeriodEnd !== null && currentPeriodEnd.getTime() - Date.now() > fiftyYears;
   const isCourtesy = row.status === 'active' && !row.provider_subscription_id;
 
   return {
     tier,
+    planType,
+    hasOcr: paid && planIncludesOcr(planType),
+    hasWa: paid && planIncludesWa(planType),
     status: row.status,
     trialEndsAt,
     daysLeftInTrial,
@@ -74,8 +110,9 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
   };
 };
 
-/** Acceso a escanear tickets (suscripción activa o trial OCR). */
-export const hasOcrAccess = (sub: SubscriptionInfo): boolean => sub.tier === 'pro';
+export const hasOcrAccess = (sub: SubscriptionInfo): boolean => sub.hasOcr;
+
+export const hasWaAccess = (sub: SubscriptionInfo): boolean => sub.hasWa;
 
 export const requireOcrAccess = async () => {
   const sub = await getSubscription();
@@ -87,3 +124,27 @@ export const requireOcrAccess = async () => {
 
 /** @deprecated Usar requireOcrAccess */
 export const requirePro = requireOcrAccess;
+
+/** Evalúa acceso WA desde una fila de subscriptions (cron / server). */
+export const subscriptionRowHasWa = (row: {
+  status: string;
+  trial_ends_at: string | null;
+  current_period_end: string | null;
+  provider_subscription_id: string | null;
+  plan_type: string | null;
+}): boolean => {
+  const trialEndsAt = row.trial_ends_at ? new Date(row.trial_ends_at) : null;
+  const currentPeriodEnd = row.current_period_end ? new Date(row.current_period_end) : null;
+  const paid = hasPaidAccess(
+    row.status as SubscriptionInfo['status'],
+    trialEndsAt,
+    currentPeriodEnd,
+  );
+  const planType = resolvePlanType(
+    row.plan_type,
+    paid,
+    row.provider_subscription_id,
+    row.status as SubscriptionInfo['status'],
+  );
+  return paid && planIncludesWa(planType);
+};

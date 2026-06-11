@@ -1,12 +1,23 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { getMpPlanId, type PlanProduct } from '@/lib/plans';
 
 const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN ?? '';
 const WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET ?? '';
 
-export const MP_PLAN_MONTHLY = process.env.MP_PLAN_MONTHLY ?? '';
-export const MP_PLAN_YEARLY  = process.env.MP_PLAN_YEARLY  ?? '';
+/** @deprecated Usar getMpPlanId('ocr', 'month') */
+export const MP_PLAN_MONTHLY = process.env.MP_PLAN_OCR_MONTHLY ?? process.env.MP_PLAN_MONTHLY ?? '';
+/** @deprecated Usar getMpPlanId('ocr', 'year') */
+export const MP_PLAN_YEARLY = process.env.MP_PLAN_OCR_YEARLY ?? process.env.MP_PLAN_YEARLY ?? '';
 
-export const isMpConfigured = () => ACCESS_TOKEN !== '' && MP_PLAN_MONTHLY !== '';
+export const isMpConfigured = (): boolean =>
+  ACCESS_TOKEN !== '' && (
+    getMpPlanId('bundle', 'month') !== ''
+    || getMpPlanId('ocr', 'month') !== ''
+    || getMpPlanId('wa', 'month') !== ''
+  );
+
+export const isMpProductConfigured = (product: PlanProduct): boolean =>
+  ACCESS_TOKEN !== '' && getMpPlanId(product, 'month') !== '';
 
 const API = 'https://api.mercadopago.com';
 
@@ -65,13 +76,6 @@ export const cancelPreapproval = (id: string): Promise<MpPreapproval> =>
     body: JSON.stringify({ status: 'cancelled' }),
   });
 
-/**
- * Verifica la firma HMAC del webhook según la doc oficial:
- * https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks
- *
- * Header x-signature trae: ts=TIMESTAMP,v1=HASH
- * El template a firmar es: id:DATA_ID;request-id:REQUEST_ID;ts:TIMESTAMP;
- */
 export const verifyMpSignature = (params: {
   signatureHeader: string | null;
   requestId: string | null;

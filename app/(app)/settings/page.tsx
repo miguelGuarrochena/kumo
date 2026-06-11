@@ -97,12 +97,7 @@ const SettingsPage = async () => {
         </p>
       </header>
 
-      <PlanSection
-        sub={subscription}
-        priceMonthly={pricing.monthly}
-        priceYearly={pricing.yearly}
-        yearlySavingsPct={pricing.yearlyPct}
-      />
+      <PlanSection sub={subscription} pricing={pricing} />
 
       <WorkspaceSection
         members={members}
@@ -119,7 +114,7 @@ const SettingsPage = async () => {
 
       {whatsappPending && <WhatsAppPendingBanner />}
 
-      <ContactsSection contacts={contacts ?? []} />
+      <ContactsSection contacts={contacts ?? []} hasWa={subscription.hasWa} />
 
       <CalendarFeedSection
         feedUrl={buildCalendarFeedUrl(user!.id, origin, feedVersion)}

@@ -1,21 +1,27 @@
 import { createServiceClient } from '@/lib/supabase/service';
+import { ADMIN_PAGE_SIZE } from '@/lib/pagination';
 import { AdminClient, type AdminRow } from './AdminClient';
-
-// El layout (app/admin/layout.tsx) ya valida que el user sea admin y redirige
-// si no. Acá solo cargamos data.
 
 export const metadata = {
   title: 'Admin',
   robots: { index: false, follow: false },
 };
 
-const AdminPage = async () => {
+type SearchParams = { page?: string };
+
+const AdminPage = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+  const params = await searchParams;
+  const page = Math.max(1, Number(params.page) || 1);
+
   const supabase = createServiceClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: usersResp } = await (supabase as any).auth.admin.listUsers({ page: 1, perPage: 200 });
+  const { data: usersResp } = await (supabase as any).auth.admin.listUsers({
+    page,
+    perPage: ADMIN_PAGE_SIZE,
+  });
   const { data: subs } = await supabase
     .from('subscriptions')
-    .select('user_id, status, trial_ends_at, current_period_end, provider, updated_at');
+    .select('user_id, status, trial_ends_at, current_period_end, provider, plan_type, updated_at');
 
   type AuthUser = { id: string; email: string | null; created_at: string; user_metadata?: { full_name?: string } };
   type SubRow = {
@@ -24,6 +30,7 @@ const AdminPage = async () => {
     trial_ends_at: string | null;
     current_period_end: string | null;
     provider: string;
+    plan_type: string | null;
     updated_at: string;
   };
 
@@ -31,7 +38,10 @@ const AdminPage = async () => {
     ((subs ?? []) as SubRow[]).map((s) => [s.user_id, s]),
   );
 
-  const rows: AdminRow[] = ((usersResp?.users ?? []) as AuthUser[])
+  const pageUsers = ((usersResp?.users ?? []) as AuthUser[]);
+  const hasMore = pageUsers.length === ADMIN_PAGE_SIZE;
+
+  const rows: AdminRow[] = pageUsers
     .map((u) => {
       const s = subsByUser.get(u.id);
       return {
@@ -40,6 +50,7 @@ const AdminPage = async () => {
         name: u.user_metadata?.full_name ?? null,
         signupAt: u.created_at,
         status: (s?.status ?? 'free') as AdminRow['status'],
+        planType: (s?.plan_type ?? null) as AdminRow['planType'],
         trialEndsAt: s?.trial_ends_at ?? null,
         currentPeriodEnd: s?.current_period_end ?? null,
         provider: s?.provider ?? null,
@@ -47,7 +58,29 @@ const AdminPage = async () => {
     })
     .sort((a, b) => new Date(b.signupAt).getTime() - new Date(a.signupAt).getTime());
 
-  return <AdminClient rows={rows} totalUsers={rows.length} />;
+  let active = 0;
+  let trial = 0;
+  const now = Date.now();
+  for (const s of (subs ?? []) as SubRow[]) {
+    if (s.status === 'active') active++;
+    else if (s.status === 'trialing' && s.trial_ends_at && new Date(s.trial_ends_at).getTime() > now) trial++;
+    else if (s.status === 'canceled' && s.current_period_end && new Date(s.current_period_end).getTime() > now) active++;
+  }
+  const estimatedTotal = hasMore
+    ? page * ADMIN_PAGE_SIZE + 1
+    : (page - 1) * ADMIN_PAGE_SIZE + rows.length;
+  const free = hasMore ? 0 : Math.max(0, estimatedTotal - active - trial);
+
+  return (
+    <AdminClient
+      rows={rows}
+      page={page}
+      pageSize={ADMIN_PAGE_SIZE}
+      totalCount={estimatedTotal}
+      hasMore={hasMore}
+      stats={{ active, trial, free }}
+    />
+  );
 };
 
 export default AdminPage;

@@ -16,7 +16,8 @@ import { Select } from '@/components/Select';
 import { FiltersSheet, type Filters } from './FiltersSheet';
 import { useT } from '@/lib/i18n/client';
 import { categoryDisplayName } from '@/lib/categoryLabels';
-import type { ExpensesView, ArchiveYear } from './page';
+import type { ExpensesView, ArchiveYear, ExpenseListSummary } from './page';
+import { Pagination } from '@/components/Pagination';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { track } from '@/lib/analytics';
@@ -38,6 +39,9 @@ type Props = {
   view: ExpensesView;
   monthStr: string;
   expenses: Expense[];
+  expensePage: number;
+  expensePageSize: number;
+  expenseSummary: ExpenseListSummary;
   archiveYears: ArchiveYear[];
   categories: CategoryLite[];
   contacts: ContactLite[];
@@ -49,9 +53,7 @@ type Props = {
   filters: Filters;
   hasOcrAccess: boolean;
   trialDaysLeft: number | null;
-  priceMonthly: string;
-  priceYearly: string;
-  yearlyPct: number;
+  pricing: import('@/lib/pricing').Pricing;
 };
 
 export const ExpensesClient = ({
@@ -59,6 +61,9 @@ export const ExpensesClient = ({
   view,
   monthStr,
   expenses,
+  expensePage,
+  expensePageSize,
+  expenseSummary,
   archiveYears,
   categories,
   contacts,
@@ -70,9 +75,7 @@ export const ExpensesClient = ({
   filters,
   hasOcrAccess,
   trialDaysLeft,
-  priceMonthly,
-  priceYearly,
-  yearlyPct,
+  pricing,
 }: Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,6 +88,7 @@ export const ExpensesClient = ({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
+  const [ocrCheckoutLoading, setOcrCheckoutLoading] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<ExtractedExpense | null>(null);
@@ -159,27 +163,7 @@ export const ExpensesClient = ({
   const convertToDisplay = (amount: number, currency: string): number | null =>
     convertAmount(amount, currency as Currency, displayCurrency, rates);
 
-  const { totalInDisplay, someRateMissing } = useMemo(() => {
-    let total = 0;
-    let missing = false;
-    for (const e of expenses) {
-      const converted = convertToDisplay(Number(e.amount), e.currency);
-      if (converted === null) missing = true;
-      else total += converted;
-    }
-    return { totalInDisplay: total, someRateMissing: missing };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expenses, displayCurrency, rates]);
-
-  const currencyBreakdown = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const e of expenses) {
-      counts.set(e.currency, (counts.get(e.currency) ?? 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .map(([currency, count]) => ({ currency, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [expenses]);
+  const { totalInDisplay, someRateMissing, currencyBreakdown, totalCount } = expenseSummary;
 
   const [year, month] = monthStr.split('-').map(Number) as [number, number];
   const prevMonth = monthShift(year, month, -1);
@@ -190,6 +174,7 @@ export const ExpensesClient = ({
     const params = new URLSearchParams(searchParams.toString());
     if (next !== 'month') params.set('view', next);
     else params.delete('view');
+    params.delete('page');
     router.push(`/expenses?${params.toString()}`);
   };
 
@@ -204,7 +189,12 @@ export const ExpensesClient = ({
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    if (key !== 'page') params.delete('page');
     router.push(`/expenses?${params.toString()}`);
+  };
+
+  const onExpensePageChange = (next: number) => {
+    setUrlParam('page', next <= 1 ? null : String(next));
   };
 
   const onSearchSubmit = (e: React.FormEvent) => {
@@ -382,7 +372,12 @@ export const ExpensesClient = ({
         <div className="kumo-card p-5 sm:p-6">
           <div className="flex items-center justify-between mb-3">
             <button
-              onClick={() => router.push(`/expenses?month=${prevMonth}`)}
+              onClick={() => {
+                const p = new URLSearchParams(searchParams.toString());
+                p.set('month', prevMonth);
+                p.delete('page');
+                router.push(`/expenses?${p.toString()}`);
+              }}
               className="p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500"
               aria-label={t.expenses.prev_month}
             >
@@ -390,7 +385,12 @@ export const ExpensesClient = ({
             </button>
             <h2 className="font-semibold capitalize">{monthLabel}</h2>
             <button
-              onClick={() => router.push(`/expenses?month=${nextMonth}`)}
+              onClick={() => {
+                const p = new URLSearchParams(searchParams.toString());
+                p.set('month', nextMonth);
+                p.delete('page');
+                router.push(`/expenses?${p.toString()}`);
+              }}
               className="p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500"
               aria-label={t.expenses.next_month}
             >
@@ -404,7 +404,7 @@ export const ExpensesClient = ({
               {formatMoney(totalInDisplay, displayCurrency, locale)}
             </p>
             <div className="text-xs text-slate-400 dark:text-slate-500 mt-2 inline-flex items-center gap-1 flex-wrap justify-center">
-              <span>{t.expenses.n_expenses.replace('{n}', String(expenses.length))} · {t.expenses.in_currency}</span>
+              <span>{t.expenses.n_expenses.replace('{n}', String(totalCount))} · {t.expenses.in_currency}</span>
               <CurrencyInlineSelect
                 value={displayCurrency}
                 onChange={(v) => setUrlParam('asCurrency', v)}
@@ -514,11 +514,11 @@ export const ExpensesClient = ({
           )}
 
           {/* Resumen agregado */}
-          {expenses.length > 0 && (
+          {totalCount > 0 && (
             <div className="kumo-card p-4 flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
-                  <span>{expenses.length} {expenses.length === 1 ? 'gasto' : 'gastos'} · en</span>
+                  <span>{t.expenses.n_expenses.replace('{n}', String(totalCount))} · {t.expenses.in_currency}</span>
                   <CurrencyInlineSelect
                     value={displayCurrency}
                     onChange={(v) => setUrlParam('asCurrency', v)}
@@ -562,7 +562,7 @@ export const ExpensesClient = ({
       )}
 
       {/* --- Lista (no aplica a archive) --- */}
-      {view === 'archive' ? null : expenses.length === 0 ? (
+      {view === 'archive' ? null : totalCount === 0 ? (
         <div className="kumo-card p-10 text-center">
           <Wallet className="w-12 h-12 mx-auto mb-3 text-slate-300" />
           <h3 className="font-semibold mb-1">
@@ -575,47 +575,55 @@ export const ExpensesClient = ({
           </p>
         </div>
       ) : (
-        <div className="kumo-card divide-y divide-slate-100 overflow-hidden">
-          {expenses.map((exp) => (
-            <ExpenseRow
-              key={exp.id}
-              expense={exp}
-              displayCurrency={displayCurrency}
-              convertedAmount={convertToDisplay(Number(exp.amount), exp.currency)}
-              showFullDate={view === 'all'}
-              onEdit={() => setEditing(exp)}
-              onDelete={() => setToDelete(exp)}
-              onTogglePaid={async () => {
-                const result = await togglePaid(exp.id, !exp.paid);
-                if (!result.ok) {
-                  toast.error(result.error ?? t.common.error);
-                  return;
-                }
-                toast.success(exp.paid ? t.expenses.mark_pending_toast : t.expenses.mark_paid_toast);
-                router.refresh();
-              }}
-              onToggleSplitPaid={async (contactId, paid) => {
-                const result = await toggleSplitPaid(exp.id, contactId, paid);
-                if (!result.ok) {
-                  toast.error(result.error ?? t.common.error);
-                  return;
-                }
-                router.refresh();
-              }}
-              onPaySplit={(contactId, amount) => {
-                const creditor = resolveCreditor(exp);
-                if (!creditor) return;
-                const split = (exp as ExpenseWithSplits)._splits?.find((s) => s.contact_id === contactId);
-                setSplitPay({
-                  creditor,
-                  amount,
-                  currency: exp.currency,
-                  debtorName: split?.contact_name ?? '—',
-                  concept: exp.description ?? t.expenses.default_name,
-                });
-              }}
-            />
-          ))}
+        <div className="kumo-card overflow-hidden">
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {expenses.map((exp) => (
+              <ExpenseRow
+                key={exp.id}
+                expense={exp}
+                displayCurrency={displayCurrency}
+                convertedAmount={convertToDisplay(Number(exp.amount), exp.currency)}
+                showFullDate={view === 'all'}
+                onEdit={() => setEditing(exp)}
+                onDelete={() => setToDelete(exp)}
+                onTogglePaid={async () => {
+                  const result = await togglePaid(exp.id, !exp.paid);
+                  if (!result.ok) {
+                    toast.error(result.error ?? t.common.error);
+                    return;
+                  }
+                  toast.success(exp.paid ? t.expenses.mark_pending_toast : t.expenses.mark_paid_toast);
+                  router.refresh();
+                }}
+                onToggleSplitPaid={async (contactId, paid) => {
+                  const result = await toggleSplitPaid(exp.id, contactId, paid);
+                  if (!result.ok) {
+                    toast.error(result.error ?? t.common.error);
+                    return;
+                  }
+                  router.refresh();
+                }}
+                onPaySplit={(contactId, amount) => {
+                  const creditor = resolveCreditor(exp);
+                  if (!creditor) return;
+                  const split = (exp as ExpenseWithSplits)._splits?.find((s) => s.contact_id === contactId);
+                  setSplitPay({
+                    creditor,
+                    amount,
+                    currency: exp.currency,
+                    debtorName: split?.contact_name ?? '—',
+                    concept: exp.description ?? t.expenses.default_name,
+                  });
+                }}
+              />
+            ))}
+          </div>
+          <Pagination
+            page={expensePage}
+            pageSize={expensePageSize}
+            totalCount={totalCount}
+            onPageChange={onExpensePageChange}
+          />
         </div>
       )}
 
@@ -669,10 +677,28 @@ export const ExpensesClient = ({
       <OcrPaywallSheet
         open={ocrPaywallOpen}
         onClose={() => setOcrPaywallOpen(false)}
-        priceMonthly={priceMonthly}
-        priceYearly={priceYearly}
-        yearlyPct={yearlyPct}
+        pricing={pricing}
+        product="ocr"
+        loadingKey={ocrCheckoutLoading}
         trialDaysLeft={trialDaysLeft}
+        onCheckout={async (product, interval) => {
+          const key = `${product}-${interval}`;
+          setOcrCheckoutLoading(key);
+          try {
+            const res = await fetch('/api/billing/checkout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ product, interval: interval === 'yearly' ? 'year' : 'month' }),
+            });
+            const data = await res.json();
+            if (data.url) window.location.href = data.url;
+            else toast.error(data.error ?? t.billing.checkout_error);
+          } catch {
+            toast.error(t.billing.connect_error);
+          } finally {
+            setOcrCheckoutLoading(null);
+          }
+        }}
       />
 
       </>

@@ -8,18 +8,14 @@ type Props = {
   contacts: ContactLite[];
   hasOcrAccess: boolean;
   trialDaysLeft: number | null;
-  priceMonthly: string;
-  priceYearly: string;
-  yearlyPct: number;
+  pricing: import('@/lib/pricing').Pricing;
 };
 
 export const DividirClient = ({
   contacts,
   hasOcrAccess,
   trialDaysLeft,
-  priceMonthly,
-  priceYearly,
-  yearlyPct,
+  pricing,
 }: Props) => {
   const { t } = useT();
 
@@ -36,9 +32,7 @@ export const DividirClient = ({
         contacts={contacts}
         hasOcrAccess={hasOcrAccess}
         trialDaysLeft={trialDaysLeft}
-        priceMonthly={priceMonthly}
-        priceYearly={priceYearly}
-        yearlyPct={yearlyPct}
+        pricing={pricing}
       />
     </div>
   );

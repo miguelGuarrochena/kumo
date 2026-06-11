@@ -4,8 +4,11 @@ Lo que hay que tener listo antes de compartir Kumo.
 
 ## Modelo de negocio
 
-- **Gratis**: gastos, recordatorios, calendario, compras, dividir, espacios, WhatsApp, push.
-- **De pago (opcional)**: escaneo OCR de tickets (Google Gemini) — se activa al tocar "Escanear ticket".
+- **Gratis**: gastos, recordatorios, calendario, compras, dividir, espacios, push, export, WhatsApp **manual** (vos enviás desde un recordatorio).
+- **De pago (opcional)**:
+  - **Escaneo OCR** — Google Gemini al tocar "Escanear ticket".
+  - **WhatsApp automático** — Meta cobra por mensaje; Kumo avisa solo vía API.
+  - **Kumo Pro (combo)** — OCR + WhatsApp automático a precio menor.
 - **Sin trial automático** al registrarse (migración `0023`).
 
 ## 1. Env vars en Vercel + `.env.local`
@@ -27,20 +30,28 @@ GOOGLE_AI_API_KEY=AIza...
 WHATSAPP_ACCESS_TOKEN=...
 WHATSAPP_PHONE_NUMBER_ID=...
 
-# MercadoPago (solo complemento OCR)
+# MercadoPago (3 productos × mensual/anual)
 MP_ACCESS_TOKEN=APP_USR-...
 MP_WEBHOOK_SECRET=...
-MP_PLAN_MONTHLY=2c9380...
-MP_PLAN_YEARLY=2c9380...
+MP_PLAN_OCR_MONTHLY=...
+MP_PLAN_OCR_YEARLY=...
+MP_PLAN_WA_MONTHLY=...
+MP_PLAN_WA_YEARLY=...
+MP_PLAN_BUNDLE_MONTHLY=...
+MP_PLAN_BUNDLE_YEARLY=...
 
 # Web Push
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=B...
 VAPID_PRIVATE_KEY=...
 VAPID_SUBJECT=mailto:info@kumo-app.com
 
-# Pricing display
-NEXT_PUBLIC_PRICE_MONTHLY=ARS 3.500
-NEXT_PUBLIC_PRICE_YEARLY=ARS 35.000
+# Pricing display (ARS)
+NEXT_PUBLIC_PRICE_OCR_MONTHLY=ARS 3.500
+NEXT_PUBLIC_PRICE_OCR_YEARLY=ARS 35.000
+NEXT_PUBLIC_PRICE_WA_MONTHLY=ARS 3.000
+NEXT_PUBLIC_PRICE_WA_YEARLY=ARS 30.000
+NEXT_PUBLIC_PRICE_BUNDLE_MONTHLY=ARS 5.990
+NEXT_PUBLIC_PRICE_BUNDLE_YEARLY=ARS 59.900
 NEXT_PUBLIC_PRICE_YEARLY_PCT=17
 
 # Donaciones
@@ -57,22 +68,24 @@ SENTRY_DSN=...
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
 ```
 
-> **WhatsApp opcional**: si faltan `WHATSAPP_*`, el cron `/api/notify` sigue mandando **push** y omite WhatsApp.
+> **WhatsApp opcional**: si faltan `WHATSAPP_*`, el cron `/api/notify` sigue mandando **push** y omite WhatsApp automático. Sin plan WA, tampoco se envía por API aunque tengas credenciales.
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0024_calendar_feed_version.sql`:
+Aplicar todas en orden hasta `0028_subscription_plan_type.sql`:
 
 ```bash
 supabase db push
 ```
 
-## 3. MercadoPago (OCR)
+## 3. MercadoPago (OCR, WA, combo)
 
 ```bash
 export MP_ACCESS_TOKEN="APP_USR-..."
 bash scripts/create-mp-plans.sh
 ```
+
+Copiá los 6 plan IDs a las env vars `MP_PLAN_*`.
 
 Webhook: `https://kumo-app.com/api/billing/webhook` → eventos `subscription_preapproval`, `subscription_authorized_payment`.
 
@@ -107,14 +120,16 @@ git push origin main
 1. `GET /api/billing/health` (logueado) → env críticos en `true`.
 2. Gastos → cargar uno manualmente.
 3. Configuración → Notificaciones → activar push → mandar prueba.
-4. Calendario → crear recordatorio.
+4. Calendario → crear recordatorio → botón WhatsApp manual (gratis).
 5. Configuración → Google Calendar → copiar link y suscribir en Google.
-6. Gastos → Escanear ticket → paywall OCR → checkout MP (si querés probar pago).
+6. Gastos → Escanear ticket → paywall OCR → checkout MP (producto OCR).
+7. Configuración → Complementos → checkout WA o combo; webhook setea `plan_type`.
+8. Con plan WA: cron/notify manda templates; sin plan: solo push.
 
 ## 9. Compartir el link
 
 > "Hola, armé Kumo para llevar las cuentas del hogar: https://kumo-app.com
 >
-> Es gratis (gastos, recordatorios, WhatsApp, push). Si querés escanear tickets con IA, es un complemento opcional. Cualquier feedback me ayuda."
+> Es gratis (gastos, recordatorios, push, WhatsApp manual). Si querés escanear tickets con IA o que Kumo avise solo por WhatsApp, son complementos opcionales. Cualquier feedback me ayuda."
 
 Si WhatsApp sigue en test, agregá los números de tus familiares en Meta → Recipients.

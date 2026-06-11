@@ -29,18 +29,14 @@ type Props = {
   contacts: ContactLite[];
   hasOcrAccess: boolean;
   trialDaysLeft: number | null;
-  priceMonthly: string;
-  priceYearly: string;
-  yearlyPct: number;
+  pricing: import('@/lib/pricing').Pricing;
 };
 
 export const DividirTab = ({
   contacts,
   hasOcrAccess,
   trialDaysLeft,
-  priceMonthly,
-  priceYearly,
-  yearlyPct,
+  pricing,
 }: Props) => {
   const { t, locale } = useT();
   const router = useRouter();
@@ -57,6 +53,7 @@ export const DividirTab = ({
   const [items, setItems] = useState<ItemRow[]>([]);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
+  const [ocrCheckoutLoading, setOcrCheckoutLoading] = useState<string | null>(null);
   const [creatingContact, setCreatingContact] = useState(false);
   const [paidParts, setPaidParts] = useState<Set<string>>(() => new Set());
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -512,10 +509,28 @@ export const DividirTab = ({
       <OcrPaywallSheet
         open={ocrPaywallOpen}
         onClose={() => setOcrPaywallOpen(false)}
-        priceMonthly={priceMonthly}
-        priceYearly={priceYearly}
-        yearlyPct={yearlyPct}
+        pricing={pricing}
+        product="ocr"
+        loadingKey={ocrCheckoutLoading}
         trialDaysLeft={trialDaysLeft}
+        onCheckout={async (product, interval) => {
+          const key = `${product}-${interval}`;
+          setOcrCheckoutLoading(key);
+          try {
+            const res = await fetch('/api/billing/checkout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ product, interval: interval === 'yearly' ? 'year' : 'month' }),
+            });
+            const data = await res.json();
+            if (data.url) window.location.href = data.url;
+            else toast.error(data.error ?? t.billing.checkout_error);
+          } catch {
+            toast.error(t.billing.connect_error);
+          } finally {
+            setOcrCheckoutLoading(null);
+          }
+        }}
       />
 
       <div>

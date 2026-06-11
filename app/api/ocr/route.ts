@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   const sub = await getSubscription();
-  if (sub.tier !== 'pro') {
+  if (!sub.hasOcr) {
     const messages = await getMessages();
     return NextResponse.json(
       { error: messages.billing.pro_required, code: 'PRO_REQUIRED' },

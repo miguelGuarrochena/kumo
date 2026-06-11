@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'Cómo Kumo trata tus datos personales y financieros.',
 };
 
-const UPDATED = '6 de junio de 2026';
+const UPDATED = '10 de junio de 2026';
 
 const PrivacyPage = () => {
   return (
@@ -38,8 +38,9 @@ const PrivacyPage = () => {
           los datos. <strong>No guardamos la foto</strong>: una vez procesada, se descarta.
         </li>
         <li>
-          <strong>Datos de pago</strong>: si activás el complemento OCR, MercadoPago procesa el pago. Nosotros guardamos
-          solo el ID de tu suscripción y el estado (activa, cancelada, etc.) — no vemos ni almacenamos tu tarjeta.
+          <strong>Datos de pago</strong>: si activás un complemento de pago (OCR, WhatsApp automático o combo Kumo Pro),
+          MercadoPago procesa el pago. Nosotros guardamos solo el ID de tu suscripción, el tipo de plan y el estado
+          (activa, cancelada, etc.) — no vemos ni almacenamos tu tarjeta.
         </li>
         <li>
           <strong>Suscripciones push</strong>: si activás notificaciones del navegador, guardamos la subscription
@@ -54,9 +55,9 @@ const PrivacyPage = () => {
       <h2 className="text-xl font-bold mt-8 mb-3">2. Para qué los usamos</h2>
       <ul className="list-disc pl-5 space-y-1">
         <li>Mostrarte tu información dentro de la app.</li>
-        <li>Enviar recordatorios por push notifications y WhatsApp.</li>
-        <li>Procesar tickets con OCR.</li>
-        <li>Cobrar el complemento OCR vía MercadoPago.</li>
+        <li>Enviar recordatorios por push notifications y, si tenés el plan correspondiente, WhatsApp automático.</li>
+        <li>Procesar tickets con OCR (plan OCR o combo).</li>
+        <li>Cobrar complementos de pago vía MercadoPago.</li>
         <li>Detectar errores y mejorar la app con datos anónimos agregados.</li>
       </ul>
 
@@ -75,11 +76,11 @@ const PrivacyPage = () => {
           no se almacenan ni se usan para entrenar modelos (tier pagado).
         </li>
         <li>
-          <strong>Meta WhatsApp Business API</strong> — envía mensajes a los números que vos cargues como
-          destinatarios.
+          <strong>Meta WhatsApp Business API</strong> — envía mensajes automáticos solo si tenés el plan de WhatsApp
+          automático, a los números que vos cargues como destinatarios.
         </li>
         <li>
-          <strong>MercadoPago</strong> — procesa pagos del complemento OCR. Aplica su propia política de privacidad.
+          <strong>MercadoPago</strong> — procesa pagos de complementos de pago. Aplica su propia política de privacidad.
         </li>
         <li>
           <strong>Resend</strong> — envía emails transaccionales (magic link de login, invitaciones a espacios).

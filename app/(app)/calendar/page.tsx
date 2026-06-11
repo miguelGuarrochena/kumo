@@ -4,6 +4,7 @@ import { CalendarClient } from './CalendarClient';
 import { type Currency } from '@/lib/currency';
 import { countryFromTimezone } from '@/lib/holidays';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import { getSubscription } from '@/lib/subscription';
 import { buildCalendarFeedUrl } from '@/lib/calendar/feedToken';
 
 type SearchParams = {
@@ -21,6 +22,7 @@ const CalendarPage = async ({
 }) => {
   const supabase = await createClient();
   const ctx = await getCurrentWorkspace();
+  const subscription = await getSubscription();
   const params = await searchParams;
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -140,6 +142,7 @@ const CalendarPage = async ({
       country={country}
       workspaces={workspaces}
       activeWorkspaceId={ctx.workspaceId}
+      hasWa={subscription.hasWa}
     />
   );
 };

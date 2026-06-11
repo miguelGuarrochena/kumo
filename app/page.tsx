@@ -49,7 +49,7 @@ const HomePage = async () => {
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
-          Cargá gastos en segundos, programá vencimientos, recibí avisos por WhatsApp
+          Cargá gastos en segundos, programá vencimientos, recibí avisos por push
           y nunca te olvides de un cumpleaños ni de pagar el alquiler.
         </p>
 
@@ -100,7 +100,7 @@ const HomePage = async () => {
             icon={<MessageCircle className="w-5 h-5" />}
             tone="mint"
             title="WhatsApp"
-            description="Avisos automáticos antes de cada vencimiento, cita médica o cumpleaños. A vos o a la familia."
+            description="Avisá manualmente por WhatsApp (gratis) o activá avisos automáticos con plan de pago. Push siempre gratis."
           />
           <Feature
             icon={<Bell className="w-5 h-5" />}
@@ -123,30 +123,39 @@ const HomePage = async () => {
         </div>
       </section>
 
-      {/* OCR add-on */}
-      <section id="ocr" className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+      {/* Paid add-ons */}
+      <section id="plans" className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Kumo es gratis</h2>
         <p className="text-center text-slate-500 dark:text-slate-400 mb-8 text-sm sm:text-base">
-          Gastos, recordatorios, compras, WhatsApp, push y todos los espacios que necesites — sin costo.
+          Gastos, recordatorios, compras, push, espacios y WhatsApp manual — sin costo. Solo pagás lo que tiene costo de terceros.
         </p>
 
-        <div className="kumo-card p-6 sm:p-8 border-2 border-amber-200/60 dark:border-amber-500/30">
-          <div className="flex items-start gap-4">
-            <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 grid place-items-center shrink-0">
-              <Camera className="w-5 h-5" />
+        <div className="space-y-3">
+          {([
+            { icon: Camera, title: 'Escaneo OCR', price: getPricing().ocr.monthly, desc: 'Foto del ticket → IA extrae monto y categoría.' },
+            { icon: MessageCircle, title: 'WhatsApp automático', price: getPricing().wa.monthly, desc: 'Kumo avisa solo antes de vencimientos y recordatorios.' },
+            { icon: Wallet, title: 'Kumo Pro (combo)', price: getPricing().bundle.monthly, desc: 'OCR + WhatsApp automático. Más barato que los dos juntos.', highlight: true },
+          ] as { icon: typeof Camera; title: string; price: string; desc: string; highlight?: boolean }[]).map(({ icon: Icon, title, price, desc, highlight }) => (
+            <div
+              key={title}
+              className={`kumo-card p-5 sm:p-6 border-2 ${highlight ? 'border-amber-300/60 dark:border-amber-500/40' : 'border-slate-200/80 dark:border-slate-700'}`}
+            >
+              <div className="flex items-start gap-4">
+                <div className={`w-11 h-11 rounded-xl grid place-items-center shrink-0 ${highlight ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600' : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600'}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{desc}</p>
+                  <p className="text-sm font-bold mt-2">{price}/mes</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">Escanear tickets con IA</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                Es el único complemento de pago: usa Google Gemini y tiene costo por cada foto.
-                Desde {getPricing().monthly}/mes — lo activás cuando lo necesitás, sin suscripción obligatoria al registrarte.
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-500 mt-3">
-                Lo activás cuando tocás &quot;Escanear ticket&quot; en la app — ahí ves el precio y pagás con MercadoPago.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
+        <p className="text-xs text-slate-500 dark:text-slate-500 text-center mt-6">
+          Precios en pesos argentinos. Podemos ajustarlos si suben mucho los costos internacionales, con aviso previo.
+        </p>
       </section>
 
       {/* How it works */}
@@ -167,8 +176,8 @@ const HomePage = async () => {
           />
           <Step
             n="3"
-            title="Conectá WhatsApp (opcional)"
-            description="Agregá tu número y los de quien quieras. Te avisamos antes de cada vencimiento."
+            title="Activá avisos (opcional)"
+            description="Push gratis siempre. WhatsApp manual gratis. Automático con plan de pago si lo querés."
           />
         </ol>
       </section>

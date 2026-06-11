@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { tryGetWhatsAppAdapter } from '@/lib/notifications/whatsapp';
 import { sendPush, type PushSubscriptionRow } from '@/lib/push/server';
 import { todayKey, toIsoLocal, daysBetween, dayKey } from '@/lib/date';
+import { subscriptionRowHasWa } from '@/lib/subscription';
 import type { Database } from '@/lib/supabase/database.types';
 
 type Contact = Database['public']['Tables']['notification_contacts']['Row'];
@@ -51,17 +52,34 @@ export async function POST(request: Request) {
     ...reminders.map((r) => r.user_id),
   ]);
 
-  const [{ data: contactsRaw }, { data: settingsRaw }, { data: pushRaw }] = await Promise.all([
-    supabase
-      .from('notification_contacts')
-      .select('*')
-      .in('user_id', [...allUserIds]),
-    supabase.from('user_settings').select('*').in('user_id', [...allUserIds]),
-    supabase
-      .from('push_subscriptions')
-      .select('id, user_id, endpoint, p256dh, auth')
-      .in('user_id', [...allUserIds]),
-  ]);
+  const [{ data: contactsRaw }, { data: settingsRaw }, { data: pushRaw }, { data: subsRaw }] =
+    await Promise.all([
+      supabase
+        .from('notification_contacts')
+        .select('*')
+        .in('user_id', [...allUserIds]),
+      supabase.from('user_settings').select('*').in('user_id', [...allUserIds]),
+      supabase
+        .from('push_subscriptions')
+        .select('id, user_id, endpoint, p256dh, auth')
+        .in('user_id', [...allUserIds]),
+      supabase
+        .from('subscriptions')
+        .select('user_id, status, trial_ends_at, current_period_end, provider_subscription_id, plan_type')
+        .in('user_id', [...allUserIds]),
+    ]);
+
+  type SubRow = {
+    user_id: string;
+    status: string;
+    trial_ends_at: string | null;
+    current_period_end: string | null;
+    provider_subscription_id: string | null;
+    plan_type: string | null;
+  };
+  const waAccessByUser = new Map<string, boolean>(
+    ((subsRaw ?? []) as SubRow[]).map((s) => [s.user_id, subscriptionRowHasWa(s)]),
+  );
 
   const pushByUser = new Map<string, PushSubscriptionRow[]>();
   for (const p of (pushRaw ?? []) as (PushSubscriptionRow & { user_id: string })[]) {
@@ -145,7 +163,8 @@ export async function POST(request: Request) {
     await pushToUser(exp.user_id, { title, body, url: '/expenses', tag: `exp-${exp.id}` });
 
     const recipients = resolveRecipients(exp.user_id, exp.workspace_id, exp.notify_contact_ids ?? []);
-    if (!wa) {
+    const userHasWa = waAccessByUser.get(exp.user_id) ?? false;
+    if (!wa || !userHasWa) {
       waSkipped += recipients.length;
     } else {
       for (const r of recipients) {
@@ -202,7 +221,8 @@ export async function POST(request: Request) {
       'Recordatorio';
 
     let anyOk = false;
-    if (!wa) {
+    const userHasWa = waAccessByUser.get(rem.user_id) ?? false;
+    if (!wa || !userHasWa) {
       waSkipped += recipients.length;
     } else {
       for (const r of recipients) {
