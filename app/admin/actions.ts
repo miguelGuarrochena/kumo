@@ -9,12 +9,27 @@ export type AdminActionState = { ok: boolean; error?: string };
 
 const findUserByEmail = async (email: string): Promise<{ id: string } | null> => {
   const supabase = createServiceClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).auth.admin.listUsers({ page: 1, perPage: 200 });
-  if (error) return null;
-  const match = (data.users as { id: string; email: string | null }[])
-    .find((u) => (u.email ?? '').toLowerCase() === email.toLowerCase());
-  return match ? { id: match.id } : null;
+  const target = email.trim().toLowerCase();
+  if (!target) return null;
+
+  let page = 1;
+  const perPage = 200;
+  while (page <= 50) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).auth.admin.listUsers({ page, perPage });
+    if (error) return null;
+    const users = (data?.users ?? []) as { id: string; email: string | null }[];
+    const match = users.find((u) => (u.email ?? '').toLowerCase() === target);
+    if (match) return { id: match.id };
+    if (users.length < perPage) break;
+    page += 1;
+  }
+  return null;
+};
+
+const revalidateBilling = () => {
+  revalidatePath('/admin');
+  revalidatePath('/settings');
 };
 
 export const grantPro = async (
@@ -37,12 +52,13 @@ export const grantPro = async (
     user_id: user.id,
     status: 'active',
     plan_type: planType,
+    trial_ends_at: null,
     current_period_end: end.toISOString(),
     updated_at: now.toISOString(),
   });
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath('/admin');
+  revalidateBilling();
   return { ok: true };
 };
 
@@ -53,16 +69,21 @@ export const cancelImmediate = async (email: string): Promise<AdminActionState> 
 
   const supabase = createServiceClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('subscriptions') as any).update({
-    status: 'free',
-    plan_type: null,
-    trial_ends_at: null,
-    current_period_end: null,
-    updated_at: new Date().toISOString(),
-  }).eq('user_id', user.id);
-  if (error) return { ok: false, error: error.message };
+  const { data, error } = await (supabase.from('subscriptions') as any)
+    .update({
+      status: 'free',
+      plan_type: null,
+      trial_ends_at: null,
+      current_period_end: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', user.id)
+    .select('user_id');
 
-  revalidatePath('/admin');
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: 'No se encontró suscripción para este usuario' };
+
+  revalidateBilling();
   return { ok: true };
 };
 
@@ -72,14 +93,29 @@ export const cancelAtPeriodEnd = async (email: string): Promise<AdminActionState
   if (!user) return { ok: false, error: 'Usuario no encontrado' };
 
   const supabase = createServiceClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('subscriptions') as any).update({
-    status: 'canceled',
-    updated_at: new Date().toISOString(),
-  }).eq('user_id', user.id);
-  if (error) return { ok: false, error: error.message };
+  const { data: row } = await supabase
+    .from('subscriptions')
+    .select('status')
+    .eq('user_id', user.id)
+    .maybeSingle();
 
-  revalidatePath('/admin');
+  const status = (row as { status: string } | null)?.status;
+  // Trial no tiene "fin de período" en MP — revocar ya.
+  if (status === 'trialing') return cancelImmediate(email);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from('subscriptions') as any)
+    .update({
+      status: 'canceled',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', user.id)
+    .select('user_id');
+
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: 'No se encontró suscripción para este usuario' };
+
+  revalidateBilling();
   return { ok: true };
 };
 
@@ -120,6 +156,9 @@ export const adjustPlan = async (
 
   const plan = sub.plan_type as PlanProduct | null;
 
+  // Trial = un solo beneficio regalado; quitar una pieza revoca todo el trial.
+  if (sub.status === 'trialing') return cancelImmediate(email);
+
   if (action === 'remove_ocr') {
     if (plan === 'bundle') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -148,7 +187,7 @@ export const adjustPlan = async (
     }
   }
 
-  revalidatePath('/admin');
+  revalidateBilling();
   return { ok: true };
 };
 
@@ -169,10 +208,11 @@ export const extendTrial = async (
     status: 'trialing',
     plan_type: planType,
     trial_ends_at: newEnd,
+    current_period_end: null,
     updated_at: new Date().toISOString(),
   });
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath('/admin');
+  revalidateBilling();
   return { ok: true };
 };
