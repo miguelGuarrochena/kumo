@@ -79,7 +79,11 @@ const TermsPage = () => {
           tarjeta.
         </li>
         <li>
-          El plan contratado se renueva automáticamente al final de cada período (mensual o anual) hasta que lo canceles.
+          El plan <strong>mensual</strong> se renueva automáticamente cada mes hasta que lo canceles.
+        </li>
+        <li>
+          El plan <strong>anual</strong> es un pago único por 12 meses y <strong>no se renueva solo</strong>.
+          Te avisamos por email 30 y 7 días antes de que termine; si querés seguir, renovás manualmente desde Configuración.
         </li>
         <li>
           Podés <strong>cancelar en cualquier momento</strong> desde Configuración → Complementos de pago → Cancelar

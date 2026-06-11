@@ -404,6 +404,8 @@ type SubscriptionsRow = {
   provider_customer_id: string | null;
   provider_subscription_id: string | null;
   provider_variant_id: string | null;
+  expiry_reminder_30d_at: string | null;
+  expiry_reminder_7d_at: string | null;
   created_at: string;
   updated_at: string;
 };

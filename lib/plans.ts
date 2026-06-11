@@ -34,6 +34,18 @@ export const resolvePlanTypeFromVariantId = (variantId: string | null): PlanProd
   return null;
 };
 
+export const resolvePlanIntervalFromVariantId = (variantId: string | null): PlanInterval | null => {
+  if (!variantId) return null;
+  for (const product of ['ocr', 'wa', 'bundle'] as const) {
+    if (MP_PLAN_IDS[product].year === variantId) return 'year';
+    if (MP_PLAN_IDS[product].month === variantId) return 'month';
+  }
+  return null;
+};
+
+export const isYearlyPlanVariant = (variantId: string | null): boolean =>
+  resolvePlanIntervalFromVariantId(variantId) === 'year';
+
 export const planIncludesOcr = (planType: PlanProduct | null): boolean =>
   planType === 'ocr' || planType === 'bundle';
 

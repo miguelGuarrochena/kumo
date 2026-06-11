@@ -111,3 +111,100 @@ export const renderInviteEmail = (p: InviteEmailParams) => {
 
   return { subject, html, text };
 };
+
+export type SubscriptionReminderParams = {
+  daysLeft: 30 | 7;
+  planLabel: string;
+  expiresAt: string;
+  isYearly: boolean;
+  settingsUrl: string;
+};
+
+export const renderSubscriptionReminderEmail = (p: SubscriptionReminderParams) => {
+  const plan = escapeHtml(p.planLabel);
+  const expires = escapeHtml(p.expiresAt);
+  const settings = p.settingsUrl;
+
+  const headline =
+    p.daysLeft === 30
+      ? `Tu plan ${plan} vence en un mes`
+      : `Tu plan ${plan} vence en una semana`;
+
+  const bodyYearly =
+    p.daysLeft === 30
+      ? `El <strong>${expires}</strong> termina tu período anual de <strong>${plan}</strong>. El plan anual <strong>no se renueva solo</strong>: si querés seguir, volvé a suscribirte antes de esa fecha desde Configuración.`
+      : `En <strong>7 días</strong> (el <strong>${expires}</strong>) termina tu plan anual <strong>${plan}</strong>. No hay cobro automático después — renovalo solo si lo necesitás.`;
+
+  const bodyMonthly =
+    p.daysLeft === 30
+      ? `El <strong>${expires}</strong> renovamos tu suscripción mensual de <strong>${plan}</strong> en MercadoPago. Si no querés que se renueve, cancelá antes desde Configuración.`
+      : `En <strong>7 días</strong> (el <strong>${expires}</strong>) se renueva tu plan mensual <strong>${plan}</strong>. Cancelá en Configuración si preferís no continuar.`;
+
+  const body = p.isYearly ? bodyYearly : bodyMonthly;
+  const subject = `${headline} — Kumo`;
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <tr>
+            <td style="padding:32px 32px 16px;text-align:center;">
+              <div style="display:inline-block;font-size:24px;font-weight:700;background:linear-gradient(135deg,#38bdf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;">
+                ☁ Kumo
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 32px 24px;">
+              <h1 style="margin:0 0 12px;font-size:20px;line-height:1.4;font-weight:600;color:#0f172a;">
+                ${escapeHtml(headline)}
+              </h1>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#475569;">
+                ${body}
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding:8px 0;">
+                    <a href="${settings}" style="display:inline-block;background:linear-gradient(135deg,#38bdf8,#8b5cf6);color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:12px;">
+                      Ir a Configuración
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;border-top:1px solid #f1f5f9;background:#f8fafc;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.5;">
+                Kumo · tus gastos como una nube perfecta<br>
+                Dudas: <a href="mailto:info@kumo-app.com" style="color:#0ea5e9;">info@kumo-app.com</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = [
+    headline,
+    '',
+    p.isYearly
+      ? `El ${p.expiresAt} termina tu plan anual ${p.planLabel}. No se renueva solo.`
+      : `El ${p.expiresAt} se renueva tu plan mensual ${p.planLabel}. Cancelá en Configuración si no querés continuar.`,
+    '',
+    `Configuración: ${settings}`,
+  ].join('\n');
+
+  return { subject, html, text };
+};

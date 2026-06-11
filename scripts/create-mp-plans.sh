@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Crea los 6 planes de suscripción de Kumo en MercadoPago, en ARS.
 # Sin free_trial en MP — trials los maneja Kumo (tabla subscriptions).
+#
+# Mensual: renovación automática hasta cancelar.
+# Anual: repetitions=1 → un solo cobro por 12 meses, sin renovación automática.
+#
 # Uso:
 #   export MP_ACCESS_TOKEN="APP_USR-tu-access-token"
 #   bash scripts/create-mp-plans.sh
@@ -19,6 +23,12 @@ create_plan() {
   local freq="$3"
   local freq_type="$4"
   local outfile="$5"
+  local repetitions="${6:-}"
+
+  local reps_json=""
+  if [ -n "$repetitions" ]; then
+    reps_json=", \"repetitions\": $repetitions"
+  fi
 
   echo "Creando plan: $reason (ARS $amount)..."
   curl -s -X POST "https://api.mercadopago.com/preapproval_plan" \
@@ -30,7 +40,7 @@ create_plan() {
         \"frequency\": $freq,
         \"frequency_type\": \"$freq_type\",
         \"transaction_amount\": $amount,
-        \"currency_id\": \"ARS\"
+        \"currency_id\": \"ARS\"$reps_json
       },
       \"back_url\": \"https://kumo-app.com/settings?subscribed=1\"
     }" | tee "$outfile"
@@ -38,11 +48,11 @@ create_plan() {
 }
 
 create_plan "Kumo · Escaneo OCR · Mensual" 3500 1 months /tmp/mp_ocr_monthly.json
-create_plan "Kumo · Escaneo OCR · Anual" 35000 12 months /tmp/mp_ocr_yearly.json
+create_plan "Kumo · Escaneo OCR · Anual" 35000 12 months /tmp/mp_ocr_yearly.json 1
 create_plan "Kumo · WhatsApp automático · Mensual" 3000 1 months /tmp/mp_wa_monthly.json
-create_plan "Kumo · WhatsApp automático · Anual" 30000 12 months /tmp/mp_wa_yearly.json
+create_plan "Kumo · WhatsApp automático · Anual" 30000 12 months /tmp/mp_wa_yearly.json 1
 create_plan "Kumo Pro · Combo · Mensual" 5990 1 months /tmp/mp_bundle_monthly.json
-create_plan "Kumo Pro · Combo · Anual" 59900 12 months /tmp/mp_bundle_yearly.json
+create_plan "Kumo Pro · Combo · Anual" 59900 12 months /tmp/mp_bundle_yearly.json 1
 
 extract_id() { grep -o '"id":"[^"]*"' "$1" | head -1 | cut -d'"' -f4; }
 
@@ -66,4 +76,7 @@ echo "NEXT_PUBLIC_PRICE_WA_MONTHLY=ARS 3.000"
 echo "NEXT_PUBLIC_PRICE_WA_YEARLY=ARS 30.000"
 echo "NEXT_PUBLIC_PRICE_BUNDLE_MONTHLY=ARS 5.990"
 echo "NEXT_PUBLIC_PRICE_BUNDLE_YEARLY=ARS 59.900"
+echo ""
+echo "Anual = 1 cobro, sin renovación automática (repetitions: 1)."
+echo "Mensual = renovación automática hasta cancelar."
 echo "========================================"

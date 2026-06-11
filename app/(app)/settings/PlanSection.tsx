@@ -101,7 +101,14 @@ export const PlanSection = ({ sub, pricing }: Props) => {
           <h3 className="font-semibold">{tb.plans_title}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {isPaying && (sub.isLifetime ? tb.lifetime_label : sub.isCourtesy ? tb.courtesy_label : tb.subtitle_active)}
-            {isInActiveTrial && (
+            {isInActiveTrial && sub.trialEndsAt && sub.planType === 'ocr' && (
+              sub.daysLeftInTrial === 1
+                ? tb.subtitle_trial_ocr_day.replace('{date}', dateFmt(sub.trialEndsAt))
+                : tb.subtitle_trial_ocr_days
+                    .replace('{n}', String(sub.daysLeftInTrial))
+                    .replace('{date}', dateFmt(sub.trialEndsAt))
+            )}
+            {isInActiveTrial && sub.trialEndsAt && sub.planType !== 'ocr' && (
               sub.daysLeftInTrial === 1
                 ? tb.subtitle_trial_day
                 : tb.subtitle_trial_days.replace('{n}', String(sub.daysLeftInTrial))
@@ -126,17 +133,24 @@ export const PlanSection = ({ sub, pricing }: Props) => {
               </li>
             ))}
           </ul>
+          {isInActiveTrial && sub.trialEndsAt && (
+            <p className="text-xs opacity-80 mt-2">
+              {tb.trial_active_until.replace('{date}', dateFmt(sub.trialEndsAt))}
+            </p>
+          )}
           {sub.currentPeriodEnd && (isPaying || isCanceledWithAccess) && (
             <p className="text-xs opacity-80 mt-2">
               {isCanceledWithAccess
                 ? tb.canceled_keep_until.replace('{date}', dateFmt(sub.currentPeriodEnd))
-                : tb.next_charge.replace('{date}', dateFmt(sub.currentPeriodEnd))}
+                : sub.isYearly
+                  ? tb.plan_expires.replace('{date}', dateFmt(sub.currentPeriodEnd))
+                  : tb.next_charge.replace('{date}', dateFmt(sub.currentPeriodEnd))}
             </p>
           )}
         </div>
       )}
 
-      {isPaying && !sub.isLifetime && !sub.isCourtesy && (
+      {isPaying && !sub.isLifetime && !sub.isCourtesy && !sub.isYearly && (
         <button
           type="button"
           onClick={() => setConfirmCancel(true)}

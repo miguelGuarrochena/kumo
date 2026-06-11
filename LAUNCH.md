@@ -73,7 +73,7 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0029_early_adopter_ocr_trial.sql`:
+Aplicar todas en orden hasta `0030_subscription_reminders.sql`:
 
 ```bash
 supabase db push
@@ -87,6 +87,9 @@ bash scripts/create-mp-plans.sh
 ```
 
 Copiá los 6 plan IDs a las env vars `MP_PLAN_*`.
+
+- **Mensual**: renovación automática hasta cancelar.
+- **Anual**: `repetitions: 1` en MP → un solo cobro, sin renovación automática.
 
 Webhook: `https://kumo-app.com/api/billing/webhook` → eventos `subscription_preapproval`, `subscription_authorized_payment`.
 
@@ -108,7 +111,7 @@ Verificar dominio `kumo-app.com` (DKIM, SPF, DMARC) para magic links.
 
 ## 6. Vercel crons
 
-`vercel.json` ejecuta `/api/notify` (9:00 UTC) y `/api/cron/recurring` (3:00 UTC). Requiere `CRON_SECRET`.
+`vercel.json` ejecuta `/api/notify` (9:00 UTC), `/api/cron/subscription-reminders` (10:00 UTC) y `/api/cron/recurring` (3:00 UTC). Requiere `CRON_SECRET` y `RESEND_API_KEY` para los avisos de vencimiento.
 
 ## 7. Deploy
 

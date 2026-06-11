@@ -115,6 +115,10 @@ export const ProPlansGrid = ({
         />
       </div>
 
+      <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-disc pl-4">
+        <li>{b.checkout_monthly_note}</li>
+        <li>{b.checkout_yearly_note}</li>
+      </ul>
       <p className="text-xs text-slate-500 dark:text-slate-400">{b.price_adjustment_note}</p>
     </div>
   );

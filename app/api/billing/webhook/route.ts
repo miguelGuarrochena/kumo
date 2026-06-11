@@ -41,18 +41,56 @@ export const POST = async (req: Request) => {
 
   const supabase = createServiceClient();
   const status = mapStatus(pre.status);
-  const planType = resolvePlanTypeFromVariantId(pre.preapproval_plan_id) ?? 'ocr';
+  const resolvedPlanType = resolvePlanTypeFromVariantId(pre.preapproval_plan_id) ?? 'ocr';
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existing } = await (supabase.from('subscriptions') as any)
+    .select('current_period_end, plan_type, expiry_reminder_30d_at, expiry_reminder_7d_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const existingRow = existing as {
+    current_period_end: string | null;
+    plan_type: string | null;
+    expiry_reminder_30d_at: string | null;
+    expiry_reminder_7d_at: string | null;
+  } | null;
+
+  const nextPeriodEnd = pre.next_payment_date ?? existingRow?.current_period_end ?? null;
+  const periodStillActive =
+    nextPeriodEnd !== null && new Date(nextPeriodEnd).getTime() > Date.now();
+  const keepsPlanAccess =
+    status === 'active' ||
+    status === 'trialing' ||
+    (status === 'canceled' && periodStillActive);
+
+  let expiryReminder30dAt = existingRow?.expiry_reminder_30d_at ?? null;
+  let expiryReminder7dAt = existingRow?.expiry_reminder_7d_at ?? null;
+  if (
+    existingRow?.current_period_end &&
+    nextPeriodEnd &&
+    new Date(nextPeriodEnd).getTime() > new Date(existingRow.current_period_end).getTime()
+  ) {
+    expiryReminder30dAt = null;
+    expiryReminder7dAt = null;
+  }
+
+  const planType = keepsPlanAccess
+    ? (resolvedPlanType ?? existingRow?.plan_type ?? 'ocr')
+    : null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.from('subscriptions') as any).upsert({
     user_id: userId,
     status,
-    plan_type: status === 'active' || status === 'trialing' ? planType : null,
+    plan_type: planType,
     provider: 'mercadopago',
     provider_customer_id: String(pre.payer_id ?? ''),
     provider_subscription_id: pre.id,
     provider_variant_id: pre.preapproval_plan_id,
-    current_period_end: pre.next_payment_date,
+    current_period_end: nextPeriodEnd,
+    expiry_reminder_30d_at: expiryReminder30dAt,
+    expiry_reminder_7d_at: expiryReminder7dAt,
     updated_at: new Date().toISOString(),
   });
 

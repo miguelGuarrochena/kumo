@@ -1,5 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
-import { planIncludesOcr, planIncludesWa, type PlanProduct } from '@/lib/plans';
+import {
+  isYearlyPlanVariant,
+  planIncludesOcr,
+  planIncludesWa,
+  type PlanProduct,
+} from '@/lib/plans';
 
 export type SubscriptionTier = 'pro' | 'free';
 
@@ -15,6 +20,7 @@ export type SubscriptionInfo = {
   providerSubscriptionId: string | null;
   isLifetime: boolean;
   isCourtesy: boolean;
+  isYearly: boolean;
 };
 
 const hasPaidAccess = (
@@ -59,13 +65,14 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
     providerSubscriptionId: null,
     isLifetime: false,
     isCourtesy: false,
+    isYearly: false,
   };
 
   if (!user) return emptyInfo;
 
   const { data } = await supabase
     .from('subscriptions')
-    .select('status, trial_ends_at, current_period_end, provider_subscription_id, plan_type')
+    .select('status, trial_ends_at, current_period_end, provider_subscription_id, plan_type, provider_variant_id')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -75,6 +82,7 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
     current_period_end: string | null;
     provider_subscription_id: string | null;
     plan_type: string | null;
+    provider_variant_id: string | null;
   } | null;
 
   if (!row) return emptyInfo;
@@ -94,6 +102,7 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
   const isLifetime =
     currentPeriodEnd !== null && currentPeriodEnd.getTime() - Date.now() > fiftyYears;
   const isCourtesy = row.status === 'active' && !row.provider_subscription_id;
+  const isYearly = isYearlyPlanVariant(row.provider_variant_id);
 
   return {
     tier,
@@ -107,6 +116,7 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
     providerSubscriptionId: row.provider_subscription_id,
     isLifetime,
     isCourtesy,
+    isYearly,
   };
 };
 
