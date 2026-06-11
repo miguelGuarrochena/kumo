@@ -12,6 +12,9 @@ type Props = {
   description: string;
   confirmLabel?: string;
   destructive?: boolean;
+  loading?: boolean;
+  /** Si false, el padre cierra el modal (ej. admin cuando falla la acción). */
+  closeOnConfirm?: boolean;
 };
 
 export const ConfirmDialog = ({
@@ -22,6 +25,8 @@ export const ConfirmDialog = ({
   description,
   confirmLabel,
   destructive = true,
+  loading = false,
+  closeOnConfirm = true,
 }: Props) => {
   const { t } = useT();
   const confirm = confirmLabel ?? t.common.delete;
@@ -42,21 +47,25 @@ export const ConfirmDialog = ({
       <button
         type="button"
         onClick={onClose}
-        className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200"
+        disabled={loading}
+        className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50"
       >
         {t.common.cancel}
       </button>
       <button
         type="button"
-        onClick={async () => {
-          await onConfirm();
-          onClose();
+        disabled={loading}
+        onClick={() => {
+          void (async () => {
+            await onConfirm();
+            if (closeOnConfirm) onClose();
+          })();
         }}
-        className={`px-4 py-2.5 rounded-xl text-sm font-medium text-white ${
+        className={`px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50 ${
           destructive ? 'bg-rose-500 hover:bg-rose-600' : 'kumo-gradient hover:opacity-90'
         }`}
       >
-        {confirm}
+        {loading ? t.common.saving : confirm}
       </button>
     </div>
   </Sheet>

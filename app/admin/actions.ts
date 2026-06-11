@@ -54,9 +54,10 @@ export const cancelImmediate = async (email: string): Promise<AdminActionState> 
   const supabase = createServiceClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('subscriptions') as any).update({
-    status: 'canceled',
+    status: 'free',
     plan_type: null,
-    current_period_end: new Date(Date.now() - 1000).toISOString(),
+    trial_ends_at: null,
+    current_period_end: null,
     updated_at: new Date().toISOString(),
   }).eq('user_id', user.id);
   if (error) return { ok: false, error: error.message };

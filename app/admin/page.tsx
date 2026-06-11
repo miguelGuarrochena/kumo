@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service';
 import { ADMIN_PAGE_SIZE } from '@/lib/pagination';
+import { parsePlanType } from '@/lib/plans';
 import { AdminClient, type AdminRow } from './AdminClient';
 
 export const metadata = {
@@ -50,7 +51,7 @@ const AdminPage = async ({ searchParams }: { searchParams: Promise<SearchParams>
         name: u.user_metadata?.full_name ?? null,
         signupAt: u.created_at,
         status: (s?.status ?? 'free') as AdminRow['status'],
-        planType: (s?.plan_type ?? null) as AdminRow['planType'],
+        planType: parsePlanType(s?.plan_type),
         trialEndsAt: s?.trial_ends_at ?? null,
         currentPeriodEnd: s?.current_period_end ?? null,
         provider: s?.provider ?? null,

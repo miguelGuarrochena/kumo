@@ -1,6 +1,11 @@
 export type PlanProduct = 'ocr' | 'wa' | 'bundle';
 export type PlanInterval = 'month' | 'year';
 
+export const parsePlanType = (raw: string | null | undefined): PlanProduct | null => {
+  if (raw === 'ocr' || raw === 'wa' || raw === 'bundle') return raw;
+  return null;
+};
+
 const MP_PLAN_IDS: Record<PlanProduct, Record<PlanInterval, string>> = {
   ocr: {
     month: process.env.MP_PLAN_OCR_MONTHLY ?? process.env.MP_PLAN_MONTHLY ?? '',

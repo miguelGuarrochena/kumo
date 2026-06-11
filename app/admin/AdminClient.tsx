@@ -8,6 +8,7 @@ import { grantPro, cancelAtPeriodEnd, extendTrial, adjustPlan } from './actions'
 import { planIncludesOcr, planIncludesWa } from '@/lib/plans';
 import type { PlanProduct } from '@/lib/plans';
 import { Pagination } from '@/components/Pagination';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useT } from '@/lib/i18n/client';
 
 export type AdminRow = {
@@ -29,6 +30,14 @@ type Props = {
   totalCount: number;
   hasMore: boolean;
   stats: { active: number; trial: number; free: number };
+};
+
+type PendingGrant = 'grant-3' | 'grant-life' | 'trial-ext' | 'cancel-end' | null;
+
+type ConfirmDlg = {
+  description: string;
+  successLabel: string;
+  action: () => Promise<{ ok: boolean; error?: string }>;
 };
 
 const PLAN_OPTIONS: { id: PlanProduct; icon: typeof Camera }[] = [
@@ -172,9 +181,15 @@ export const AdminClient = ({ rows, page, pageSize, totalCount, hasMore, stats }
 
 const computeTier = (r: AdminRow): 'active' | 'trial' | 'free' => {
   const now = Date.now();
+  if (r.status === 'free') return 'free';
   if (r.status === 'active') return 'active';
-  if (r.status === 'trialing' && r.trialEndsAt && new Date(r.trialEndsAt).getTime() > now) return 'trial';
-  if (r.status === 'canceled' && r.currentPeriodEnd && new Date(r.currentPeriodEnd).getTime() > now) return 'active';
+  if (r.status === 'trialing') {
+    if (r.trialEndsAt && new Date(r.trialEndsAt).getTime() > now) return 'trial';
+    return 'free';
+  }
+  if (r.status === 'canceled' && r.currentPeriodEnd && new Date(r.currentPeriodEnd).getTime() > now) {
+    return 'active';
+  }
   return 'free';
 };
 
@@ -191,132 +206,166 @@ const Row = ({
   const a = t.admin;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [confirmAction, setConfirmAction] = useState<string | null>(null);
+  const [pendingGrant, setPendingGrant] = useState<PendingGrant>(null);
+  const [confirmDlg, setConfirmDlg] = useState<ConfirmDlg | null>(null);
+  const [dialogPending, setDialogPending] = useState(false);
 
   const tier = computeTier(row);
+  const plan = row.planType;
   const venceDate = tier === 'trial' ? row.trialEndsAt : row.currentPeriodEnd;
 
-  const run = (label: string, fn: () => Promise<{ ok: boolean; error?: string }>) => {
+  const runAction = (
+    successLabel: string,
+    fn: () => Promise<{ ok: boolean; error?: string }>,
+    onDone?: () => void,
+  ) => {
     startTransition(async () => {
-      const r = await fn();
-      if (r.ok) {
-        toast.success(`${label}: ${row.email}`);
+      const result = await fn();
+      if (result.ok) {
+        toast.success(`${successLabel}: ${row.email}`);
+        onDone?.();
         router.refresh();
       } else {
-        toast.error(r.error ?? t.common.error);
+        toast.error(result.error ?? t.common.error);
       }
-      setConfirmAction(null);
+      setPendingGrant(null);
     });
   };
 
+  const runGrant = (key: PendingGrant, successLabel: string, fn: () => Promise<{ ok: boolean; error?: string }>) => {
+    setPendingGrant(key);
+    runAction(successLabel, fn);
+  };
+
+  const openConfirm = (description: string, successLabel: string, action: () => Promise<{ ok: boolean; error?: string }>) => {
+    setConfirmDlg({ description, successLabel, action });
+  };
+
+  const onConfirmDialog = async () => {
+    if (!confirmDlg) return;
+    const dlg = confirmDlg;
+    setDialogPending(true);
+    try {
+      const result = await dlg.action();
+      if (result.ok) {
+        toast.success(`${dlg.successLabel}: ${row.email}`);
+        setConfirmDlg(null);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? t.common.error);
+      }
+    } finally {
+      setDialogPending(false);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 items-center text-sm hover:bg-slate-50 dark:hover:bg-slate-800/40">
-      <div className="md:col-span-3 min-w-0">
-        <p className="font-medium truncate">{row.name ?? row.email.split('@')[0]}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{row.email}</p>
-      </div>
-      <div className="md:col-span-2">
-        <TierBadge tier={tier} />
-      </div>
-      <div className="md:col-span-2">
-        {tier !== 'free' && row.planType ? (
-          <div className="flex flex-wrap gap-1">
-            <FeatureChip on={planIncludesOcr(row.planType)} label="OCR" />
-            <FeatureChip on={planIncludesWa(row.planType)} label="WA" />
-          </div>
-        ) : (
-          <span className="text-xs text-slate-400">—</span>
-        )}
-      </div>
-      <div className="md:col-span-2 text-xs text-slate-600 dark:text-slate-300">
-        {venceDate ? new Date(venceDate).toLocaleDateString() : '—'}
-      </div>
-      <div className="md:col-span-3 space-y-1.5 md:text-right">
-        <div className="flex flex-wrap gap-1 md:justify-end">
-          <span className="text-[10px] text-slate-400 w-full md:w-auto md:mr-1 self-center">{a.grant_row_label}</span>
-          <ActionButton
-            icon={<Gift className="w-3.5 h-3.5" />}
-            label={a.grant_3m.replace('{plan}', planLabel(grantPlan) ?? '')}
-            loading={pending && confirmAction === 'grant-3'}
-            onClick={() => {
-              setConfirmAction('grant-3');
-              run(a.toast_grant_3m, () => grantPro(row.email, 3, grantPlan));
-            }}
-          />
-          <ActionButton
-            icon={<Sparkles className="w-3.5 h-3.5" />}
-            label={a.lifetime.replace('{plan}', planLabel(grantPlan) ?? '')}
-            loading={pending && confirmAction === 'grant-life'}
-            onClick={() => {
-              setConfirmAction('grant-life');
-              run(a.toast_lifetime, () => grantPro(row.email, 1200, grantPlan));
-            }}
-          />
-          <ActionButton
-            icon={<Clock className="w-3.5 h-3.5" />}
-            label={a.trial_ext.replace('{plan}', planLabel(grantPlan) ?? '')}
-            loading={pending && confirmAction === 'trial-ext'}
-            onClick={() => {
-              setConfirmAction('trial-ext');
-              run(a.toast_trial_ext, () => extendTrial(row.email, 30, grantPlan));
-            }}
-          />
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 items-center text-sm hover:bg-slate-50 dark:hover:bg-slate-800/40">
+        <div className="md:col-span-3 min-w-0">
+          <p className="font-medium truncate">{row.name ?? row.email.split('@')[0]}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{row.email}</p>
         </div>
-        {tier !== 'free' && (
+        <div className="md:col-span-2">
+          <TierBadge tier={tier} />
+        </div>
+        <div className="md:col-span-2">
+          {tier !== 'free' && plan ? (
+            <div className="flex flex-wrap gap-1">
+              <FeatureChip on={planIncludesOcr(plan)} label="OCR" />
+              <FeatureChip on={planIncludesWa(plan)} label="WA" />
+            </div>
+          ) : (
+            <span className="text-xs text-slate-400">—</span>
+          )}
+        </div>
+        <div className="md:col-span-2 text-xs text-slate-600 dark:text-slate-300">
+          {venceDate ? new Date(venceDate).toLocaleDateString() : '—'}
+        </div>
+        <div className="md:col-span-3 space-y-1.5 md:text-right">
           <div className="flex flex-wrap gap-1 md:justify-end">
-            <span className="text-[10px] text-slate-400 w-full md:w-auto md:mr-1 self-center">{a.revoke_row_label}</span>
-            {row.planType && planIncludesOcr(row.planType) && (
-              <ActionButton
-                icon={<XCircle className="w-3.5 h-3.5" />}
-                label={row.planType === 'bundle' ? a.revoke_ocr_combo : a.revoke_ocr}
-                danger
-                loading={pending && confirmAction === 'revoke-ocr'}
-                onClick={() => {
-                  const msg = row.planType === 'bundle' ? a.confirm_revoke_ocr_combo : a.confirm_revoke_ocr;
-                  if (!confirm(msg.replace('{email}', row.email))) return;
-                  setConfirmAction('revoke-ocr');
-                  run(a.toast_revoke_ocr, () => adjustPlan(row.email, 'remove_ocr'));
-                }}
-              />
-            )}
-            {row.planType && planIncludesWa(row.planType) && (
-              <ActionButton
-                icon={<XCircle className="w-3.5 h-3.5" />}
-                label={row.planType === 'bundle' ? a.revoke_wa_combo : a.revoke_wa}
-                danger
-                loading={pending && confirmAction === 'revoke-wa'}
-                onClick={() => {
-                  const msg = row.planType === 'bundle' ? a.confirm_revoke_wa_combo : a.confirm_revoke_wa;
-                  if (!confirm(msg.replace('{email}', row.email))) return;
-                  setConfirmAction('revoke-wa');
-                  run(a.toast_revoke_wa, () => adjustPlan(row.email, 'remove_wa'));
-                }}
-              />
-            )}
+            <span className="text-[10px] text-slate-400 w-full md:w-auto md:mr-1 self-center">{a.grant_row_label}</span>
             <ActionButton
-              icon={<XCircle className="w-3.5 h-3.5" />}
-              label={a.cancel_now}
-              danger
-              loading={pending && confirmAction === 'cancel-now'}
-              onClick={() => {
-                if (!confirm(a.confirm_cancel.replace('{email}', row.email))) return;
-                setConfirmAction('cancel-now');
-                run(a.toast_cancel_now, () => adjustPlan(row.email, 'remove_all'));
-              }}
+              icon={<Gift className="w-3.5 h-3.5" />}
+              label={a.grant_3m.replace('{plan}', planLabel(grantPlan) ?? '')}
+              loading={pending && pendingGrant === 'grant-3'}
+              onClick={() => runGrant('grant-3', a.toast_grant_3m, () => grantPro(row.email, 3, grantPlan))}
             />
             <ActionButton
-              icon={<XCircle className="w-3.5 h-3.5" />}
-              label={a.cancel_end}
-              loading={pending && confirmAction === 'cancel-end'}
-              onClick={() => {
-                setConfirmAction('cancel-end');
-                run(a.toast_cancel_end, () => cancelAtPeriodEnd(row.email));
-              }}
+              icon={<Sparkles className="w-3.5 h-3.5" />}
+              label={a.lifetime.replace('{plan}', planLabel(grantPlan) ?? '')}
+              loading={pending && pendingGrant === 'grant-life'}
+              onClick={() => runGrant('grant-life', a.toast_lifetime, () => grantPro(row.email, 1200, grantPlan))}
+            />
+            <ActionButton
+              icon={<Clock className="w-3.5 h-3.5" />}
+              label={a.trial_ext.replace('{plan}', planLabel(grantPlan) ?? '')}
+              loading={pending && pendingGrant === 'trial-ext'}
+              onClick={() => runGrant('trial-ext', a.toast_trial_ext, () => extendTrial(row.email, 30, grantPlan))}
             />
           </div>
-        )}
+          {tier !== 'free' && (
+            <div className="flex flex-wrap gap-1 md:justify-end">
+              <span className="text-[10px] text-slate-400 w-full md:w-auto md:mr-1 self-center">{a.revoke_row_label}</span>
+              {plan && planIncludesOcr(plan) && (
+                <ActionButton
+                  icon={<XCircle className="w-3.5 h-3.5" />}
+                  label={plan === 'bundle' ? a.revoke_ocr_combo : a.revoke_ocr}
+                  danger
+                  loading={false}
+                  onClick={() => openConfirm(
+                    (plan === 'bundle' ? a.confirm_revoke_ocr_combo : a.confirm_revoke_ocr).replace('{email}', row.email),
+                    a.toast_revoke_ocr,
+                    () => adjustPlan(row.email, 'remove_ocr'),
+                  )}
+                />
+              )}
+              {plan && planIncludesWa(plan) && (
+                <ActionButton
+                  icon={<XCircle className="w-3.5 h-3.5" />}
+                  label={plan === 'bundle' ? a.revoke_wa_combo : a.revoke_wa}
+                  danger
+                  loading={false}
+                  onClick={() => openConfirm(
+                    (plan === 'bundle' ? a.confirm_revoke_wa_combo : a.confirm_revoke_wa).replace('{email}', row.email),
+                    a.toast_revoke_wa,
+                    () => adjustPlan(row.email, 'remove_wa'),
+                  )}
+                />
+              )}
+              <ActionButton
+                icon={<XCircle className="w-3.5 h-3.5" />}
+                label={a.cancel_now}
+                danger
+                loading={false}
+                onClick={() => openConfirm(
+                  a.confirm_cancel.replace('{email}', row.email),
+                  a.toast_cancel_now,
+                  () => adjustPlan(row.email, 'remove_all'),
+                )}
+              />
+              <ActionButton
+                icon={<XCircle className="w-3.5 h-3.5" />}
+                label={a.cancel_end}
+                loading={pending && pendingGrant === 'cancel-end'}
+                onClick={() => runGrant('cancel-end', a.toast_cancel_end, () => cancelAtPeriodEnd(row.email))}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={confirmDlg !== null}
+        onClose={() => { if (!dialogPending) setConfirmDlg(null); }}
+        onConfirm={onConfirmDialog}
+        title={a.confirm_title}
+        description={confirmDlg?.description ?? ''}
+        confirmLabel={a.confirm_button}
+        loading={dialogPending}
+        closeOnConfirm={false}
+      />
+    </>
   );
 };
 

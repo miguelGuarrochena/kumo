@@ -134,7 +134,7 @@ const HomePage = async () => {
           {([
             { icon: Camera, title: 'Escaneo OCR', price: getPricing().ocr.monthly, desc: 'Foto del ticket → IA extrae monto y categoría.' },
             { icon: MessageCircle, title: 'WhatsApp automático', price: getPricing().wa.monthly, desc: 'Kumo avisa solo antes de vencimientos y recordatorios.' },
-            { icon: Wallet, title: 'Kumo Pro (combo)', price: getPricing().bundle.monthly, desc: 'OCR + WhatsApp automático. Más barato que los dos juntos.', highlight: true },
+            { icon: Wallet, title: 'Kumo Pro (combo)', price: getPricing().bundle.monthly, desc: 'Escaneá tickets y que Kumo avise solo por WhatsApp.', highlight: true },
           ] as { icon: typeof Camera; title: string; price: string; desc: string; highlight?: boolean }[]).map(({ icon: Icon, title, price, desc, highlight }) => (
             <div
               key={title}
