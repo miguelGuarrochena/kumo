@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getCurrentWorkspace, requireAdmin } from '@/lib/workspace';
+import { scheduleExpenseDelete, scheduleExpenseSync } from '@/lib/calendar/scheduleSync';
 
 const CURRENCIES = ['ARS', 'USD', 'EUR', 'MXN', 'CLP', 'COP', 'BRL', 'GBP'] as const;
 const RECURRENCE = ['weekly', 'monthly', 'yearly'] as const;
@@ -77,6 +78,8 @@ export async function upsertExpense(
     expenseId = (created as { id: string }).id;
   }
 
+  if (expenseId) scheduleExpenseSync(ctx.userId, expenseId);
+
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
   revalidatePath('/split');
@@ -84,22 +87,25 @@ export async function upsertExpense(
 }
 
 export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: string }> {
+  let ctx;
   try {
-    await requireAdmin();
+    ctx = await requireAdmin();
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
   const supabase = await createClient();
   const { error } = await supabase.from('expenses').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
+  scheduleExpenseDelete(ctx.userId, id);
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
   return { ok: true };
 }
 
 export async function togglePaid(id: string, paid: boolean): Promise<{ ok: boolean; error?: string }> {
+  let ctx;
   try {
-    await requireAdmin();
+    ctx = await requireAdmin();
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
@@ -107,6 +113,7 @@ export async function togglePaid(id: string, paid: boolean): Promise<{ ok: boole
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('expenses') as any).update({ paid }).eq('id', id);
   if (error) return { ok: false, error: error.message };
+  scheduleExpenseSync(ctx.userId, id);
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
   return { ok: true };

@@ -30,6 +30,8 @@ export const GET = async () => {
       PRICE_BUNDLE_MONTHLY:     process.env.NEXT_PUBLIC_PRICE_BUNDLE_MONTHLY ?? null,
       PRICE_YEARLY_PCT:         process.env.NEXT_PUBLIC_PRICE_YEARLY_PCT ?? null,
       GOOGLE_AI_API_KEY:        present(process.env.GOOGLE_AI_API_KEY),
+      GOOGLE_CALENDAR_OAUTH:    present(process.env.GOOGLE_CALENDAR_CLIENT_ID)
+        && present(process.env.GOOGLE_CALENDAR_CLIENT_SECRET),
       WHATSAPP:                 isWhatsAppConfigured(),
       CRON_SECRET:              present(process.env.CRON_SECRET),
     },

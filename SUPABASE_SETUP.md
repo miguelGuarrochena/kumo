@@ -42,6 +42,23 @@ Guía paso a paso para dejar la app funcionando local. Tiempo: 20-30 minutos.
    - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY` (¡nunca exponer al cliente!)
    - **Project ID** → `SUPABASE_PROJECT_ID` (lo ves en la URL del proyecto)
 
+## 3b. Google Calendar (sync en tiempo real, aparte del login)
+
+El login con Google (Supabase) **no** incluye permisos de calendario. Para sync Kumo → Google Calendar:
+
+1. En el mismo proyecto de Google Cloud → **APIs & Services** → **Library** → habilitá **Google Calendar API**.
+2. **Credentials** → **Create credentials** → **OAuth Client ID** → Web Application (podés usar otro client distinto al de Supabase).
+3. **Authorized redirect URIs**:
+   - `http://localhost:3000/api/auth/google-calendar/callback` (dev)
+   - `https://tu-dominio.com/api/auth/google-calendar/callback` (prod)
+4. En **OAuth consent screen** → **Scopes** → agregá `.../auth/calendar.events`.
+5. En Vercel / `.env.local`:
+   - `GOOGLE_CALENDAR_CLIENT_ID`
+   - `GOOGLE_CALENDAR_CLIENT_SECRET`
+6. Corré la migración `0033_google_calendar_oauth.sql` (`supabase db push`).
+
+El usuario conecta desde **Configuración → Google Calendar → Conectar con Google**. Los cambios en recordatorios y vencimientos se reflejan en Google en segundos.
+
 ## 4. Configurar WhatsApp via Meta Cloud API (oficial, directa)
 
 > Por qué este camino: pega directo a la API oficial de Meta sin Twilio en el medio.

@@ -24,7 +24,7 @@ import { YearView } from './YearView';
 import { AgendaList } from './AgendaList';
 import { DayDetailSheet } from './DayDetailSheet';
 import { FullReminderSheet } from './FullReminderSheet';
-import { CalendarFeedBanner } from '@/components/CalendarFeedBanner';
+import { GoogleCalendarBanner } from '@/components/GoogleCalendarBanner';
 
 export type { WorkspaceLite } from './types';
 
@@ -42,7 +42,7 @@ type Props = {
   country?: Country;
   workspaces: WorkspaceLite[];
   activeWorkspaceId: string;
-  feedUrl: string;
+  googleCalendarConnected: boolean;
   hasWa: boolean;
 };
 
@@ -60,7 +60,7 @@ export const CalendarClient = ({
   country = 'AR',
   workspaces,
   activeWorkspaceId,
-  feedUrl,
+  googleCalendarConnected,
   hasWa,
 }: Props) => {
   const router = useRouter();
@@ -186,7 +186,7 @@ export const CalendarClient = ({
         </button>
       </header>
 
-      <CalendarFeedBanner feedUrl={feedUrl} />
+      <GoogleCalendarBanner connected={googleCalendarConnected} />
 
       {workspaces.length > 1 && (
         <div className="kumo-card p-3 flex flex-wrap items-center gap-2">

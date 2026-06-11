@@ -13,6 +13,8 @@ export type AnalyticsEvent =
   | { name: 'calendar_feed_subscribe' }
   | { name: 'calendar_feed_share' }
   | { name: 'calendar_feed_rotated' }
+  | { name: 'google_calendar_connected' }
+  | { name: 'google_calendar_disconnected' }
   | { name: 'shopping_item_added' }
   | { name: 'whatsapp_configured' }
   | { name: 'pwa_install_dismissed' }

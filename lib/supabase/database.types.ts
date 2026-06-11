@@ -215,6 +215,10 @@ type UserSettingsRow = {
   timezone: string;
   onboarded: boolean;
   calendar_feed_version: number;
+  google_calendar_refresh_token: string | null;
+  google_calendar_connected_at: string | null;
+  google_calendar_last_sync_at: string | null;
+  google_calendar_sync_error: string | null;
   updated_at: string;
 };
 type UserSettingsInsert = {
@@ -228,6 +232,10 @@ type UserSettingsInsert = {
   timezone?: string;
   onboarded?: boolean;
   calendar_feed_version?: number;
+  google_calendar_refresh_token?: string | null;
+  google_calendar_connected_at?: string | null;
+  google_calendar_last_sync_at?: string | null;
+  google_calendar_sync_error?: string | null;
   updated_at?: string;
 };
 type UserSettingsUpdate = {
@@ -241,6 +249,33 @@ type UserSettingsUpdate = {
   timezone?: string;
   onboarded?: boolean;
   calendar_feed_version?: number;
+  google_calendar_refresh_token?: string | null;
+  google_calendar_connected_at?: string | null;
+  google_calendar_last_sync_at?: string | null;
+  google_calendar_sync_error?: string | null;
+  updated_at?: string;
+};
+
+// ---------- google_calendar_events ----------
+type GoogleCalendarEventsRow = {
+  user_id: string;
+  kumo_type: 'reminder' | 'expense';
+  kumo_id: string;
+  google_event_id: string;
+  updated_at: string;
+};
+type GoogleCalendarEventsInsert = {
+  user_id: string;
+  kumo_type: 'reminder' | 'expense';
+  kumo_id: string;
+  google_event_id: string;
+  updated_at?: string;
+};
+type GoogleCalendarEventsUpdate = {
+  user_id?: string;
+  kumo_type?: 'reminder' | 'expense';
+  kumo_id?: string;
+  google_event_id?: string;
   updated_at?: string;
 };
 
@@ -469,6 +504,12 @@ export type Database = {
         Row: UserSettingsRow;
         Insert: UserSettingsInsert;
         Update: UserSettingsUpdate;
+        Relationships: [];
+      };
+      google_calendar_events: {
+        Row: GoogleCalendarEventsRow;
+        Insert: GoogleCalendarEventsInsert;
+        Update: GoogleCalendarEventsUpdate;
         Relationships: [];
       };
       notification_contacts: {

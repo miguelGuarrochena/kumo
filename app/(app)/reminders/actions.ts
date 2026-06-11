@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/workspace';
+import { scheduleReminderDelete, scheduleReminderSync } from '@/lib/calendar/scheduleSync';
 
 const REMINDER_TYPES = ['medical', 'birthday', 'generic'] as const;
 
@@ -56,13 +57,23 @@ export async function upsertReminder(
   const supabase = await createClient();
   const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
-  const { error } = parsed.data.id
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? await (supabase.from('reminders') as any).update(payload).eq('id', parsed.data.id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    : await (supabase.from('reminders') as any).insert(payload);
+  let reminderId = parsed.data.id ?? null;
 
-  if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+  if (parsed.data.id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('reminders') as any).update(payload).eq('id', parsed.data.id);
+    if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: created, error } = await (supabase.from('reminders') as any)
+      .insert(payload)
+      .select('id')
+      .single();
+    if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+    reminderId = (created as { id: string }).id;
+  }
+
+  if (reminderId) scheduleReminderSync(ctx.userId, reminderId);
 
   revalidatePath('/reminders');
   revalidatePath('/calendar');
@@ -71,14 +82,16 @@ export async function upsertReminder(
 }
 
 export async function deleteReminder(id: string): Promise<ReminderFormState> {
+  let ctx;
   try {
-    await requireAdmin();
+    ctx = await requireAdmin();
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
   const supabase = await createClient();
   const { error } = await supabase.from('reminders').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
+  scheduleReminderDelete(ctx.userId, id);
   revalidatePath('/reminders');
   revalidatePath('/calendar');
   revalidatePath('/dashboard');

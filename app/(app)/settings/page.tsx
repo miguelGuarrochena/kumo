@@ -8,8 +8,9 @@ import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
 import { isAdmin } from '@/lib/admin';
-import { buildCalendarFeedUrl } from '@/lib/calendar/feedToken';
-import { CalendarFeedSection } from './CalendarFeedSection';
+import { Suspense } from 'react';
+import { GoogleCalendarSection } from './GoogleCalendarSection';
+import { isGoogleCalendarOAuthConfigured } from '@/lib/calendar/googleConfigured';
 import { getMessages } from '@/lib/i18n/server';
 import { isWhatsAppConfigured } from '@/lib/notifications/whatsapp';
 import { currentWaMonthKey, WA_MONTHLY_CAP } from '@/lib/notifications/waLimits';
@@ -83,11 +84,21 @@ const SettingsPage = async () => {
     created_at: i.created_at,
   }));
 
+  const settingsRow = settings as {
+    google_calendar_refresh_token?: string | null;
+    google_calendar_connected_at?: string | null;
+    google_calendar_last_sync_at?: string | null;
+    google_calendar_sync_error?: string | null;
+  } | null;
+  const googleCalendarConnected = !!settingsRow?.google_calendar_refresh_token;
+
   const h = await headers();
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'kumo-app.com';
   const proto = h.get('x-forwarded-proto') ?? 'https';
   const origin = `${proto}://${host}`;
-  const feedVersion = (settings as { calendar_feed_version?: number } | null)?.calendar_feed_version ?? 0;
+
+  const { google_calendar_refresh_token: _gcToken, ...safeSettings } =
+    (settings ?? {}) as Record<string, unknown>;
 
   let waUsageMonth = 0;
   if (subscription.hasWa) {
@@ -137,13 +148,18 @@ const SettingsPage = async () => {
         waBillingEnabled={!whatsappPending}
       />
 
-      <CalendarFeedSection
-        feedUrl={buildCalendarFeedUrl(user!.id, origin, feedVersion)}
-        feedVersion={feedVersion}
-      />
+      <Suspense fallback={null}>
+        <GoogleCalendarSection
+          connected={googleCalendarConnected}
+          connectedAt={settingsRow?.google_calendar_connected_at ?? null}
+          lastSyncAt={settingsRow?.google_calendar_last_sync_at ?? null}
+          syncError={settingsRow?.google_calendar_sync_error ?? null}
+          oauthConfigured={isGoogleCalendarOAuthConfigured()}
+        />
+      </Suspense>
 
       <SettingsClient
-        initialSettings={settings}
+        initialSettings={safeSettings as typeof settings}
         userEmail={user?.email ?? ''}
         initialDisplayName={user?.user_metadata?.full_name ?? ''}
         selfContact={(contacts ?? []).find(

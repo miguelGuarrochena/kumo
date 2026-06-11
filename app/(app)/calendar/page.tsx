@@ -1,11 +1,9 @@
-import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { CalendarClient } from './CalendarClient';
 import { type Currency } from '@/lib/currency';
 import { countryFromTimezone } from '@/lib/holidays';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
-import { buildCalendarFeedUrl } from '@/lib/calendar/feedToken';
 
 type SearchParams = {
   month?: string;
@@ -92,7 +90,11 @@ const CalendarPage = async ({
       .from('reminders')
       .select('id, workspace_id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')
       .order('reminder_date', { ascending: true }),
-    supabase.from('user_settings').select('default_currency, timezone, calendar_feed_version').eq('user_id', userId).maybeSingle(),
+    supabase
+      .from('user_settings')
+      .select('default_currency, timezone, google_calendar_refresh_token')
+      .eq('user_id', userId)
+      .maybeSingle(),
     supabase
       .from('notification_contacts')
       .select('id, name, relationship, is_self, phone, user_id')
@@ -112,23 +114,17 @@ const CalendarPage = async ({
   const settingsTyped = settings as {
     default_currency?: string;
     timezone?: string;
-    calendar_feed_version?: number;
+    google_calendar_refresh_token?: string | null;
   } | null;
   const defaultCurrency = (settingsTyped?.default_currency ?? 'ARS') as Currency;
   const country = countryFromTimezone(settingsTyped?.timezone);
-  const feedVersion = settingsTyped?.calendar_feed_version ?? 0;
+  const googleCalendarConnected = !!settingsTyped?.google_calendar_refresh_token;
 
   const initialView = params.view ?? 'month';
 
-  const h = await headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'kumo-app.com';
-  const proto = h.get('x-forwarded-proto') ?? 'https';
-  const origin = `${proto}://${host}`;
-  const feedUrl = buildCalendarFeedUrl(userId, origin, feedVersion);
-
   return (
     <CalendarClient
-      feedUrl={feedUrl}
+      googleCalendarConnected={googleCalendarConnected}
       year={year}
       month={month}
       startDate={startDate}

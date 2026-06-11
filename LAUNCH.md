@@ -28,6 +28,14 @@ RESEND_API_KEY=re_...
 GOOGLE_AI_API_KEY=AIza...
 GOOGLE_AI_MODEL=gemini-2.5-flash-lite
 
+# Google Calendar (OAuth — sync en tiempo real Kumo → Google)
+GOOGLE_CALENDAR_CLIENT_ID=....apps.googleusercontent.com
+GOOGLE_CALENDAR_CLIENT_SECRET=GOCSPX-...
+# Opcional si difiere del default: https://tu-dominio/api/auth/google-calendar/callback
+# GOOGLE_CALENDAR_REDIRECT_URI=
+# Opcional (cifrado del refresh token; si no, usa CRON_SECRET)
+# GOOGLE_CALENDAR_TOKEN_KEY=
+
 # Meta WhatsApp Cloud (opcional hasta aprobación)
 WHATSAPP_ACCESS_TOKEN=...
 WHATSAPP_PHONE_NUMBER_ID=...
@@ -134,7 +142,7 @@ git push origin main
 2. Gastos → cargar uno manualmente.
 3. Configuración → Notificaciones → activar push → mandar prueba.
 4. Calendario → crear recordatorio → botón WhatsApp manual (gratis).
-5. Configuración → Google Calendar → copiar link y suscribir en Google.
+5. Configuración → Google Calendar → Conectar con Google (OAuth) → ver evento en Google Calendar en segundos.
 6. Gastos → Escanear ticket → paywall OCR → checkout MP (producto OCR).
 7. Configuración → Complementos → checkout WA o combo; webhook setea `plan_type`.
 8. Con plan WA: cron/notify manda templates; sin plan: solo push.
