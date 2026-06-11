@@ -6,8 +6,10 @@ import {
   checkoutReason,
   getMpPlanId,
   type CheckoutInterval,
+  type PlanInterval,
   type PlanProduct,
 } from '@/lib/plans';
+import { BILLING_TERMS_VERSION } from '@/lib/legal/billingTerms';
 
 export const POST = async (req: Request) => {
   const supabase = await createClient();
@@ -26,6 +28,13 @@ export const POST = async (req: Request) => {
     : 'monthly';
 
   const billingInterval = checkoutIntervalToPlan(checkoutInterval);
+
+  if (body.acceptTerms !== true) {
+    return NextResponse.json({ error: 'Debés aceptar los términos y condiciones' }, { status: 400 });
+  }
+  if (body.termsVersion !== BILLING_TERMS_VERSION) {
+    return NextResponse.json({ error: 'Versión de términos desactualizada. Recargá la página.' }, { status: 400 });
+  }
 
   if (!isMpProductConfigured(product)) {
     return NextResponse.json({ error: 'MercadoPago no configurado para este plan' }, { status: 503 });
@@ -46,6 +55,17 @@ export const POST = async (req: Request) => {
       reason: checkoutReason(product, billingInterval),
       backUrl: `${origin}/settings?subscribed=1`,
     });
+
+    const { error: termsErr } = await supabase.rpc('record_billing_terms_acceptance', {
+      p_terms_version: BILLING_TERMS_VERSION,
+      p_plan_product: product,
+      p_billing_interval: billingInterval as PlanInterval,
+      p_mp_preapproval_id: pre.id,
+    });
+    if (termsErr) {
+      console.error('record_billing_terms_acceptance:', termsErr);
+      return NextResponse.json({ error: 'No se pudo registrar la aceptación de términos' }, { status: 500 });
+    }
 
     return NextResponse.json({ url: pre.init_point });
   } catch (e) {

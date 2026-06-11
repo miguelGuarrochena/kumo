@@ -6,7 +6,7 @@ import { Sparkles, Check, Loader2, XCircle } from 'lucide-react';
 import type { SubscriptionInfo } from '@/lib/subscription';
 import type { Pricing } from '@/lib/pricing';
 import type { CheckoutInterval, PlanProduct } from '@/lib/plans';
-import { checkoutIntervalToPlan } from '@/lib/plans';
+import { startBillingCheckout } from '@/lib/billing/startCheckout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ProPlansGrid } from '@/components/ProPlansGrid';
 import { useT } from '@/lib/i18n/client';
@@ -14,9 +14,11 @@ import { useT } from '@/lib/i18n/client';
 type Props = {
   sub: SubscriptionInfo;
   pricing: Pricing;
+  waUsageMonth?: number;
+  waMonthlyCap?: number;
 };
 
-export const PlanSection = ({ sub, pricing }: Props) => {
+export const PlanSection = ({ sub, pricing, waUsageMonth = 0, waMonthlyCap = 200 }: Props) => {
   const { t, locale } = useT();
   const tb = t.billing;
   const [loading, setLoading] = useState<string | null>(null);
@@ -26,15 +28,7 @@ export const PlanSection = ({ sub, pricing }: Props) => {
     const key = `${product}-${interval}`;
     setLoading(key);
     try {
-      const res = await fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product,
-          interval: checkoutIntervalToPlan(interval),
-        }),
-      });
-      const data = await res.json();
+      const data = await startBillingCheckout(product, interval);
       if (data.url) window.location.href = data.url;
       else toast.error(data.error ?? tb.checkout_error);
     } catch {
@@ -146,6 +140,19 @@ export const PlanSection = ({ sub, pricing }: Props) => {
                 : sub.isYearlyOneTime
                   ? tb.plan_expires.replace('{date}', dateFmt(sub.currentPeriodEnd))
                   : tb.next_charge.replace('{date}', dateFmt(sub.currentPeriodEnd))}
+            </p>
+          )}
+          {sub.hasWa && (
+            <p
+              className={`text-xs mt-2 ${
+                waMonthlyCap > 0 && waUsageMonth / waMonthlyCap >= 0.85
+                  ? 'text-amber-700 dark:text-amber-300 font-medium'
+                  : 'opacity-80'
+              }`}
+            >
+              {tb.wa_usage_month
+                .replace('{used}', String(waUsageMonth))
+                .replace('{cap}', String(waMonthlyCap))}
             </p>
           )}
         </div>

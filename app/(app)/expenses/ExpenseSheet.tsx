@@ -22,6 +22,8 @@ import {
 import { saveSplits } from './splitsActions';
 import { todayKey } from '@/lib/date';
 import type { CategoryLite, ContactLite, Expense } from './types';
+import { toggleNotifyContactId } from '@/lib/notifyContacts';
+import { WA_MAX_RECIPIENTS } from '@/lib/notifications/waLimitsClient';
 
 type ExpenseSheetProps = {
   open: boolean;
@@ -31,6 +33,7 @@ type ExpenseSheetProps = {
   contacts: ContactLite[];
   defaultCurrency: Currency;
   rates: Partial<Record<Currency, number>>;
+  hasWa: boolean;
   onClose: () => void;
 };
 
@@ -42,6 +45,7 @@ export const ExpenseSheet = ({
   contacts,
   defaultCurrency,
   rates,
+  hasWa,
   onClose,
 }: ExpenseSheetProps) => {
   const router = useRouter();
@@ -170,7 +174,14 @@ export const ExpenseSheet = ({
 
   const toggleContact = (id: string) => {
     setNotifyContactIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+      toggleNotifyContactId(prev, id, {
+        enforceMax: hasWa,
+        max: WA_MAX_RECIPIENTS,
+        onBlocked: () =>
+          toast.info(
+            t.calendar.wa_contacts_limit_toast.replace('{max}', String(WA_MAX_RECIPIENTS)),
+          ),
+      }),
     );
   };
 
@@ -462,7 +473,9 @@ export const ExpenseSheet = ({
           <div>
             <label className="block text-sm font-medium mb-1.5">{t.expenses.notify_who}</label>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-              {t.expenses.notify_who_desc}
+              {hasWa
+                ? t.expenses.notify_who_desc_wa.replace('{max}', String(WA_MAX_RECIPIENTS))
+                : t.expenses.notify_who_desc}
             </p>
             <div className="space-y-1.5">
               {notifyContacts.map((c) => {

@@ -276,6 +276,7 @@ export const CalendarClient = ({
         contactsById={contactsById}
         defaultCurrency={defaultCurrency}
         holidayIndex={holidayIndex}
+        hasWa={hasWa}
         onClose={() => setSelectedDay(null)}
         onEdit={(r) => {
           setSelectedDay(null);

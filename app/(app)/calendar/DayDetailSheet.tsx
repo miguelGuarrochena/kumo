@@ -20,6 +20,7 @@ type DayDetailSheetProps = {
   contactsById: Record<string, ContactLite>;
   defaultCurrency: Currency;
   holidayIndex: Map<string, Holiday>;
+  hasWa: boolean;
   onClose: () => void;
   onEdit: (r: ReminderCal) => void;
   onDelete: (r: ReminderCal) => void;
@@ -31,6 +32,7 @@ export const DayDetailSheet = ({
   contacts,
   defaultCurrency: _defaultCurrency,
   holidayIndex,
+  hasWa,
   onClose,
   onEdit,
   onDelete,
@@ -56,6 +58,7 @@ export const DayDetailSheet = ({
         <QuickReminderForm
           dateStr={dateStr}
           contacts={contacts}
+          hasWa={hasWa}
           onCancel={() => setCreating(false)}
           onCreated={() => {
             setCreating(false);

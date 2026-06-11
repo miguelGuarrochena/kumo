@@ -60,7 +60,11 @@ const TermsPage = () => {
       </p>
       <ul className="list-disc pl-5 space-y-1 mt-2">
         <li><strong>Escaneo OCR</strong> — Google Gemini, costo por imagen.</li>
-        <li><strong>WhatsApp automático</strong> — Meta cobra por cada mensaje que Kumo envía solo.</li>
+        <li>
+          <strong>WhatsApp automático</strong> — Meta cobra por cada mensaje que Kumo envía solo. Incluye un máximo de{' '}
+          <strong>200 mensajes por mes</strong> por cuenta y hasta <strong>3 contactos por recordatorio o vencimiento</strong>.
+          Si alcanzás el límite mensual, los avisos automáticos se suspenden hasta el mes siguiente.
+        </li>
         <li><strong>Kumo Pro (combo)</strong> — incluye ambos a un precio menor que por separado.</li>
       </ul>
       <p className="mt-3">
@@ -100,6 +104,10 @@ const TermsPage = () => {
         <li>
           Si tenés un problema con un cobro, escribinos a <a href="mailto:info@kumo-app.com">info@kumo-app.com</a> y
           revisamos caso por caso.
+        </li>
+        <li>
+          Al iniciar un pago en MercadoPago, confirmás que leíste y aceptás estos términos. Registramos la fecha,
+          la versión de términos ({UPDATED}), el plan elegido y el identificador de la suscripción en MercadoPago.
         </li>
       </ul>
 

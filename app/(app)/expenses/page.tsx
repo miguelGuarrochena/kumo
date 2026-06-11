@@ -289,6 +289,7 @@ const ExpensesPage = async ({
       displayCurrency={displayCurrency}
       rates={rates.rates}
       hasOcrAccess={subscription.hasOcr}
+      hasWa={subscription.hasWa}
       trialDaysLeft={subscription.daysLeftInTrial}
       pricing={pricing}
       filters={{

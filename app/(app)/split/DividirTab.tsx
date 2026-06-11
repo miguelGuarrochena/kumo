@@ -19,7 +19,7 @@ import { formatMoney, trimNumber, newId } from './dividirUtils';
 import { CurrencyPicker } from './CurrencyPicker';
 import { ItemsEditor } from './ItemsEditor';
 import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
-import { checkoutIntervalToPlan } from '@/lib/plans';
+import { startBillingCheckout } from '@/lib/billing/startCheckout';
 import {
   buildPaymentWhatsAppText,
   copyPaymentDetails,
@@ -518,12 +518,7 @@ export const DividirTab = ({
           const key = `${product}-${interval}`;
           setOcrCheckoutLoading(key);
           try {
-            const res = await fetch('/api/billing/checkout', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ product, interval: checkoutIntervalToPlan(interval) }),
-            });
-            const data = await res.json();
+            const data = await startBillingCheckout(product, interval);
             if (data.url) window.location.href = data.url;
             else toast.error(data.error ?? t.billing.checkout_error);
           } catch {

@@ -10,15 +10,18 @@ import { useT } from '@/lib/i18n/client';
 import type { ContactLite, ReminderType } from './types';
 import { TYPE_META, TYPE_LABEL_KEY } from './constants';
 import { formatDateFull, localeTag } from './utils';
+import { toggleNotifyContactId } from '@/lib/notifyContacts';
+import { WA_MAX_RECIPIENTS } from '@/lib/notifications/waLimitsClient';
 
 type QuickReminderFormProps = {
   dateStr: string;
   contacts: ContactLite[];
+  hasWa: boolean;
   onCancel: () => void;
   onCreated: () => void;
 };
 
-export const QuickReminderForm = ({ dateStr, contacts, onCancel, onCreated }: QuickReminderFormProps) => {
+export const QuickReminderForm = ({ dateStr, contacts, hasWa, onCancel, onCreated }: QuickReminderFormProps) => {
   const router = useRouter();
   const { t, locale } = useT();
   const [pending, startTransition] = useTransition();
@@ -32,7 +35,14 @@ export const QuickReminderForm = ({ dateStr, contacts, onCancel, onCreated }: Qu
 
   const toggleContact = (id: string) => {
     setNotifyContactIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+      toggleNotifyContactId(prev, id, {
+        enforceMax: hasWa,
+        max: WA_MAX_RECIPIENTS,
+        onBlocked: () =>
+          toast.info(
+            t.calendar.wa_contacts_limit_toast.replace('{max}', String(WA_MAX_RECIPIENTS)),
+          ),
+      }),
     );
   };
 
@@ -159,6 +169,19 @@ export const QuickReminderForm = ({ dateStr, contacts, onCancel, onCreated }: Qu
               );
             })}
           </div>
+          {hasWa && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              {t.calendar.wa_contacts_limit_hint.replace('{max}', String(WA_MAX_RECIPIENTS))}
+            </p>
+          )}
+          {!hasWa && notifyContactIds.length > 0 && (
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+              {t.calendar.wa_auto_note}{' '}
+              <a href="/settings#plans" className="underline font-medium">
+                {t.settings.contacts_wa_upsell_cta}
+              </a>
+            </p>
+          )}
         </div>
       )}
 

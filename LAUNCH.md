@@ -80,7 +80,7 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0031_wa_usage.sql`:
+Aplicar todas en orden hasta `0032_billing_terms_acceptances.sql`:
 
 ```bash
 supabase db push

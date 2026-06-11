@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Loader2, Sparkles, Check, MessageCircle, Camera, Layers } from 'lucide-react';
 import type { Pricing } from '@/lib/pricing';
 import type { CheckoutInterval, PlanProduct } from '@/lib/plans';
 import { useT } from '@/lib/i18n/client';
+import { BillingTermsSheet } from '@/components/BillingTermsSheet';
 
 type Props = {
   pricing: Pricing;
@@ -31,6 +33,28 @@ export const ProPlansGrid = ({
   const b = t.billing;
   const [selected, setSelected] = useState<PlanProduct>(highlightProduct);
   const [yearlyRenew, setYearlyRenew] = useState<'once' | 'auto'>('once');
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [pendingCheckout, setPendingCheckout] = useState<{
+    product: PlanProduct;
+    interval: CheckoutInterval;
+  } | null>(null);
+
+  const requestCheckout = (product: PlanProduct, interval: CheckoutInterval) => {
+    setPendingCheckout({ product, interval });
+    setTermsOpen(true);
+  };
+
+  const confirmCheckout = () => {
+    if (!pendingCheckout) return;
+    onCheckout(pendingCheckout.product, pendingCheckout.interval);
+  };
+
+  const closeTerms = () => {
+    setTermsOpen(false);
+    setPendingCheckout(null);
+  };
+
+  const pendingKey = pendingCheckout ? `${pendingCheckout.product}-${pendingCheckout.interval}` : null;
 
   const products: PlanProduct[] = ['ocr', 'wa', 'bundle'];
   const labels: Record<PlanProduct, { title: string; desc: string; features: string[] }> = {
@@ -100,7 +124,7 @@ export const ProPlansGrid = ({
           price={prices.monthly}
           period={b.per_month}
           loading={loadingKey === `${selected}-monthly`}
-          onClick={() => onCheckout(selected, 'monthly')}
+          onClick={() => requestCheckout(selected, 'monthly')}
           subscribeLabel={b.subscribe_button}
           openingLabel={b.opening_provider}
         />
@@ -145,7 +169,7 @@ export const ProPlansGrid = ({
 
           <button
             type="button"
-            onClick={() => onCheckout(selected, yearlyInterval)}
+            onClick={() => requestCheckout(selected, yearlyInterval)}
             disabled={loadingKey === `${selected}-${yearlyInterval}`}
             className="mt-3 w-full text-sm font-medium text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
@@ -163,6 +187,21 @@ export const ProPlansGrid = ({
         <li>{b.checkout_yearly_auto_note}</li>
       </ul>
       <p className="text-xs text-slate-500 dark:text-slate-400">{b.price_adjustment_note}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        {b.terms_checkout_footer}{' '}
+        <Link href="/legal/terms" className="underline hover:text-sky-600 dark:hover:text-sky-400">
+          {b.terms_checkout_link}
+        </Link>
+      </p>
+
+      <BillingTermsSheet
+        open={termsOpen}
+        product={pendingCheckout?.product ?? null}
+        interval={pendingCheckout?.interval ?? null}
+        loading={!!pendingKey && loadingKey === pendingKey}
+        onClose={closeTerms}
+        onConfirm={confirmCheckout}
+      />
     </div>
   );
 };

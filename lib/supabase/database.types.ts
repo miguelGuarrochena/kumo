@@ -421,6 +421,23 @@ type WaUsageRow = {
 type WaUsageInsert = Partial<WaUsageRow> & { user_id: string; month: string };
 type WaUsageUpdate = Partial<WaUsageRow>;
 
+type BillingTermsAcceptancesRow = {
+  id: string;
+  user_id: string;
+  terms_version: string;
+  plan_product: string;
+  billing_interval: string;
+  mp_preapproval_id: string | null;
+  accepted_at: string;
+};
+type BillingTermsAcceptancesInsert = Partial<BillingTermsAcceptancesRow> & {
+  user_id: string;
+  terms_version: string;
+  plan_product: string;
+  billing_interval: string;
+};
+type BillingTermsAcceptancesUpdate = Partial<BillingTermsAcceptancesRow>;
+
 export type Database = {
   public: {
     Tables: {
@@ -490,6 +507,12 @@ export type Database = {
         Update: WaUsageUpdate;
         Relationships: [];
       };
+      billing_terms_acceptances: {
+        Row: BillingTermsAcceptancesRow;
+        Insert: BillingTermsAcceptancesInsert;
+        Update: BillingTermsAcceptancesUpdate;
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: PushSubscriptionsRow;
         Insert: PushSubscriptionsInsert;
@@ -556,6 +579,15 @@ export type Database = {
       current_month_wa_count: {
         Args: { p_user_id: string };
         Returns: number;
+      };
+      record_billing_terms_acceptance: {
+        Args: {
+          p_terms_version: string;
+          p_plan_product: string;
+          p_billing_interval: string;
+          p_mp_preapproval_id?: string | null;
+        };
+        Returns: string;
       };
       workspace_balances: {
         Args: { ws_id: string };

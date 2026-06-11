@@ -21,7 +21,7 @@ import { Pagination } from '@/components/Pagination';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { track } from '@/lib/analytics';
-import { checkoutIntervalToPlan } from '@/lib/plans';
+import { startBillingCheckout } from '@/lib/billing/startCheckout';
 import type { CategoryLite, ContactLite, Expense, ExpenseWithSplits } from './types';
 import { monthShift, formatMonth } from './utils';
 import { ExpenseRow } from './ExpenseRow';
@@ -53,6 +53,7 @@ type Props = {
   rates: Partial<Record<Currency, number>>;
   filters: Filters;
   hasOcrAccess: boolean;
+  hasWa: boolean;
   trialDaysLeft: number | null;
   pricing: import('@/lib/pricing').Pricing;
 };
@@ -75,6 +76,7 @@ export const ExpensesClient = ({
   rates,
   filters,
   hasOcrAccess,
+  hasWa,
   trialDaysLeft,
   pricing,
 }: Props) => {
@@ -644,6 +646,7 @@ export const ExpensesClient = ({
         contacts={contacts}
         defaultCurrency={defaultCurrency}
         rates={rates}
+        hasWa={hasWa}
         onClose={() => {
           setEditing(null);
           setCreating(false);
@@ -686,12 +689,7 @@ export const ExpensesClient = ({
           const key = `${product}-${interval}`;
           setOcrCheckoutLoading(key);
           try {
-            const res = await fetch('/api/billing/checkout', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ product, interval: checkoutIntervalToPlan(interval) }),
-            });
-            const data = await res.json();
+            const data = await startBillingCheckout(product, interval);
             if (data.url) window.location.href = data.url;
             else toast.error(data.error ?? t.billing.checkout_error);
           } catch {
