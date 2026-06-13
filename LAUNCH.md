@@ -89,11 +89,13 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0032_billing_terms_acceptances.sql`:
+Aplicar todas en orden hasta `0033_google_calendar_oauth.sql`:
 
 ```bash
 supabase db push
 ```
+
+> `0033_google_calendar_oauth.sql` agrega las columnas `google_calendar_*` en `user_settings` y la tabla `google_calendar_events`. Necesaria para la sincronización OAuth de Google Calendar (ver §1, vars `GOOGLE_CALENDAR_*`).
 
 ## 3. MercadoPago (OCR, WA, combo)
 

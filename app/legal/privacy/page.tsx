@@ -57,6 +57,9 @@ const PrivacyPage = () => {
         <li>Mostrarte tu información dentro de la app.</li>
         <li>Enviar recordatorios por push notifications y, si tenés el plan correspondiente, WhatsApp automático.</li>
         <li>Procesar tickets con OCR (plan OCR o combo).</li>
+        <li>
+          Sincronizar a Google Calendar los recordatorios y vencimientos que vos elegís (solo si conectás la cuenta).
+        </li>
         <li>Cobrar complementos de pago vía MercadoPago.</li>
         <li>Detectar errores y mejorar la app con datos anónimos agregados.</li>
       </ul>
@@ -74,6 +77,13 @@ const PrivacyPage = () => {
         <li>
           <strong>Google Gemini API</strong> — procesa imágenes de tickets vía OCR cuando vos lo iniciás. Las imágenes
           no se almacenan ni se usan para entrenar modelos (tier pagado).
+        </li>
+        <li>
+          <strong>Google Calendar API</strong> — solo si conectás tu cuenta en Configuración → Google Calendar.
+          Creamos y actualizamos eventos en <em>tu</em> calendario con recordatorios y vencimientos de gastos que vos
+          cargás en Kumo. No leemos ni importamos otros eventos de tu Google Calendar. No usamos esos datos para
+          publicidad. Podés desconectar en cualquier momento; al hacerlo dejamos de sincronizar y borramos el token de
+          acceso en nuestros servidores.
         </li>
         <li>
           <strong>Meta WhatsApp Business API</strong> — envía mensajes automáticos solo si tenés el plan de WhatsApp
@@ -103,6 +113,7 @@ const PrivacyPage = () => {
         </li>
         <li>Exportar tus gastos a CSV o Excel desde la pantalla de Gastos.</li>
         <li>Cancelar el complemento OCR en cualquier momento desde Configuración → Plan.</li>
+        <li>Desconectar Google Calendar desde Configuración → Google Calendar → Desconectar.</li>
       </ul>
 
       <h2 className="text-xl font-bold mt-8 mb-3">5. Seguridad</h2>

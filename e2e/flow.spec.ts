@@ -1,14 +1,8 @@
 import { test, expect } from '@playwright/test';
-import path from 'node:path';
 
-const AUTH_FILE = path.join(__dirname, '.auth/user.json');
-const hasAuth = !!process.env.E2E_USER_EMAIL && !!process.env.E2E_USER_PASSWORD;
-
-test.use({ storageState: AUTH_FILE });
-
+// El storageState y la condición de ejecución los maneja el proyecto
+// `authenticated` en playwright.config.ts (depende del proyecto `setup`).
 test.describe('Authenticated flows', () => {
-  test.skip(!hasAuth, 'E2E_USER_EMAIL/PASSWORD no configuradas');
-
   test('dashboard renderiza con sidebar', async ({ page }) => {
     await page.goto('/dashboard');
     await expect(page.locator('aside').first()).toBeVisible();

@@ -46,7 +46,7 @@ const DashboardPage = async () => {
     supabase.from('expenses').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
     supabase.from('reminders').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
     supabase.from('shopping_items').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId).eq('bought', false),
-    supabase.from('user_settings').select('onboarded, whatsapp_number, default_currency').eq('user_id', user?.id ?? '').maybeSingle(),
+    supabase.from('user_settings').select('onboarded, whatsapp_number, default_currency, google_calendar_refresh_token').eq('user_id', user?.id ?? '').maybeSingle(),
     // En workspaces compartidos hay un is_self por miembro: filtramos por user_id para traer el del viewer
     supabase.from('notification_contacts').select('phone').eq('workspace_id', ctx.workspaceId).eq('is_self', true).eq('user_id', user?.id ?? '').maybeSingle(),
     supabase
@@ -82,13 +82,14 @@ const DashboardPage = async () => {
   ]);
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? t.dashboard.title;
-  const settingsTyped = settings as { onboarded?: boolean; whatsapp_number?: string | null; default_currency?: string } | null;
+  const settingsTyped = settings as { onboarded?: boolean; whatsapp_number?: string | null; default_currency?: string; google_calendar_refresh_token?: string | null } | null;
   const selfContactTyped = selfContact as { phone?: string | null } | null;
 
   const isOnboarded = settingsTyped?.onboarded ?? false;
   const hasExpense = (expenseCount ?? 0) > 0;
   const hasContact = !!selfContactTyped?.phone || !!settingsTyped?.whatsapp_number;
   const hasReminder = (reminderCount ?? 0) > 0;
+  const googleCalendarConnected = !!settingsTyped?.google_calendar_refresh_token;
   const showOnboarding = !isOnboarded;
 
   const displayCurrency = (settingsTyped?.default_currency ?? 'ARS') as Currency;
@@ -131,6 +132,7 @@ const DashboardPage = async () => {
           hasExpense={hasExpense}
           hasContact={hasContact}
           hasReminder={hasReminder}
+          googleCalendarConnected={googleCalendarConnected}
         />
       )}
 

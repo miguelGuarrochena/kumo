@@ -10,7 +10,6 @@ export type ExpenseCal = {
   amount: number;
   currency: string;
   due_date: string | null;
-  expense_date: string;
   paid: boolean;
   categories: { name: string; color: string } | null;
 };

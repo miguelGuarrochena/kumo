@@ -76,11 +76,10 @@ const CalendarPage = async ({
   ] = await Promise.all([
     supabase
       .from('expenses')
-      .select('id, workspace_id, description, amount, currency, due_date, expense_date, paid, categories(name, color)')
-      .or(
-        `and(due_date.gte.${queryStart},due_date.lte.${queryEnd}),` +
-        `and(due_date.is.null,expense_date.gte.${queryStart},expense_date.lte.${queryEnd})`,
-      ),
+      .select('id, workspace_id, description, amount, currency, due_date, paid, categories(name, color)')
+      .not('due_date', 'is', null)
+      .gte('due_date', queryStart)
+      .lte('due_date', queryEnd),
     supabase
       .from('reminders')
       .select('id, workspace_id, title, description, reminder_date, reminder_time, reminder_type, is_recurring, notify_days_before, notify_contact_ids')

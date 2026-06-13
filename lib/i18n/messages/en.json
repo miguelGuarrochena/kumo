@@ -214,7 +214,7 @@
   },
   "calendar": {
     "title": "Calendar",
-    "subtitle": "All your dates: due dates, appointments and birthdays.",
+    "subtitle": "Expense due dates, reminders and birthdays — not every purchase you log.",
     "new": "New",
     "tab_month": "Month",
     "tab_year": "Year",

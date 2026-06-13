@@ -117,7 +117,8 @@ export const CalendarClient = ({
   const eventsByDate = useMemo(() => {
     const map = new Map<string, { expenses: ExpenseCal[]; reminders: ReminderCal[] }>();
     for (const exp of expenses) {
-      const key = dayKey(exp.due_date ?? exp.expense_date);
+      if (!exp.due_date) continue;
+      const key = dayKey(exp.due_date);
       const entry = map.get(key) ?? { expenses: [], reminders: [] };
       entry.expenses.push(exp);
       map.set(key, entry);

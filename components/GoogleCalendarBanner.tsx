@@ -3,12 +3,9 @@
 import { useEffect, useState } from 'react';
 import { Calendar, X } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
-import {
-  dismissCalendarBanner,
-  isCalendarBannerDismissed,
-} from '@/lib/calendar/feedUrls';
 
 const GOOGLE_CALENDAR_DONE_KEY = 'kumo_google_calendar_done';
+const CALENDAR_BANNER_DISMISS_KEY = 'kumo_calendar_banner_dismissed';
 
 const markGoogleCalendarDone = () => {
   try {
@@ -21,6 +18,22 @@ const markGoogleCalendarDone = () => {
 const isGoogleCalendarDone = () => {
   try {
     return localStorage.getItem(GOOGLE_CALENDAR_DONE_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const dismissCalendarBanner = () => {
+  try {
+    localStorage.setItem(CALENDAR_BANNER_DISMISS_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+};
+
+const isCalendarBannerDismissed = () => {
+  try {
+    return localStorage.getItem(CALENDAR_BANNER_DISMISS_KEY) === '1';
   } catch {
     return false;
   }
