@@ -20,11 +20,9 @@ const AcceptInvitePage = async ({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    // Lo mandamos a login con el redirect_to apuntando ac?
-    redirect(`/auth/login?redirect_to=/accept-invite?token=${token}`);
+    redirect(`/auth/login?next=${encodeURIComponent(`/accept-invite?token=${token}`)}`);
   }
 
-  // Buscamos el invite
   const { data: invite } = await supabase
     .from('workspace_invites')
     .select('id, workspace_id, email, role, expires_at, accepted_at, workspaces(name)')
@@ -51,10 +49,14 @@ const AcceptInvitePage = async ({
   }
 
   if (new Date(inv.expires_at) < new Date()) {
-    return <ErrorScreen title="Link vencido" message="El link de invitaci?n venci?. Pedile al admin que te mande uno nuevo." />;
+    return (
+      <ErrorScreen
+        title="Link vencido"
+        message="El link de invitaci?n venci?. Pedile al admin que te mande uno nuevo."
+      />
+    );
   }
 
-  // Verificamos que el email del invite matchee con el del user (case insensitive)
   if ((user.email ?? '').toLowerCase() !== inv.email.toLowerCase()) {
     return (
       <ErrorScreen
@@ -64,7 +66,6 @@ const AcceptInvitePage = async ({
     );
   }
 
-  // Aceptar: insertar membership + marcar invite como aceptado
   const { error: insErr } = await supabase.from('workspace_members').insert({
     workspace_id: inv.workspace_id,
     user_id: user.id,
@@ -74,11 +75,7 @@ const AcceptInvitePage = async ({
     return <ErrorScreen title="Error" message={insErr.message} />;
   }
 
-  // Crear un contacto "Yo" para el invitee en el workspace compartido. Esto
-  // hace que aparezca en el dropdown de "Pag?" y en la lista de participantes
-  // al dividir un gasto. Si ya existe (porque aceptaron antes y reintentaron)
-  // el unique constraint (workspace_id, user_id) where is_self=true lo evita.
-  // El nombre lo derivamos del display name del user o del email.
+  // Contacto "Yo" para el invitee: aparece en "Qui?n pag?" y al dividir gastos.
   const inviteeName =
     user.user_metadata?.full_name?.split(' ')[0] ??
     user.user_metadata?.name?.split(' ')[0] ??
@@ -99,16 +96,18 @@ const AcceptInvitePage = async ({
     .update({ accepted_at: new Date().toISOString() })
     .eq('id', inv.id);
 
-  // Setear como workspace activo
   await setActiveWorkspace(inv.workspace_id);
 
   return (
     <div className="min-h-screen grid place-items-center p-6">
       <div className="kumo-card p-8 max-w-md w-full text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-mint-100 dark:bg-mint-500/20 text-mint-500 grid place-items-center mx-auto text-2xl">ÿÿÿ</div>
+        <div className="w-12 h-12 rounded-full bg-mint-100 dark:bg-mint-500/20 text-mint-500 grid place-items-center mx-auto text-2xl">
+          ?
+        </div>
         <h1 className="text-xl font-bold">?Listo!</h1>
         <p className="text-slate-600 dark:text-slate-300">
-          Ya sos {inv.role === 'admin' ? 'administrador' : 'lector'} de <strong>{inv.workspaces?.name ?? 'el workspace'}</strong>.
+          Ya sos {inv.role === 'admin' ? 'administrador' : 'lector'} de{' '}
+          <strong>{inv.workspaces?.name ?? 'el workspace'}</strong>.
         </p>
         <Link
           href="/dashboard"
@@ -124,7 +123,9 @@ const AcceptInvitePage = async ({
 const ErrorScreen = ({ title, message }: { title: string; message: string }) => (
   <div className="min-h-screen grid place-items-center p-6">
     <div className="kumo-card p-8 max-w-md w-full text-center space-y-3">
-      <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-500 grid place-items-center mx-auto text-2xl">!</div>
+      <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-500 grid place-items-center mx-auto text-2xl">
+        !
+      </div>
       <h1 className="text-xl font-bold">{title}</h1>
       <p className="text-slate-600 dark:text-slate-300">{message}</p>
       <Link
