@@ -2,27 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import { requireAdmin } from '@/lib/workspace';
 import { scheduleReminderDelete, scheduleReminderSync } from '@/lib/calendar/scheduleSync';
-
-const REMINDER_TYPES = ['medical', 'birthday', 'generic'] as const;
-
-const reminderSchema = z.object({
-  id: z.string().uuid().optional(),
-  title: z.string().min(1, 'Título requerido').max(100),
-  description: z.string().max(500).optional().nullable(),
-  reminder_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
-  reminder_time: z
-    .string()
-    .regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Hora inválida')
-    .optional()
-    .nullable(),
-  reminder_type: z.enum(REMINDER_TYPES).default('generic'),
-  is_recurring: z.coerce.boolean().default(false),
-  notify_days_before: z.coerce.number().int().min(0).max(60).default(1),
-  notify_contact_ids: z.array(z.string().uuid()).default([]),
-});
+import { reminderSchema } from '@/lib/schemas';
 
 export type ReminderFormState = { ok: boolean; error?: string };
 
@@ -60,17 +42,16 @@ export async function upsertReminder(
   let reminderId = parsed.data.id ?? null;
 
   if (parsed.data.id) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('reminders') as any).update(payload).eq('id', parsed.data.id);
-    if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+    const { error } = await supabase.from('reminders').update(payload).eq('id', parsed.data.id);
+    if (error) return { ok: false, error: error.message };
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: created, error } = await (supabase.from('reminders') as any)
+    const { data: created, error } = await supabase
+      .from('reminders')
       .insert(payload)
       .select('id')
       .single();
-    if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
-    reminderId = (created as { id: string }).id;
+    if (error) return { ok: false, error: error.message };
+    reminderId = created.id;
   }
 
   if (reminderId) scheduleReminderSync(ctx.userId, reminderId);

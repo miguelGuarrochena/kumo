@@ -26,8 +26,7 @@ export const CookieBanner = () => {
       localStorage.setItem(KEY, JSON.stringify({ analytics, ts: Date.now() }));
       if (!analytics) {
         // Opt-out de PostHog si rechazó. La librería respeta esto.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ph = (window as any).posthog;
+        const ph = (window as Window & { posthog?: { opt_out_capturing?: () => void } }).posthog;
         if (ph?.opt_out_capturing) ph.opt_out_capturing();
       }
     } catch {}

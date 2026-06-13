@@ -45,14 +45,12 @@ export async function upsertCategory(
   const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
   const { error } = parsed.data.id
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? await (supabase.from('categories') as any).update(payload).eq('id', parsed.data.id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    : await (supabase.from('categories') as any).insert(payload);
+    ? await supabase.from('categories').update(payload).eq('id', parsed.data.id)
+    : await supabase.from('categories').insert(payload);
 
   if (error) {
-    const code = (error as { code?: string }).code;
-    const msg = (error as { message?: string }).message ?? 'Error';
+    const code = error.code;
+    const msg = error.message ?? 'Error';
     if (code === '23505' || /duplicate|unique/i.test(msg)) {
       return { ok: false, error: 'Ya tenés una categoría con ese nombre.' };
     }

@@ -14,8 +14,7 @@ export const POST = async (req: Request) => {
     return NextResponse.json({ error: 'Subscription inválida' }, { status: 400 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('push_subscriptions') as any).upsert(
+  const { error } = await supabase.from('push_subscriptions').upsert(
     {
       user_id: user.id,
       endpoint: body.endpoint,

@@ -61,8 +61,7 @@ const SettingsPage = async () => {
       .eq('user_id', user!.id),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const memberRows = (membersRaw ?? []) as any[];
+  const memberRows = membersRaw ?? [];
 
   const members: Member[] = memberRows.map((m) => ({
     user_id: m.user_id,
@@ -74,8 +73,7 @@ const SettingsPage = async () => {
     is_me: m.user_id === user!.id,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const invites: Invite[] = ((invitesRaw ?? []) as any[]).map((i) => ({
+  const invites: Invite[] = (invitesRaw ?? []).map((i) => ({
     id: i.id,
     email: i.email,
     role: i.role,

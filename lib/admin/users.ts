@@ -12,8 +12,7 @@ const MAX_PAGES = 50;
 
 const listUsersPage = async (page: number, perPage: number): Promise<AuthUserLite[]> => {
   const supabase = createServiceClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).auth.admin.listUsers({ page, perPage });
+  const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
   if (error) return [];
   return (data?.users ?? []) as AuthUserLite[];
 };

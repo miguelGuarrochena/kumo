@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { getCurrentWorkspace, requireAdmin, setActiveWorkspace } from '@/lib/workspace';
 import { sendEmail } from '@/lib/email';
 import { renderInviteEmail } from '@/lib/email/templates';
+import { DEFAULT_CATEGORIES } from '@/lib/categoryLabels';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
 
 const inviteSchema = z.object({
@@ -58,8 +59,7 @@ export const createInvite = async (
     return { ok: false, error: 'Esa persona ya es miembro del espacio.' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('workspace_invites') as any).insert({
+  const { error } = await supabase.from('workspace_invites').insert({
     workspace_id: ctx.workspaceId,
     email,
     role: parsed.data.role,
@@ -156,8 +156,8 @@ export const changeMemberRole = async (
     return { ok: false, error: 'El owner siempre es admin.' };
   }
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('workspace_members') as any)
+  const { error } = await supabase
+    .from('workspace_members')
     .update({ role })
     .eq('workspace_id', ctx.workspaceId)
     .eq('user_id', userId);
@@ -179,8 +179,8 @@ export const renameWorkspace = async (
   }
 
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('workspaces') as any)
+  const { error } = await supabase
+    .from('workspaces')
     .update({ name: parsed.data.name })
     .eq('id', ctx.workspaceId);
   if (error) return { ok: false, error: error.message };
@@ -202,8 +202,8 @@ export const updateWorkspaceMeta = async (patch: {
   }
 
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('workspaces') as any)
+  const { error } = await supabase
+    .from('workspaces')
     .update(parsed.data)
     .eq('id', ctx.workspaceId);
   if (error) {
@@ -297,8 +297,8 @@ export const createWorkspace = async (
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'No autenticado' };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ws, error: wsErr } = await (supabase.from('workspaces') as any)
+  const { data: ws, error: wsErr } = await supabase
+    .from('workspaces')
     .insert({ name: parsed.data.name, owner_id: user.id })
     .select('id')
     .single();
@@ -309,29 +309,18 @@ export const createWorkspace = async (
     return { ok: false, error: wsErr.message };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: memErr } = await (supabase.from('workspace_members') as any).insert({
+  const { error: memErr } = await supabase.from('workspace_members').insert({
     workspace_id: ws.id,
     user_id: user.id,
     role: 'admin',
   });
   if (memErr) return { ok: false, error: memErr.message };
 
-  const defaults = [
-    { name: 'Alquiler',     icon: 'home',         color: 'sky' },
-    { name: 'Supermercado', icon: 'shopping-cart', color: 'mint' },
-    { name: 'Servicios',    icon: 'zap',          color: 'peach' },
-    { name: 'Transporte',   icon: 'car',          color: 'lavender' },
-    { name: 'Salud',        icon: 'heart',        color: 'rose' },
-    { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
-  ];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('categories') as any).insert(
-    defaults.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
+  await supabase.from('categories').insert(
+    DEFAULT_CATEGORIES.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('notification_contacts') as any).insert({
+  await supabase.from('notification_contacts').insert({
     workspace_id: ws.id,
     user_id: user.id,
     name: 'Yo',

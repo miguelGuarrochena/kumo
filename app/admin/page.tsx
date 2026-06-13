@@ -67,8 +67,7 @@ const AdminPage = async ({ searchParams }: { searchParams: Promise<SearchParams>
     pageUsers = matches.slice(start, start + ADMIN_PAGE_SIZE);
     hasMore = start + ADMIN_PAGE_SIZE < matches.length;
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: usersResp } = await (supabase as any).auth.admin.listUsers({
+    const { data: usersResp } = await supabase.auth.admin.listUsers({
       page,
       perPage: ADMIN_PAGE_SIZE,
     });

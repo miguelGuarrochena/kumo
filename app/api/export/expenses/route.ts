@@ -18,6 +18,18 @@ type ExpenseRow = {
   recurrence_type: string | null;
 };
 
+type RawExportRow = {
+  expense_date: string;
+  due_date: string | null;
+  description: string | null;
+  amount: number;
+  currency: string;
+  paid: boolean;
+  is_recurring: boolean;
+  recurrence_type: string | null;
+  categories: { name: string } | null;
+};
+
 export async function GET(request: Request) {
   const [t, locale] = await Promise.all([getMessages(), getLocale()]);
   const dateLocale = localeTag(locale);
@@ -76,8 +88,7 @@ export async function GET(request: Request) {
   const { data, error } = await q;
   if (error) return new NextResponse(`Error: ${error.message}`, { status: 500 });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = ((data ?? []) as any[]).map<ExpenseRow>((e) => ({
+  const rows = ((data ?? []) as unknown as RawExportRow[]).map<ExpenseRow>((e) => ({
     expense_date: e.expense_date,
     due_date: e.due_date,
     description: e.description,

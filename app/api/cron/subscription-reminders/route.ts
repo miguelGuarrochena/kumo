@@ -35,8 +35,8 @@ const handler = async (req: Request) => {
   const now = Date.now();
   const horizon = new Date(now + 32 * DAY_MS).toISOString();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('subscriptions') as any)
+  const { data, error } = await supabase
+    .from('subscriptions')
     .select(
       'user_id, status, plan_type, current_period_end, provider_variant_id, expiry_reminder_30d_at, expiry_reminder_7d_at',
     )
@@ -107,11 +107,12 @@ const handler = async (req: Request) => {
         continue;
       }
 
-      const column = window === 30 ? 'expiry_reminder_30d_at' : 'expiry_reminder_7d_at';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('subscriptions') as any)
-        .update({ [column]: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq('user_id', raw.user_id);
+      const nowIso = new Date().toISOString();
+      const patch =
+        window === 30
+          ? { expiry_reminder_30d_at: nowIso, updated_at: nowIso }
+          : { expiry_reminder_7d_at: nowIso, updated_at: nowIso };
+      await supabase.from('subscriptions').update(patch).eq('user_id', raw.user_id);
 
       if (window === 30) sent30 += 1;
       else sent7 += 1;

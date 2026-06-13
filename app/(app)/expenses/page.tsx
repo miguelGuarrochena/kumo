@@ -127,8 +127,7 @@ const ExpensesPage = async ({
       .order('created_at'),
     getRates(),
     getSubscription(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.rpc as any)('workspace_balances', { ws_id: ctx.workspaceId }),
+    supabase.rpc('workspace_balances', { ws_id: ctx.workspaceId }),
     supabase
       .from('payments')
       .select('id, from_contact_id, to_contact_id, amount, currency, note, paid_at')
@@ -250,8 +249,15 @@ const ExpensesPage = async ({
         .select('expense_id, contact_id, amount, percentage, paid, notification_contacts(name)')
         .in('expense_id', expIds);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rows = ((splitRows ?? []) as any[]);
+      type SplitRow = {
+        expense_id: string;
+        contact_id: string;
+        amount: number | null;
+        percentage: number | null;
+        paid: boolean;
+        notification_contacts: { name: string } | null;
+      };
+      const rows = (splitRows ?? []) as unknown as SplitRow[];
       const map = new Map<string, Array<{ contact_id: string; contact_name: string; amount: number | null; percentage: number | null; paid: boolean }>>();
       for (const r of rows) {
         const list = map.get(r.expense_id) ?? [];
@@ -264,8 +270,7 @@ const ExpensesPage = async ({
         });
         map.set(r.expense_id, list);
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expenses = (expenses as any[]).map((e) => ({ ...e, _splits: map.get(e.id) ?? [] }));
+      expenses = expenses.map((e) => ({ ...e, _splits: map.get(e.id as string) ?? [] }));
     }
   }
 

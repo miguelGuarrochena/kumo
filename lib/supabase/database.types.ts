@@ -99,6 +99,11 @@ type ExpensesInsert = {
   recurrence_type?: 'weekly' | 'monthly' | 'yearly' | null;
   paid?: boolean;
   notify_contact_ids?: string[];
+  next_occurrence?: string | null;
+  parent_id?: string | null;
+  split_mode?: 'equal' | 'percentage' | 'fixed' | 'items' | null;
+  paid_by_contact_id?: string | null;
+  items_breakdown?: Array<{ name: string; price: number; contact_ids: string[] }> | null;
   created_at?: string;
 };
 type ExpensesUpdate = {
@@ -115,6 +120,11 @@ type ExpensesUpdate = {
   recurrence_type?: 'weekly' | 'monthly' | 'yearly' | null;
   paid?: boolean;
   notify_contact_ids?: string[];
+  next_occurrence?: string | null;
+  parent_id?: string | null;
+  split_mode?: 'equal' | 'percentage' | 'fixed' | 'items' | null;
+  paid_by_contact_id?: string | null;
+  items_breakdown?: Array<{ name: string; price: number; contact_ids: string[] }> | null;
   created_at?: string;
 };
 

@@ -21,8 +21,7 @@ export async function saveSettings(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('user_settings') as any).upsert(payload);
+  const { error } = await supabase.from('user_settings').upsert(payload);
   if (error) throw error;
 
   revalidatePath('/settings');

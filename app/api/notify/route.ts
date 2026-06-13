@@ -309,8 +309,8 @@ export async function POST(request: Request) {
     }
 
     if (anyOk) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('reminders') as any)
+      await supabase
+        .from('reminders')
         .update({ last_notified_at: new Date().toISOString() })
         .eq('id', rem.id);
     }

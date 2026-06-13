@@ -30,8 +30,8 @@ export const saveSplits = async (params: {
 
   const supabase = await createClient();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: updErr } = await (supabase.from('expenses') as any)
+  const { error: updErr } = await supabase
+    .from('expenses')
     .update({
       split_mode: params.mode,
       paid_by_contact_id: params.paidByContactId,
@@ -90,8 +90,7 @@ export const saveSplits = async (params: {
   }
 
   if (rowsToInsert.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insErr } = await (supabase.from('expense_splits') as any).insert(rowsToInsert);
+    const { error: insErr } = await supabase.from('expense_splits').insert(rowsToInsert);
     if (insErr) return { ok: false, error: insErr.message };
   }
 
@@ -108,8 +107,8 @@ export const toggleSplitPaid = async (
   try { await requireAdmin(); } catch (e) { return { ok: false, error: (e as Error).message }; }
 
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('expense_splits') as any)
+  const { error } = await supabase
+    .from('expense_splits')
     .update({ paid })
     .eq('expense_id', expenseId)
     .eq('contact_id', contactId);
@@ -132,8 +131,7 @@ export const recordPayment = async (params: {
   if (params.fromContactId === params.toContactId) return { ok: false, error: 'No podés pagarte a vos mismo' };
 
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('payments') as any).insert({
+  const { error } = await supabase.from('payments').insert({
     workspace_id: ctx.workspaceId,
     from_contact_id: params.fromContactId,
     to_contact_id: params.toContactId,

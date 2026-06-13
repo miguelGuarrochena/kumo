@@ -28,8 +28,7 @@ export const grantPro = async (
     ? new Date('2099-12-31T00:00:00Z')
     : new Date(now.getTime() + months * 30 * 86400_000);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('subscriptions') as any).upsert({
+  const { error } = await supabase.from('subscriptions').upsert({
     user_id: user.id,
     status: 'active',
     plan_type: planType,
@@ -49,8 +48,8 @@ export const cancelImmediate = async (email: string): Promise<AdminActionState> 
   if (!user) return { ok: false, error: 'Usuario no encontrado' };
 
   const supabase = createServiceClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('subscriptions') as any)
+  const { data, error } = await supabase
+    .from('subscriptions')
     .update({
       status: 'free',
       plan_type: null,
@@ -84,8 +83,8 @@ export const cancelAtPeriodEnd = async (email: string): Promise<AdminActionState
   // Trial no tiene "fin de período" en MP — revocar ya.
   if (status === 'trialing') return cancelImmediate(email);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('subscriptions') as any)
+  const { data, error } = await supabase
+    .from('subscriptions')
     .update({
       status: 'canceled',
       updated_at: new Date().toISOString(),
@@ -142,8 +141,7 @@ export const adjustPlan = async (
 
   if (action === 'remove_ocr') {
     if (plan === 'bundle') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from('subscriptions') as any).update({
+      const { error } = await supabase.from('subscriptions').update({
         plan_type: 'wa',
         updated_at: new Date().toISOString(),
       }).eq('user_id', user.id);
@@ -155,8 +153,7 @@ export const adjustPlan = async (
     }
   } else if (action === 'remove_wa') {
     if (plan === 'bundle') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from('subscriptions') as any).update({
+      const { error } = await supabase.from('subscriptions').update({
         plan_type: 'ocr',
         updated_at: new Date().toISOString(),
       }).eq('user_id', user.id);
@@ -183,8 +180,7 @@ export const extendTrial = async (
 
   const supabase = createServiceClient();
   const newEnd = new Date(Date.now() + days * 86400_000).toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('subscriptions') as any).upsert({
+  const { error } = await supabase.from('subscriptions').upsert({
     user_id: user.id,
     status: 'trialing',
     plan_type: planType,

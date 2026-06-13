@@ -24,6 +24,25 @@ export type SearchResponse = {
 
 const LIMIT_PER_TYPE = 5;
 
+type ExpenseHit = {
+  id: string;
+  description: string | null;
+  amount: number;
+  currency: string;
+  expense_date: string;
+  categories: { name: string; color: string } | null;
+};
+type ReminderHit = { id: string; title: string; reminder_date: string; reminder_type: string };
+type ShoppingHit = {
+  id: string;
+  name: string;
+  quantity: string | null;
+  unit: string | null;
+  list_name: string;
+  bought: boolean;
+};
+type CategoryHit = { id: string; name: string; icon: string; color: string };
+
 /**
  * Búsqueda global. Filtra por query en gastos (description),
  * recordatorios (title), shopping items (name) y categorías (name).
@@ -70,8 +89,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
 
     const results: SearchResult[] = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const e of (expensesRes.data ?? []) as any[]) {
+    for (const e of (expensesRes.data ?? []) as unknown as ExpenseHit[]) {
       results.push({
         type: 'expense',
         id: e.id,
@@ -82,8 +100,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const r of (remindersRes.data ?? []) as any[]) {
+    for (const r of (remindersRes.data ?? []) as ReminderHit[]) {
       results.push({
         type: 'reminder',
         id: r.id,
@@ -93,8 +110,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const s of (shoppingRes.data ?? []) as any[]) {
+    for (const s of (shoppingRes.data ?? []) as ShoppingHit[]) {
       const qty = s.quantity ? `${s.quantity}${s.unit ? ' ' + s.unit : ''}` : '';
       const status = s.bought
         ? `✓ ${t.command.shopping_bought}`
@@ -108,8 +124,7 @@ export const searchEverywhere = async (query: string): Promise<SearchResponse> =
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const c of (categoriesRes.data ?? []) as any[]) {
+    for (const c of (categoriesRes.data ?? []) as CategoryHit[]) {
       results.push({
         type: 'category',
         id: c.id,

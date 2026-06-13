@@ -2,18 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import { requireAdmin } from '@/lib/workspace';
-
-const itemSchema = z.object({
-  list_name: z.string().min(1).max(40),
-  name: z.string().min(1, 'Nombre requerido').max(100),
-  quantity: z.string().max(40).nullable().optional(),
-  unit: z.string().max(20).nullable().optional(),
-});
+import { shoppingItemSchema } from '@/lib/schemas';
 
 export async function addItem(formData: FormData) {
-  const parsed = itemSchema.safeParse({
+  const parsed = shoppingItemSchema.safeParse({
     list_name: formData.get('list_name') || 'Supermercado',
     name: formData.get('name'),
     quantity: (formData.get('quantity') as string) || null,
@@ -42,8 +35,7 @@ export async function addItem(formData: FormData) {
 
   const position = ((last as { position?: number } | null)?.position ?? -1) + 1;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('shopping_items') as any).insert({
+  const { error } = await supabase.from('shopping_items').insert({
     user_id: ctx.userId,
     workspace_id: ctx.workspaceId,
     list_name: parsed.data.list_name,
@@ -53,7 +45,7 @@ export async function addItem(formData: FormData) {
     position,
   });
 
-  if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+  if (error) return { ok: false, error: error.message };
   revalidatePath('/shopping');
   return { ok: true };
 }
@@ -63,8 +55,7 @@ export async function updateItem(
   patch: { name?: string; quantity?: string | null; unit?: string | null },
 ) {
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('shopping_items') as any).update(patch).eq('id', id);
+  const { error } = await supabase.from('shopping_items').update(patch).eq('id', id);
   if (error) return { ok: false, error: error.message };
   revalidatePath('/shopping');
   return { ok: true };
@@ -72,8 +63,7 @@ export async function updateItem(
 
 export async function toggleBought(id: string, bought: boolean) {
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('shopping_items') as any).update({ bought }).eq('id', id);
+  await supabase.from('shopping_items').update({ bought }).eq('id', id);
   revalidatePath('/shopping');
 }
 

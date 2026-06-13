@@ -28,8 +28,12 @@ const AdminLayout = async ({ children }: { children: React.ReactNode }) => {
     .select('workspace_id, role, workspaces(*)')
     .eq('user_id', user.id);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const workspaces: WorkspaceOption[] = ((rawMemberships ?? []) as any[])
+  type MembershipRow = {
+    workspace_id: string;
+    role: 'admin' | 'reader';
+    workspaces: { name: string; icon: string; color: string } | null;
+  };
+  const workspaces: WorkspaceOption[] = ((rawMemberships ?? []) as unknown as MembershipRow[])
     .map((m) => ({
       id: m.workspace_id,
       name: m.workspaces?.name ?? 'Mi espacio',

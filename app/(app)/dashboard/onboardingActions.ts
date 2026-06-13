@@ -7,8 +7,7 @@ export async function skipOnboarding() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('user_settings') as any)
+  await supabase.from('user_settings')
     .update({ onboarded: true })
     .eq('user_id', user.id);
   revalidatePath('/dashboard');
@@ -19,8 +18,7 @@ export async function reopenOnboarding() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('user_settings') as any)
+  await supabase.from('user_settings')
     .update({ onboarded: false })
     .eq('user_id', user.id);
   revalidatePath('/dashboard');

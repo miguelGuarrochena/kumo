@@ -1,5 +1,19 @@
 import type { Messages } from '@/lib/i18n/types';
 
+/**
+ * Categorías sembradas al crear un workspace desde la app (`lib/workspace.ts`).
+ * IMPORTANTE: mantener sincronizado con el trigger SQL `handle_new_user`
+ * (supabase/migrations), que siembra el equivalente del lado de la base.
+ */
+export const DEFAULT_CATEGORIES = [
+  { name: 'Alquiler',     icon: 'home',            color: 'sky' },
+  { name: 'Supermercado', icon: 'shopping-cart',   color: 'mint' },
+  { name: 'Servicios',    icon: 'zap',             color: 'peach' },
+  { name: 'Transporte',   icon: 'car',             color: 'lavender' },
+  { name: 'Salud',        icon: 'heart',           color: 'rose' },
+  { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
+] as const;
+
 export const CATEGORY_PRESET_KEYS = [
   'rent',
   'groceries',

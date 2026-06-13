@@ -13,14 +13,14 @@ const AcceptInvitePage = async ({
   const { token } = await searchParams;
 
   if (!token) {
-    return <ErrorScreen title="Link inválido" message="Falta el token del invite." />;
+    return <ErrorScreen title="Link inv?lido" message="Falta el token del invite." />;
   }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    // Lo mandamos a login con el redirect_to apuntando acá
+    // Lo mandamos a login con el redirect_to apuntando ac?
     redirect(`/auth/login?redirect_to=/accept-invite?token=${token}`);
   }
 
@@ -32,18 +32,26 @@ const AcceptInvitePage = async ({
     .maybeSingle();
 
   if (!invite) {
-    return <ErrorScreen title="Invitación no encontrada" message="El link es inválido o fue revocado." />;
+    return <ErrorScreen title="Invitaci?n no encontrada" message="El link es inv?lido o fue revocado." />;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inv = invite as any;
+  type InviteRow = {
+    id: string;
+    workspace_id: string;
+    email: string;
+    role: 'admin' | 'reader';
+    expires_at: string;
+    accepted_at: string | null;
+    workspaces: { name: string } | null;
+  };
+  const inv = invite as unknown as InviteRow;
 
   if (inv.accepted_at) {
-    return <ErrorScreen title="Ya usado" message="Este link de invitación ya fue aceptado." />;
+    return <ErrorScreen title="Ya usado" message="Este link de invitaci?n ya fue aceptado." />;
   }
 
   if (new Date(inv.expires_at) < new Date()) {
-    return <ErrorScreen title="Link vencido" message="El link de invitación venció. Pedile al admin que te mande uno nuevo." />;
+    return <ErrorScreen title="Link vencido" message="El link de invitaci?n venci?. Pedile al admin que te mande uno nuevo." />;
   }
 
   // Verificamos que el email del invite matchee con el del user (case insensitive)
@@ -51,14 +59,13 @@ const AcceptInvitePage = async ({
     return (
       <ErrorScreen
         title="Email distinto"
-        message={`Este invite es para ${inv.email}. Iniciá sesión con ese email para aceptarlo.`}
+        message={`Este invite es para ${inv.email}. Inici? sesi?n con ese email para aceptarlo.`}
       />
     );
   }
 
   // Aceptar: insertar membership + marcar invite como aceptado
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: insErr } = await (supabase.from('workspace_members') as any).insert({
+  const { error: insErr } = await supabase.from('workspace_members').insert({
     workspace_id: inv.workspace_id,
     user_id: user.id,
     role: inv.role,
@@ -68,7 +75,7 @@ const AcceptInvitePage = async ({
   }
 
   // Crear un contacto "Yo" para el invitee en el workspace compartido. Esto
-  // hace que aparezca en el dropdown de "Pagó" y en la lista de participantes
+  // hace que aparezca en el dropdown de "Pag?" y en la lista de participantes
   // al dividir un gasto. Si ya existe (porque aceptaron antes y reintentaron)
   // el unique constraint (workspace_id, user_id) where is_self=true lo evita.
   // El nombre lo derivamos del display name del user o del email.
@@ -77,8 +84,8 @@ const AcceptInvitePage = async ({
     user.user_metadata?.name?.split(' ')[0] ??
     user.email?.split('@')[0] ??
     'Yo';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('notification_contacts') as any)
+  await supabase
+    .from('notification_contacts')
     .insert({
       workspace_id: inv.workspace_id,
       user_id: user.id,
@@ -87,8 +94,8 @@ const AcceptInvitePage = async ({
       is_self: true,
     });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('workspace_invites') as any)
+  await supabase
+    .from('workspace_invites')
     .update({ accepted_at: new Date().toISOString() })
     .eq('id', inv.id);
 
@@ -98,8 +105,8 @@ const AcceptInvitePage = async ({
   return (
     <div className="min-h-screen grid place-items-center p-6">
       <div className="kumo-card p-8 max-w-md w-full text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-mint-100 dark:bg-mint-500/20 text-mint-500 grid place-items-center mx-auto text-2xl">✓</div>
-        <h1 className="text-xl font-bold">¡Listo!</h1>
+        <div className="w-12 h-12 rounded-full bg-mint-100 dark:bg-mint-500/20 text-mint-500 grid place-items-center mx-auto text-2xl">���</div>
+        <h1 className="text-xl font-bold">?Listo!</h1>
         <p className="text-slate-600 dark:text-slate-300">
           Ya sos {inv.role === 'admin' ? 'administrador' : 'lector'} de <strong>{inv.workspaces?.name ?? 'el workspace'}</strong>.
         </p>

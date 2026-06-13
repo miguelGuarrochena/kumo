@@ -43,8 +43,8 @@ export const POST = async (req: Request) => {
   const status = mapStatus(pre.status);
   const resolvedPlanType = resolvePlanTypeFromVariantId(pre.preapproval_plan_id) ?? 'ocr';
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: existing } = await (supabase.from('subscriptions') as any)
+  const { data: existing } = await supabase
+    .from('subscriptions')
     .select('current_period_end, plan_type, expiry_reminder_30d_at, expiry_reminder_7d_at')
     .eq('user_id', userId)
     .maybeSingle();
@@ -79,8 +79,7 @@ export const POST = async (req: Request) => {
     ? (resolvedPlanType ?? existingRow?.plan_type ?? 'ocr')
     : null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('subscriptions') as any).upsert({
+  await supabase.from('subscriptions').upsert({
     user_id: userId,
     status,
     plan_type: planType,

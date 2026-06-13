@@ -96,14 +96,12 @@ export async function upsertContact(
   };
 
   const { error } = parsed.data.id
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? await (supabase.from('notification_contacts') as any).update(payload).eq('id', parsed.data.id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    : await (supabase.from('notification_contacts') as any).insert(payload);
+    ? await supabase.from('notification_contacts').update(payload).eq('id', parsed.data.id)
+    : await supabase.from('notification_contacts').insert(payload);
 
   if (error) {
-    const code = (error as { code?: string }).code;
-    const msg = (error as { message?: string }).message ?? 'Error';
+    const code = error.code;
+    const msg = error.message ?? 'Error';
     if (code === '23505' || /duplicate|unique/i.test(msg)) {
       return { ok: false, error: 'Ya existe un contacto "Yo" en este espacio.' };
     }
@@ -175,16 +173,16 @@ export async function createAdHocContact(name: string): Promise<{ ok: boolean; i
     relationship: 'other' as const,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let result = await (supabase.from('notification_contacts') as any)
+  let result = await supabase
+    .from('notification_contacts')
     .insert({ ...base, is_split_only: true })
     .select('id')
     .single();
 
   // DB sin migración 0021: reintentar sin is_split_only.
   if (result.error && /is_split_only|schema cache/i.test(result.error.message)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    result = await (supabase.from('notification_contacts') as any)
+    result = await supabase
+      .from('notification_contacts')
       .insert(base)
       .select('id')
       .single();
@@ -194,7 +192,7 @@ export async function createAdHocContact(name: string): Promise<{ ok: boolean; i
   revalidatePath('/settings');
   revalidatePath('/expenses');
   revalidatePath('/split');
-  return { ok: true, id: (result.data as { id: string }).id };
+  return { ok: true, id: result.data.id };
 }
 
 const mpFieldSchema = z.object({
@@ -247,8 +245,8 @@ export async function updateSelfMpInfo(params: {
     return { ok: false, error: 'Solo podés editar tu contacto "Yo".' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('notification_contacts') as any)
+  const { error } = await supabase
+    .from('notification_contacts')
     .update({
       mp_alias: parsed.data.mp_alias,
       mp_payment_link: parsed.data.mp_payment_link,

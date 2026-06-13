@@ -12,6 +12,31 @@ import { getRates, formatMoney, convertAmount, type Currency } from '@/lib/curre
 import { todayKey, parseLocalDate, daysBetween } from '@/lib/date';
 import { getCurrentWorkspace } from '@/lib/workspace';
 
+type CategoryEmbed = { name: string; color: string } | null;
+type DueExpenseRow = {
+  id: string;
+  description: string | null;
+  amount: number;
+  currency: string;
+  due_date: string;
+  categories: CategoryEmbed;
+};
+type UpcomingReminderRow = {
+  id: string;
+  title: string;
+  reminder_date: string;
+  reminder_time: string | null;
+  reminder_type: 'medical' | 'birthday' | 'generic';
+};
+type RecentExpenseRow = {
+  id: string;
+  description: string | null;
+  amount: number;
+  currency: string;
+  expense_date: string;
+  categories: CategoryEmbed;
+};
+
 const DashboardPage = async () => {
   const supabase = await createClient();
   const [t, locale] = await Promise.all([getMessages(), getLocale()]);
@@ -99,20 +124,16 @@ const DashboardPage = async () => {
   const convert = (amount: number, currency: string): number | null =>
     convertAmount(amount, currency as Currency, displayCurrency, rates.rates);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const monthExpensesArr = (monthExpenses ?? []) as any[];
+  const monthExpensesArr = (monthExpenses ?? []) as Array<{ amount: number; currency: string }>;
   const monthTotal = monthExpensesArr.reduce((sum, e) => {
     const c = convert(Number(e.amount), e.currency);
     return c === null ? sum : sum + c;
   }, 0);
   const monthCount = monthExpensesArr.length;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dueExpensesArr = (dueExpenses ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const upcomingRemArr = (upcomingReminders ?? []) as any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recentArr = (recentExpenses ?? []) as any[];
+  const dueExpensesArr = (dueExpenses ?? []) as unknown as DueExpenseRow[];
+  const upcomingRemArr = (upcomingReminders ?? []) as UpcomingReminderRow[];
+  const recentArr = (recentExpenses ?? []) as unknown as RecentExpenseRow[];
 
   const hasUpcoming = dueExpensesArr.length > 0 || upcomingRemArr.length > 0;
 

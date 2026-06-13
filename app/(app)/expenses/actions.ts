@@ -2,26 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { getCurrentWorkspace, requireAdmin } from '@/lib/workspace';
+import { requireAdmin } from '@/lib/workspace';
 import { scheduleExpenseDelete, scheduleExpenseSync } from '@/lib/calendar/scheduleSync';
-
-const CURRENCIES = ['ARS', 'USD', 'EUR', 'MXN', 'CLP', 'COP', 'BRL', 'GBP'] as const;
-const RECURRENCE = ['weekly', 'monthly', 'yearly'] as const;
-
-const expenseSchema = z.object({
-  id: z.string().uuid().optional(),
-  category_id: z.string().uuid().nullable().optional(),
-  amount: z.coerce.number().positive('El monto debe ser positivo'),
-  currency: z.enum(CURRENCIES),
-  description: z.string().max(200).optional().nullable(),
-  expense_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
-  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
-  is_recurring: z.coerce.boolean().default(false),
-  recurrence_type: z.enum(RECURRENCE).optional().nullable(),
-  paid: z.coerce.boolean().default(true),
-  notify_contact_ids: z.array(z.string().uuid()).default([]),
-});
+import { expenseSchema } from '@/lib/schemas';
 
 export type ExpenseFormState = {
   ok: boolean;
@@ -65,17 +48,16 @@ export async function upsertExpense(
   let expenseId = parsed.data.id ?? null;
 
   if (parsed.data.id) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('expenses') as any).update(payload).eq('id', parsed.data.id);
-    if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
+    const { error } = await supabase.from('expenses').update(payload).eq('id', parsed.data.id);
+    if (error) return { ok: false, error: error.message };
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: created, error } = await (supabase.from('expenses') as any)
+    const { data: created, error } = await supabase
+      .from('expenses')
       .insert(payload)
       .select('id')
       .single();
-    if (error) return { ok: false, error: (error as { message?: string }).message ?? 'Error' };
-    expenseId = (created as { id: string }).id;
+    if (error) return { ok: false, error: error.message };
+    expenseId = created.id;
   }
 
   if (expenseId) scheduleExpenseSync(ctx.userId, expenseId);
@@ -110,8 +92,7 @@ export async function togglePaid(id: string, paid: boolean): Promise<{ ok: boole
     return { ok: false, error: (e as Error).message };
   }
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('expenses') as any).update({ paid }).eq('id', id);
+  const { error } = await supabase.from('expenses').update({ paid }).eq('id', id);
   if (error) return { ok: false, error: error.message };
   scheduleExpenseSync(ctx.userId, id);
   revalidatePath('/expenses');

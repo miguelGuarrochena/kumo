@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
+import { DEFAULT_CATEGORIES } from '@/lib/categoryLabels';
 
 const COOKIE_NAME = 'workspace_id';
 
@@ -14,15 +15,6 @@ export type WorkspaceContext = {
   ownerId: string;
 };
 
-const CATEGORY_DEFAULTS = [
-  { name: 'Alquiler',     icon: 'home',         color: 'sky' },
-  { name: 'Supermercado', icon: 'shopping-cart', color: 'mint' },
-  { name: 'Servicios',    icon: 'zap',          color: 'peach' },
-  { name: 'Transporte',   icon: 'car',          color: 'lavender' },
-  { name: 'Salud',        icon: 'heart',        color: 'rose' },
-  { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
-];
-
 export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -34,8 +26,12 @@ export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> =
     .eq('user_id', user.id)
     .order('joined_at', { ascending: true });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const memberships = ((data as any[]) ?? []).filter((m) => m.workspaces != null);
+  type MembershipRow = {
+    workspace_id: string;
+    role: WorkspaceRole;
+    workspaces: { name: string; icon: string; color: string; owner_id: string } | null;
+  };
+  const memberships = ((data ?? []) as unknown as MembershipRow[]).filter((m) => m.workspaces != null);
   if (memberships.length === 0) return null;
 
   const c = await cookies();
@@ -50,13 +46,14 @@ export const findCurrentWorkspace = async (): Promise<WorkspaceContext | null> =
     fromCookie ??
     memberships.find((m) => m.role === 'admin') ??
     memberships[0];
+  if (!active) return null;
 
   return {
     workspaceId: active.workspace_id,
     workspaceName: active.workspaces?.name ?? 'Mi espacio',
     workspaceIcon: active.workspaces?.icon ?? 'home',
     workspaceColor: active.workspaces?.color ?? 'sky',
-    role: active.role as WorkspaceRole,
+    role: active.role,
     userId: user.id,
     ownerId: active.workspaces?.owner_id ?? user.id,
   };
@@ -70,35 +67,31 @@ export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('No autenticado');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: ws, error: wsErr } = await (supabase.from('workspaces') as any)
+  const { data: ws, error: wsErr } = await supabase
+    .from('workspaces')
     .insert({ name: 'Mi espacio', owner_id: user.id })
     .select('id, name, owner_id')
     .single();
   if (wsErr || !ws) throw new Error(wsErr?.message ?? 'No se pudo crear espacio');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('workspace_members') as any).insert({
+  await supabase.from('workspace_members').insert({
     workspace_id: ws.id,
     user_id: user.id,
     role: 'admin',
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('categories') as any).insert(
-    CATEGORY_DEFAULTS.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
+  await supabase.from('categories').insert(
+    DEFAULT_CATEGORIES.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('notification_contacts') as any).insert({
+  await supabase.from('notification_contacts').insert({
     workspace_id: ws.id,
     user_id: user.id,
     name: 'Yo',
     relationship: 'self',
     is_self: true,
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('user_settings') as any).upsert({
+  await supabase.from('user_settings').upsert({
     user_id: user.id,
     workspace_id: ws.id,
   });
