@@ -5,6 +5,7 @@ const PROMPT = `Interpretá el mensaje del usuario como un gasto personal y extr
 
 Ejemplos:
 - "gasté 5000 en el super" → total 5000, currency ARS, description "Supermercado", categorySuggestion "Supermercado"
+- "5000 de supermercado" → total 5000, ARS, description "Supermercado", categorySuggestion "Supermercado"
 - "pagué 12000 de luz ayer" → total 12000, ARS, description "Luz", categorySuggestion "Servicios", date ayer
 - "paid $50 uber" → total 50, USD, description "Uber", categorySuggestion "Transporte"
 

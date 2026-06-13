@@ -1,22 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { looksLikeExpenseIntent } from './detect';
+import { looksExpenseIntent } from './detect';
 
-describe('looksLikeExpenseIntent', () => {
+describe('looksExpenseIntent', () => {
   it('detecta frases típicas en español', () => {
-    expect(looksLikeExpenseIntent('gasté 5000 en el super')).toBe(true);
-    expect(looksLikeExpenseIntent('pagué 12000 luz')).toBe(true);
+    expect(looksExpenseIntent('gasté 5000 en el super')).toBe(true);
+    expect(looksExpenseIntent('pagué 12000 luz')).toBe(true);
   });
 
   it('detecta inglés con verbo', () => {
-    expect(looksLikeExpenseIntent('paid 50 for uber')).toBe(true);
+    expect(looksExpenseIntent('paid 50 for uber')).toBe(true);
   });
 
   it('rechaza búsquedas sin verbo ni contexto', () => {
-    expect(looksLikeExpenseIntent('netflix')).toBe(false);
-    expect(looksLikeExpenseIntent('ab')).toBe(false);
+    expect(looksExpenseIntent('netflix')).toBe(false);
+    expect(looksExpenseIntent('ab')).toBe(false);
+  });
+
+  it('acepta monto + comercio corto sin verbo', () => {
+    expect(looksExpenseIntent('5000 de supermercado')).toBe(true);
+    expect(looksExpenseIntent('5000 supermercado')).toBe(true);
+    expect(looksExpenseIntent('12000 luz')).toBe(true);
   });
 
   it('acepta frases largas con monto aunque no tengan verbo', () => {
-    expect(looksLikeExpenseIntent('5000 pesos supermercado carrefour')).toBe(true);
+    expect(looksExpenseIntent('5000 pesos supermercado carrefour')).toBe(true);
   });
 });
