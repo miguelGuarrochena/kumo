@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check, BarChart3, PiggyBank } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { Sheet } from './Sheet';
@@ -121,6 +121,9 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
             </MenuItem>
             <MenuItem href="/categories" icon={Tags} onClick={closeMenu}>
               {t.menu.categories}
+            </MenuItem>
+            <MenuItem href="/budgets" icon={PiggyBank} onClick={closeMenu}>
+              {t.menu.budgets}
             </MenuItem>
             <MenuItem href="/metrics" icon={BarChart3} onClick={closeMenu}>
               {t.menu.metrics}

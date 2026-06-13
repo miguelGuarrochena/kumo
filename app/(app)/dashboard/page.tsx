@@ -11,6 +11,7 @@ import { localeTag } from '@/lib/i18n/locale';
 import { getRates, formatMoney, convertAmount, type Currency } from '@/lib/currency';
 import { todayKey, parseLocalDate, daysBetween } from '@/lib/date';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import { budgetStatus, type BudgetStatus } from '@/lib/budgets';
 
 type CategoryEmbed = { name: string; color: string } | null;
 type DueExpenseRow = {
@@ -35,6 +36,12 @@ type RecentExpenseRow = {
   currency: string;
   expense_date: string;
   categories: CategoryEmbed;
+};
+
+const BUDGET_BAR_COLOR: Record<BudgetStatus, string> = {
+  ok: 'bg-mint-500',
+  warn: 'bg-amber-500',
+  over: 'bg-rose-500',
 };
 
 const DashboardPage = async () => {
@@ -66,6 +73,7 @@ const DashboardPage = async () => {
     { data: dueExpenses },
     { data: upcomingReminders },
     { data: recentExpenses },
+    { data: overallBudget },
     rates,
   ] = await Promise.all([
     supabase.from('expenses').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
@@ -103,6 +111,12 @@ const DashboardPage = async () => {
       .eq('workspace_id', ctx.workspaceId)
       .order('expense_date', { ascending: false })
       .limit(5),
+    supabase
+      .from('budgets')
+      .select('amount, currency')
+      .eq('workspace_id', ctx.workspaceId)
+      .is('category_id', null)
+      .maybeSingle(),
     getRates().catch(() => ({ rates: {} as Partial<Record<Currency, number>>, base: 'USD' as Currency, fetchedAt: 0 })),
   ]);
 
@@ -130,6 +144,14 @@ const DashboardPage = async () => {
     return c === null ? sum : sum + c;
   }, 0);
   const monthCount = monthExpensesArr.length;
+
+  // Progreso del presupuesto total del mes (si está configurado).
+  const overallBudgetRow = overallBudget as { amount: number; currency: string } | null;
+  const budgetAmount = overallBudgetRow
+    ? convertAmount(Number(overallBudgetRow.amount), overallBudgetRow.currency as Currency, displayCurrency, rates.rates)
+    : null;
+  const budgetPct = budgetAmount && budgetAmount > 0 ? monthTotal / budgetAmount : null;
+  const budgetState: BudgetStatus | null = budgetPct === null ? null : budgetStatus(budgetPct);
 
   const dueExpensesArr = (dueExpenses ?? []) as unknown as DueExpenseRow[];
   const upcomingRemArr = (upcomingReminders ?? []) as UpcomingReminderRow[];
@@ -173,6 +195,19 @@ const DashboardPage = async () => {
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
               {t.expenses.n_expenses.replace('{n}', String(monthCount))} {t.expenses.in_currency} {displayCurrency}
             </p>
+            {budgetPct !== null && budgetState !== null && budgetAmount !== null && (
+              <Link href="/budgets" className="mt-3 max-w-xs space-y-1 block hover:opacity-90">
+                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${BUDGET_BAR_COLOR[budgetState]}`}
+                    style={{ width: `${Math.min(budgetPct, 1) * 100}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {Math.round(budgetPct * 100)}% {t.budgets.of} {formatMoney(budgetAmount, displayCurrency, locale)}
+                </p>
+              </Link>
+            )}
           </div>
           <div className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 grid place-items-center shrink-0 group-hover:scale-110 transition-transform">
             <TrendingUp className="w-5 h-5" />

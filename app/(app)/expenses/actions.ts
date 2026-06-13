@@ -64,6 +64,7 @@ export async function upsertExpense(
 
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
+  revalidatePath('/budgets');
   revalidatePath('/split');
   return { ok: true, expenseId: expenseId ?? undefined };
 }
@@ -81,6 +82,7 @@ export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: 
   scheduleExpenseDelete(ctx.userId, id);
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
+  revalidatePath('/budgets');
   return { ok: true };
 }
 
@@ -97,5 +99,6 @@ export async function togglePaid(id: string, paid: boolean): Promise<{ ok: boole
   scheduleExpenseSync(ctx.userId, id);
   revalidatePath('/expenses');
   revalidatePath('/dashboard');
+  revalidatePath('/budgets');
   return { ok: true };
 }

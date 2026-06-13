@@ -483,9 +483,28 @@ type BillingTermsAcceptancesInsert = Partial<BillingTermsAcceptancesRow> & {
 };
 type BillingTermsAcceptancesUpdate = Partial<BillingTermsAcceptancesRow>;
 
+// ---------- budgets ----------
+type BudgetsRow = {
+  id: string;
+  workspace_id: string;
+  category_id: string | null;
+  amount: number;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+};
+type BudgetsInsert = Partial<BudgetsRow> & { workspace_id: string; amount: number };
+type BudgetsUpdate = Partial<BudgetsRow>;
+
 export type Database = {
   public: {
     Tables: {
+      budgets: {
+        Row: BudgetsRow;
+        Insert: BudgetsInsert;
+        Update: BudgetsUpdate;
+        Relationships: [];
+      };
       categories: {
         Row: CategoriesRow;
         Insert: CategoriesInsert;

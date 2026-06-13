@@ -25,6 +25,7 @@ import type { CategoryLite, ContactLite, Expense } from './types';
 import type { ContactLite as SplitContactLite } from './splitTypes';
 import { toggleNotifyContactId } from '@/lib/notifyContacts';
 import { WA_MAX_RECIPIENTS } from '@/lib/notifications/waLimitsClient';
+import { suggestCategory } from './suggestCategoryAction';
 
 type ExpenseSheetProps = {
   open: boolean;
@@ -68,6 +69,8 @@ export const ExpenseSheet = ({
   const [splitOn, setSplitOn] = useState(false);
   const [splitState, setSplitState] = useState<SplitState>(emptySplitState);
   const [extraSplitContacts, setExtraSplitContacts] = useState<SplitContactLite[]>([]);
+  const [categoryManual, setCategoryManual] = useState(false);
+  const [suggestedCategoryId, setSuggestedCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) setExtraSplitContacts([]);
@@ -88,6 +91,7 @@ export const ExpenseSheet = ({
       setIsRecurring(expense.is_recurring ?? false);
       setRecurrenceType(expense.recurrence_type ?? 'monthly');
       setNotifyContactIds(expense.notify_contact_ids ?? []);
+      setCategoryManual(true);
     } else if (aiSuggestion) {
       setAmount(aiSuggestion.total ? aiSuggestion.total.toString() : '');
       const cur = (aiSuggestion.currency?.toUpperCase() ?? defaultCurrency) as Currency;
@@ -109,6 +113,7 @@ export const ExpenseSheet = ({
         ? categories.find((c) => categoryNamesMatch(c.name, sugg))
         : null;
       setCategoryId(matched?.id ?? '');
+      setCategoryManual(!!matched?.id);
       const selfId = contacts.find((c) => c.is_self)?.id;
       setNotifyContactIds(selfId ? [selfId] : []);
     } else {
@@ -124,13 +129,38 @@ export const ExpenseSheet = ({
       setRecurrenceType('monthly');
       const selfId = contacts.find((c) => c.is_self)?.id;
       setNotifyContactIds(selfId ? [selfId] : []);
+      setCategoryManual(false);
     }
+    setSuggestedCategoryId(null);
     if (!expense) {
       setSplitOn(false);
       setSplitState(emptySplitState());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, expense?.id, aiSuggestion, defaultCurrency]);
+
+  // Auto-categorización por historial al tipear la descripción (solo gastos nuevos).
+  useEffect(() => {
+    if (!open || expense || aiSuggestion) return;
+    const desc = description.trim();
+    if (desc.length < 2) {
+      setSuggestedCategoryId(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { categoryId: suggested } = await suggestCategory(desc);
+      if (cancelled) return;
+      setSuggestedCategoryId(suggested);
+      if (suggested && !categoryManual) {
+        setCategoryId(suggested);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [description, open, expense, aiSuggestion, categoryManual]);
 
   useEffect(() => {
     if (!open || !expense?.id) return;
@@ -375,20 +405,6 @@ export const ExpenseSheet = ({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.expenses.category}</label>
-          <Select
-            value={categoryId}
-            onChange={setCategoryId}
-            options={[
-              { value: '', label: t.expenses.no_category } as SelectOption,
-              ...categories.map((c) => ({ value: c.id, label: categoryDisplayName(c.name, t) })),
-            ]}
-            ariaLabel={t.expenses.category}
-            buttonClassName="py-3 rounded-xl"
-          />
-        </div>
-
-        <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.expenses.description}</label>
           <input
             type="text"
@@ -398,6 +414,44 @@ export const ExpenseSheet = ({
             className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
             maxLength={200}
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t.expenses.category}</label>
+          <Select
+            value={categoryId}
+            onChange={(v) => {
+              setCategoryId(v);
+              setCategoryManual(true);
+            }}
+            options={[
+              { value: '', label: t.expenses.no_category } as SelectOption,
+              ...categories.map((c) => ({ value: c.id, label: categoryDisplayName(c.name, t) })),
+            ]}
+            ariaLabel={t.expenses.category}
+            buttonClassName="py-3 rounded-xl"
+          />
+          {!categoryManual && suggestedCategoryId && categoryId === suggestedCategoryId && (
+            <p className="mt-1.5 text-xs text-mint-600 dark:text-mint-400">{t.expenses.category_suggested}</p>
+          )}
+          {categoryManual && suggestedCategoryId && suggestedCategoryId !== categoryId && (
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryId(suggestedCategoryId);
+                setCategoryManual(false);
+              }}
+              className="mt-1.5 text-xs text-sky-600 dark:text-sky-400 hover:underline"
+            >
+              {t.expenses.use_suggested_category.replace(
+                '{name}',
+                categoryDisplayName(
+                  categories.find((c) => c.id === suggestedCategoryId)?.name ?? '',
+                  t,
+                ),
+              )}
+            </button>
+          )}
         </div>
 
         <div>

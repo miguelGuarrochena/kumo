@@ -10,6 +10,7 @@ import {
   CalendarDays,
   BarChart3,
   Calculator,
+  PiggyBank,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -34,6 +35,7 @@ export const Sidebar = ({ userEmail, workspaces, activeWorkspaceId }: Props) => 
   const nav = [
     { href: '/dashboard',  label: t.nav.dashboard,    icon: LayoutDashboard },
     { href: '/expenses',   label: t.nav.expenses,     icon: Wallet },
+    { href: '/budgets',    label: t.nav.budgets,      icon: PiggyBank },
     { href: '/metrics',    label: t.nav.metrics,      icon: BarChart3 },
     { href: '/calendar',   label: t.nav.calendar,     icon: CalendarDays },
     { href: '/shopping',   label: t.nav.shopping,     icon: ShoppingCart },

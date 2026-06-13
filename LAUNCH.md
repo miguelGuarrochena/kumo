@@ -4,7 +4,7 @@ Lo que hay que tener listo antes de compartir Kumo.
 
 ## Modelo de negocio
 
-- **Gratis**: gastos, recordatorios, calendario, compras, dividir, espacios, push, export, WhatsApp **manual** (vos enviás desde un recordatorio).
+- **Gratis**: gastos, recordatorios, calendario, compras, dividir, espacios, push, export, **presupuestos**, WhatsApp **manual** (vos enviás desde un recordatorio).
 - **De pago (opcional)**:
   - **Escaneo OCR** — Google Gemini al tocar "Escanear ticket".
   - **WhatsApp automático** — Meta cobra por mensaje; Kumo avisa solo vía API.
@@ -89,13 +89,17 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0033_google_calendar_oauth.sql`:
+Aplicar todas en orden hasta `0035_budgets.sql`:
 
 ```bash
 supabase db push
 ```
 
 > `0033_google_calendar_oauth.sql` agrega las columnas `google_calendar_*` en `user_settings` y la tabla `google_calendar_events`. Necesaria para la sincronización OAuth de Google Calendar (ver §1, vars `GOOGLE_CALENDAR_*`).
+>
+> `0034_performance_indexes.sql` agrega índices compuestos `(workspace_id, expense_date)` y similares para dashboard/métricas.
+>
+> `0035_budgets.sql` crea la tabla `budgets` (presupuestos mensuales por categoría o total).
 
 ## 3. MercadoPago (OCR, WA, combo)
 

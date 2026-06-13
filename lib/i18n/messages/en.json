@@ -56,6 +56,7 @@
   "nav": {
     "dashboard": "Home",
     "expenses": "Expenses",
+    "budgets": "Budgets",
     "metrics": "Metrics",
     "categories": "Categories",
     "reminders": "Reminders",
@@ -76,6 +77,7 @@
     "open": "Menu",
     "settings": "Settings",
     "categories": "Categories",
+    "budgets": "Budgets",
     "metrics": "Metrics",
     "privacy": "Privacy",
     "terms": "Terms",
@@ -117,6 +119,8 @@
     "description_placeholder": "Eg: Netflix subscription",
     "category": "Category",
     "no_category": "No category",
+    "category_suggested": "Category suggested from past expenses",
+    "use_suggested_category": "Use {name}",
     "date": "Date",
     "has_due_date": "Has due date",
     "due_date_for_alerts": "for alerts",
@@ -343,6 +347,23 @@
     "wa_type_generic": "Reminder",
     "wa_greeting_named": "Hi {name}, heads up from Kumo: ",
     "wa_body": "{greeting}{prefix}: {title} — {date}"
+  },
+  "budgets": {
+    "title": "Budgets",
+    "subtitle": "Set monthly spending caps and track your progress.",
+    "overall": "Monthly total",
+    "by_category": "By category",
+    "no_budget": "No budget",
+    "set": "Set budget",
+    "saved": "Budget saved",
+    "removed": "Budget removed",
+    "sheet_title": "Budget · {name}",
+    "monthly_cap": "Monthly cap",
+    "currency": "Currency",
+    "remaining": "{amount} left",
+    "over_by": "Over by {amount}",
+    "of": "of",
+    "rate_missing": "Missing exchange rates; total may be incomplete."
   },
   "categories": {
     "title": "Categories",
