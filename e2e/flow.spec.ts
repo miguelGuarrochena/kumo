@@ -44,23 +44,17 @@ test.describe('Authenticated flows', () => {
     await page.goto('/expenses');
     const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
     await page.keyboard.press(`${mod}+KeyK`);
-    const input = page.getByPlaceholder(/gasté 5000|spent 5000/i);
+    const input = page.getByPlaceholder(/buscar gastos|search expenses/i);
     await expect(input).toBeVisible();
     await input.fill('gasté 5000 en el super');
     await expect(page.getByText(/agregar gasto con ia|add expense with ai/i)).toBeVisible();
-  });
-
-  test('botón Con IA en gastos abre command palette', async ({ page }) => {
-    await page.goto('/expenses');
-    await page.getByRole('button', { name: /con ia|with ai/i }).click();
-    await expect(page.getByPlaceholder(/gasté 5000|spent 5000/i)).toBeVisible();
   });
 
   test('buscar en mobile abre command palette', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/expenses');
     await page.getByRole('button', { name: /^buscar$|^search$/i }).click();
-    await expect(page.getByPlaceholder(/gasté 5000|spent 5000/i)).toBeVisible();
+    await expect(page.getByPlaceholder(/buscar gastos|search expenses/i)).toBeVisible();
   });
 
   test('tab Gastos ↔ Saldos cambia sin recargar', async ({ page }) => {
@@ -72,7 +66,7 @@ test.describe('Authenticated flows', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/gastos|expenses/i);
   });
 
-  test('tip de IA visible la primera vez en gastos', async ({ page }) => {
+  test('tip del buscador visible la primera vez en gastos', async ({ page }) => {
     await page.goto('/expenses');
     await page.evaluate(() => {
       Object.keys(localStorage)
@@ -80,6 +74,6 @@ test.describe('Authenticated flows', () => {
         .forEach((k) => localStorage.removeItem(k));
     });
     await page.reload();
-    await expect(page.getByText(/cargá gastos|cargar gastos|add expenses|plain language/i)).toBeVisible();
+    await expect(page.getByText(/buscador|search also adds/i)).toBeVisible();
   });
 });

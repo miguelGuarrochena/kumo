@@ -28,7 +28,7 @@
     "no_results": "No results"
   },
   "command": {
-    "placeholder": "Search or type an expense: spent $50 on groceries",
+    "placeholder": "Search expenses, reminders, pages…",
     "quick_actions": "Quick actions",
     "results": "Results",
     "navigate": "Navigate",
@@ -478,9 +478,9 @@
     "skipping": "Done — you can revisit this checklist from Settings."
   },
   "tips": {
-    "expenses_nlp_title": "Add expenses in plain language",
-    "expenses_nlp_desc": "Tap With AI or Search (⌘K) and type something like \"spent 50 on uber\". AI fills amount, date, and category.",
-    "expenses_nlp_cta": "Try it",
+    "expenses_nlp_title": "Search also adds expenses",
+    "expenses_nlp_desc": "Open Search with ⌘K (or the icon at the top on mobile). Type \"spent 50 on uber\" and Kumo parses it with AI (Pro plan).",
+    "expenses_nlp_cta": "Open search",
     "budgets_title": "Monthly budgets",
     "budgets_desc": "Set a total cap or per category. Kumo sends a push alert at 80% and if you go over."
   },
@@ -699,7 +699,7 @@
   },
   "ocr": {
     "paywall_title": "AI for your expenses",
-    "paywall_desc": "Scan receipts or type in natural language (⌘K / With AI). We use Google Gemini — it has a per-use cost. The rest of Kumo stays free.",
+    "paywall_desc": "Scan receipts or type an expense in Search (⌘K). We use Google Gemini — it has a per-use cost. The rest of Kumo stays free.",
     "paywall_trial_days": "You have {n} days left to try AI for free.",
     "paywall_trial_day": "You have 1 day left to try AI for free.",
     "paywall_monthly": "{price}/month",

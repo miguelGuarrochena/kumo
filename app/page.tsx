@@ -122,7 +122,7 @@ const HomePage = async () => {
             icon={<Sparkles className="w-5 h-5" />}
             tone="lavender"
             title="Lenguaje natural (Pro)"
-            description="Escribí «gasté 5000 en el super» desde Buscar o Con IA. Mismo plan que el escaneo OCR."
+            description="Escribí «gasté 5000 en el super» en Buscar (⌘K). Mismo plan Pro que el escaneo OCR."
           />
           <Feature
             icon={<PiggyBank className="w-5 h-5" />}

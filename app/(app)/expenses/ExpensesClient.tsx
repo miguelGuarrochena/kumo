@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Plus, ChevronLeft, ChevronRight, Wallet, Search, SlidersHorizontal,
-  Camera, Loader2, Scale, Sparkles,
+  Camera, Loader2, Scale,
 } from 'lucide-react';
 import { deleteExpense, togglePaid } from './actions';
 import { toggleSplitPaid } from './splitsActions';
@@ -297,16 +297,6 @@ export const ExpensesClient = ({
           <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
             {activeSection === 'saldos' ? t.expenses.saldos_subtitle : t.expenses.subtitle}
           </p>
-          {activeSection === 'gastos' && (
-            <p className="text-slate-400 dark:text-slate-500 mt-1 text-xs hidden sm:block">
-              {t.expenses.nlp_hint_desktop}
-            </p>
-          )}
-          {activeSection === 'gastos' && (
-            <p className="text-slate-400 dark:text-slate-500 mt-1 text-xs sm:hidden">
-              {t.expenses.nlp_hint_mobile}
-            </p>
-          )}
         </div>
         {activeSection === 'gastos' && (
         <div className="flex items-center gap-2 shrink-0">
@@ -332,21 +322,6 @@ export const ExpensesClient = ({
             <span className="hidden sm:inline text-sm">
               {ocrLoading ? t.common.loading : t.expenses.scan}
             </span>
-            {!hasOcrAccess && (
-              <span className="absolute -top-1.5 -right-1.5 text-[9px] px-1 py-0.5 rounded-full bg-amber-500 text-white font-bold shadow-sm">
-                {t.ocr.badge_paid}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => openCommandPalette()}
-            title={hasOcrAccess ? t.expenses.nlp_button_title : t.expenses.scan_pro_only}
-            className="relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm">{t.expenses.nlp_button}</span>
             {!hasOcrAccess && (
               <span className="absolute -top-1.5 -right-1.5 text-[9px] px-1 py-0.5 rounded-full bg-amber-500 text-white font-bold shadow-sm">
                 {t.ocr.badge_paid}

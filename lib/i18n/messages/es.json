@@ -28,7 +28,7 @@
     "no_results": "Sin resultados"
   },
   "command": {
-    "placeholder": "Buscar o escribí un gasto: gasté 5000 en el super",
+    "placeholder": "Buscar gastos, recordatorios, páginas…",
     "quick_actions": "Acciones rápidas",
     "results": "Resultados",
     "navigate": "Navegar",
@@ -478,9 +478,9 @@
     "skipping": "Listo, podés volver a este checklist desde Configuración."
   },
   "tips": {
-    "expenses_nlp_title": "Cargá gastos hablando",
-    "expenses_nlp_desc": "Tocá Con IA o Buscar (⌘K) y escribí algo como «gasté 5000 en el super». La IA completa monto, fecha y categoría.",
-    "expenses_nlp_cta": "Probar ahora",
+    "expenses_nlp_title": "El buscador también carga gastos",
+    "expenses_nlp_desc": "Abrí Buscar con ⌘K (o el ícono arriba en el celu). Si escribís «gasté 5000 en el super», Kumo interpreta el gasto con IA (plan Pro).",
+    "expenses_nlp_cta": "Abrir buscador",
     "budgets_title": "Presupuestos del mes",
     "budgets_desc": "Definí un tope total o por categoría. Kumo te avisa por push si llegás al 80% o te pasás."
   },
@@ -699,7 +699,7 @@
   },
   "ocr": {
     "paywall_title": "IA para tus gastos",
-    "paywall_desc": "Escaneá tickets o escribí en lenguaje natural (⌘K / Con IA). Usamos Google Gemini — tiene costo por uso. El resto de Kumo sigue siendo gratis.",
+    "paywall_desc": "Escaneá tickets o escribí un gasto en Buscar (⌘K). Usamos Google Gemini — tiene costo por uso. El resto de Kumo sigue siendo gratis.",
     "paywall_trial_days": "Te quedan {n} días para probar la IA gratis.",
     "paywall_trial_day": "Te queda 1 día para probar la IA gratis.",
     "paywall_monthly": "{price}/mes",
