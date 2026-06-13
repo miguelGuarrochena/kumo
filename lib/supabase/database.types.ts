@@ -496,6 +496,21 @@ type BudgetsRow = {
 type BudgetsInsert = Partial<BudgetsRow> & { workspace_id: string; amount: number };
 type BudgetsUpdate = Partial<BudgetsRow>;
 
+type BudgetAlertsSentRow = {
+  id: string;
+  budget_id: string;
+  month: string;
+  threshold: '80' | '100';
+  sent_at: string;
+};
+type BudgetAlertsSentInsert = {
+  budget_id: string;
+  month: string;
+  threshold: '80' | '100';
+  sent_at?: string;
+};
+type BudgetAlertsSentUpdate = Partial<BudgetAlertsSentRow>;
+
 export type Database = {
   public: {
     Tables: {
@@ -503,6 +518,12 @@ export type Database = {
         Row: BudgetsRow;
         Insert: BudgetsInsert;
         Update: BudgetsUpdate;
+        Relationships: [];
+      };
+      budget_alerts_sent: {
+        Row: BudgetAlertsSentRow;
+        Insert: BudgetAlertsSentInsert;
+        Update: BudgetAlertsSentUpdate;
         Relationships: [];
       };
       categories: {

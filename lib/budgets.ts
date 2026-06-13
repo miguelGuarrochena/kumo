@@ -40,6 +40,27 @@ export type BudgetStatus = 'ok' | 'warn' | 'over';
 
 export const WARN_THRESHOLD = 0.8;
 
+export type BudgetAlertThreshold = '80' | '100';
+
+/** Clave del mes actual (YYYY-MM) para alertas y agregaciones mensuales. */
+export const currentBudgetMonthKey = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+/**
+ * Umbral de alerta a enviar, o null si no corresponde.
+ * Si se salta directo a >100%, solo manda 100 (no 80).
+ */
+export const pickBudgetAlertThreshold = (
+  pct: number,
+  alreadySent: Set<BudgetAlertThreshold>,
+): BudgetAlertThreshold | null => {
+  if (pct >= 1 && !alreadySent.has('100')) return '100';
+  if (pct >= WARN_THRESHOLD && pct < 1 && !alreadySent.has('80')) return '80';
+  return null;
+};
+
 /** Estado del presupuesto según el % gastado (pct = spent / amount). */
 export const budgetStatus = (pct: number): BudgetStatus => {
   if (pct >= 1) return 'over';

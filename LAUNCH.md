@@ -89,7 +89,7 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ## 2. Supabase: migraciones
 
-Aplicar todas en orden hasta `0035_budgets.sql`:
+Aplicar todas en orden hasta `0036_budget_alerts_sent.sql`:
 
 ```bash
 supabase db push
@@ -100,6 +100,8 @@ supabase db push
 > `0034_performance_indexes.sql` agrega índices compuestos `(workspace_id, expense_date)` y similares para dashboard/métricas.
 >
 > `0035_budgets.sql` crea la tabla `budgets` (presupuestos mensuales por categoría o total).
+>
+> `0036_budget_alerts_sent.sql` registra alertas push de presupuesto (80%/100%) ya enviadas por mes.
 
 ## 3. MercadoPago (OCR, WA, combo)
 

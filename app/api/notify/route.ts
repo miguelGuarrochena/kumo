@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { tryGetWhatsAppAdapter } from '@/lib/notifications/whatsapp';
+import { runBudgetAlerts } from '@/lib/notifications/budgetAlertsCron';
 import { sendPush, type PushSubscriptionRow } from '@/lib/push/server';
 import { todayKey, toIsoLocal, daysBetween, dayKey } from '@/lib/date';
 import { subscriptionRowHasWa } from '@/lib/subscription';
@@ -320,6 +321,10 @@ export async function POST(request: Request) {
     await supabase.from('push_subscriptions').delete().in('id', stalePushIds);
   }
 
+  const budgetAlerts = await runBudgetAlerts(supabase);
+  sent += budgetAlerts.sent;
+  skipped += budgetAlerts.skipped;
+
   return NextResponse.json({
     sent,
     failed,
@@ -330,5 +335,6 @@ export async function POST(request: Request) {
     waMaxRecipients: WA_MAX_RECIPIENTS_PER_ALERT,
     whatsapp: wa ? 'active' : 'disabled',
     stalePush: stalePushIds.length,
+    budgetAlerts,
   });
 }

@@ -551,7 +551,7 @@
     "section_currency": "Currency",
     "section_timezone": "Timezone",
     "section_notifications": "Notifications",
-    "notify_expenses": "Notify me about upcoming due dates",
+    "notify_expenses": "Notify me about due dates and budgets",
     "notify_reminders": "Notify me about reminders and birthdays",
     "section_appearance": "Appearance",
     "appearance_desc": "Light theme with pastel clouds or dark theme with starry sky.",

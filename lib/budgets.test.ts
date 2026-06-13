@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeSpend, budgetStatus, type ExpenseLite } from './budgets';
+import { computeSpend, budgetStatus, pickBudgetAlertThreshold, type ExpenseLite } from './budgets';
 
 const RATES = { USD: 1, ARS: 1000, EUR: 0.9 };
 
@@ -56,5 +56,24 @@ describe('budgetStatus', () => {
   it('over al 100% o más', () => {
     expect(budgetStatus(1)).toBe('over');
     expect(budgetStatus(1.5)).toBe('over');
+  });
+});
+
+describe('pickBudgetAlertThreshold', () => {
+  it('sugiere 80% si aún no se envió', () => {
+    expect(pickBudgetAlertThreshold(0.85, new Set())).toBe('80');
+  });
+
+  it('sugiere 100% si se pasó del tope', () => {
+    expect(pickBudgetAlertThreshold(1.1, new Set())).toBe('100');
+  });
+
+  it('no repite alertas ya enviadas', () => {
+    expect(pickBudgetAlertThreshold(0.9, new Set(['80']))).toBeNull();
+    expect(pickBudgetAlertThreshold(1.2, new Set(['80', '100']))).toBeNull();
+  });
+
+  it('salto directo a 100% no manda 80', () => {
+    expect(pickBudgetAlertThreshold(1.05, new Set())).toBe('100');
   });
 });
