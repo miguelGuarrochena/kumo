@@ -96,6 +96,7 @@ const ExpensesPage = async ({
     'month';
 
   const monthStr = params.month ?? new Date().toISOString().slice(0, 7);
+  const section = params.section === 'saldos' ? 'saldos' : 'gastos';
 
   let expenses: Array<Record<string, unknown>> = [];
   let archiveYears: ArchiveYear[] = [];
@@ -137,7 +138,6 @@ const ExpensesPage = async ({
 
   const balances = (balancesRes?.data ?? []) as BalanceRow[];
   const payments = (paymentsRaw ?? []) as PaymentRow[];
-  const section = params.section === 'saldos' ? 'saldos' : 'gastos';
 
   // Calculamos `is_self` desde la perspectiva del viewer: solo es "Yo" si
   // el contacto pertenece al user actual. Los selfs de otros miembros del
@@ -167,8 +167,8 @@ const ExpensesPage = async ({
   const userCurrency = ((settings as { default_currency?: string } | null)?.default_currency ?? 'ARS') as Currency;
   const displayCurrency = (params.asCurrency ?? userCurrency) as Currency;
 
-  // --- Vista archive: agregamos por año --------------------------------
-  if (view === 'archive') {
+  // --- Vista archive / listado de gastos (omitido en tab Saldos) ------------
+  if (section !== 'saldos' && view === 'archive') {
     const { data: all } = await supabase
       .from('expenses')
       .select('id, amount, currency, expense_date')
@@ -192,7 +192,7 @@ const ExpensesPage = async ({
     archiveYears = Array.from(byYear.entries())
       .map(([year, { total, count }]) => ({ year, total, count }))
       .sort((a, b) => b.year - a.year);
-  } else {
+  } else if (section !== 'saldos') {
     const sort = params.sort ?? 'date-desc';
     const base = applyExpenseFilters(
       supabase.from('expenses').select('amount, currency').eq('workspace_id', ctx.workspaceId),
@@ -279,6 +279,7 @@ const ExpensesPage = async ({
   return (
     <ExpensesClient
       section={section}
+      expensesDataLoaded={section !== 'saldos'}
       view={view}
       monthStr={monthStr}
       expenses={expenses as never}

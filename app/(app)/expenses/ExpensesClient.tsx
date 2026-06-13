@@ -38,6 +38,7 @@ type ExpensesSection = 'gastos' | 'saldos';
 
 type Props = {
   section: ExpensesSection;
+  expensesDataLoaded: boolean;
   view: ExpensesView;
   monthStr: string;
   expenses: Expense[];
@@ -61,6 +62,7 @@ type Props = {
 
 export const ExpensesClient = ({
   section,
+  expensesDataLoaded,
   view,
   monthStr,
   expenses,
@@ -84,6 +86,7 @@ export const ExpensesClient = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t, locale } = useT();
+  const [activeSection, setActiveSection] = useState<ExpensesSection>(section);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<Expense | null>(null);
@@ -109,6 +112,19 @@ export const ExpensesClient = ({
     () => contacts.find((c) => c.is_self) ?? null,
     [contacts],
   );
+
+  useEffect(() => {
+    setActiveSection(section);
+  }, [section]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setActiveSection(params.get('section') === 'saldos' ? 'saldos' : 'gastos');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   useEffect(() => {
     if (searchParams.get('nlp') !== '1') return;
@@ -206,10 +222,19 @@ export const ExpensesClient = ({
   };
 
   const switchSection = (next: ExpensesSection) => {
+    if (next === activeSection) return;
+    if (next === 'gastos' && !expensesDataLoaded) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('section');
+      router.push(`/expenses?${params.toString()}`);
+      return;
+    }
+    setActiveSection(next);
     const params = new URLSearchParams(searchParams.toString());
     if (next === 'saldos') params.set('section', 'saldos');
     else params.delete('section');
-    router.push(`/expenses?${params.toString()}`);
+    const qs = params.toString();
+    window.history.replaceState(null, '', qs ? `/expenses?${qs}` : '/expenses');
   };
 
   const setUrlParam = (key: string, value: string | null) => {
@@ -263,10 +288,10 @@ export const ExpensesClient = ({
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.expenses.title}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-            {section === 'saldos' ? t.expenses.saldos_subtitle : t.expenses.subtitle}
+            {activeSection === 'saldos' ? t.expenses.saldos_subtitle : t.expenses.subtitle}
           </p>
         </div>
-        {section === 'gastos' && (
+        {activeSection === 'gastos' && (
         <div className="flex items-center gap-2 shrink-0">
           <input
             ref={fileInputRef}
@@ -317,7 +342,7 @@ export const ExpensesClient = ({
             type="button"
             onClick={() => switchSection('gastos')}
             className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              section === 'gastos'
+              activeSection === 'gastos'
                 ? 'bg-white dark:bg-slate-700 shadow-sm'
                 : 'text-slate-500 dark:text-slate-400'
             }`}
@@ -329,7 +354,7 @@ export const ExpensesClient = ({
             type="button"
             onClick={() => switchSection('saldos')}
             className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              section === 'saldos'
+              activeSection === 'saldos'
                 ? 'bg-white dark:bg-slate-700 shadow-sm'
                 : 'text-slate-500 dark:text-slate-400'
             }`}
@@ -339,7 +364,7 @@ export const ExpensesClient = ({
           </button>
         </div>
 
-        {section === 'gastos' && (
+        {activeSection === 'gastos' && (
           <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto sm:ml-auto">
             <button
               type="button"
@@ -372,7 +397,7 @@ export const ExpensesClient = ({
         )}
       </div>
 
-      {section === 'saldos' ? (
+      {activeSection === 'saldos' ? (
         <SaldosTab balances={balances} contacts={contacts} payments={payments} />
       ) : (
       <>
