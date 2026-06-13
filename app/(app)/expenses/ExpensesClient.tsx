@@ -34,8 +34,6 @@ import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
 import { PaymentQuickSheet, type PaymentQuickCreditor } from '@/components/PaymentQuickSheet';
 import { NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
 import { openCommandPalette } from '@/lib/commandPalette';
-import { FeatureTip } from '@/components/FeatureTip';
-import { FEATURE_TIP_IDS } from '@/lib/featureTips';
 import { RecurringSuggestionsBanner } from './RecurringSuggestionsBanner';
 import type { RecurringSuggestion } from '@/lib/recurringSuggest';
 
@@ -345,13 +343,19 @@ export const ExpensesClient = ({
       </header>
 
       {activeSection === 'gastos' && (
-        <FeatureTip
-          id={FEATURE_TIP_IDS.expensesNlp}
-          title={t.tips.expenses_nlp_title}
-          description={t.tips.expenses_nlp_desc}
-          ctaLabel={t.tips.expenses_nlp_cta}
-          onCta={() => openCommandPalette()}
-        />
+        <button
+          type="button"
+          onClick={() => openCommandPalette()}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 text-left hover:border-sky-300 dark:hover:border-sky-600 transition-colors"
+        >
+          <Search className="w-4 h-4 text-slate-400 shrink-0" />
+          <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex-1 min-w-0 leading-snug">
+            {t.expenses.search_nlp_hint}
+          </span>
+          <span className="hidden sm:inline text-xs font-medium text-sky-600 dark:text-sky-400 shrink-0">
+            ⌘K
+          </span>
+        </button>
       )}
 
       {activeSection === 'gastos' && recurringSuggestions.length > 0 && (

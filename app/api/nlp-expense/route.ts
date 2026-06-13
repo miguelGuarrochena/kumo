@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getSubscription } from '@/lib/subscription';
 import { getMessages } from '@/lib/i18n/server';
 import { parseExpenseFromText } from '@/lib/nlp/geminiExpense';
-import { looksLikeExpenseIntent } from '@/lib/nlp/detect';
+import { looksExpenseIntent } from '@/lib/nlp/detect';
 
 export const maxDuration = 15;
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   if (text.length < 4 || text.length > 300) {
     return NextResponse.json({ error: 'Texto inválido' }, { status: 400 });
   }
-  if (!looksLikeExpenseIntent(text)) {
+  if (!looksExpenseIntent(text)) {
     return NextResponse.json(
       { error: 'No parece un gasto. Probá algo como "gasté 5000 en el super".', code: 'NOT_EXPENSE' },
       { status: 400 },

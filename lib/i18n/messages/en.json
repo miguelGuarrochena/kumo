@@ -28,7 +28,12 @@
     "no_results": "No results"
   },
   "command": {
-    "placeholder": "Search expenses, reminders, pages…",
+    "placeholder": "Search… · e.g. 5000 groceries",
+    "empty_title": "What do you want to do?",
+    "empty_search": "Find expenses, reminders, pages, and more.",
+    "empty_nlp_title": "Add an expense by typing",
+    "empty_nlp_desc": "Try \"5000 groceries\" or \"spent 50 on uber\". Pick Add expense with AI.",
+    "nlp_footnote": "AI expense entry requires Pro plan",
     "quick_actions": "Quick actions",
     "results": "Results",
     "navigate": "Navigate",
@@ -105,6 +110,8 @@
   "expenses": {
     "title": "Expenses",
     "subtitle": "Log, filter, and review your expenses.",
+    "search_nlp_hint": "You can also add an expense in Search — e.g. \"5000 groceries\" (Pro plan).",
+    "search_nlp_hint_short": "Search · add expenses by typing too",
     "new": "New",
     "scan": "Scan receipt",
     "scan_pro_only": "Receipt scanning is paid (uses AI). Tap to see pricing.",

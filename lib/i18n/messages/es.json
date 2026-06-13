@@ -28,7 +28,12 @@
     "no_results": "Sin resultados"
   },
   "command": {
-    "placeholder": "Buscar gastos, recordatorios, páginas…",
+    "placeholder": "Buscar… · ej. 5000 supermercado",
+    "empty_title": "¿Qué querés hacer?",
+    "empty_search": "Buscá gastos, recordatorios, páginas y más.",
+    "empty_nlp_title": "Cargar un gasto escribiendo",
+    "empty_nlp_desc": "Ejemplo: «5000 supermercado» o «gasté 5000 en el super». Aparece Agregar gasto con IA.",
+    "nlp_footnote": "Cargar gasto con IA requiere plan Pro",
     "quick_actions": "Acciones rápidas",
     "results": "Resultados",
     "navigate": "Navegar",
@@ -105,6 +110,8 @@
   "expenses": {
     "title": "Gastos",
     "subtitle": "Cargá, filtrá y revisá tus gastos.",
+    "search_nlp_hint": "También podés cargar un gasto escribiendo en Buscar — ej. «5000 supermercado» (plan Pro).",
+    "search_nlp_hint_short": "Buscar · también cargar gastos con texto",
     "new": "Nuevo",
     "scan": "Escanear ticket",
     "scan_pro_only": "Escanear tickets es de pago (usa IA). Tocá para ver el precio.",

@@ -44,7 +44,7 @@ test.describe('Authenticated flows', () => {
     await page.goto('/expenses');
     const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
     await page.keyboard.press(`${mod}+KeyK`);
-    const input = page.getByPlaceholder(/buscar gastos|search expenses/i);
+    const input = page.getByPlaceholder(/5000 supermercado|5000 groceries/i);
     await expect(input).toBeVisible();
     await input.fill('gasté 5000 en el super');
     await expect(page.getByText(/agregar gasto con ia|add expense with ai/i)).toBeVisible();
@@ -54,7 +54,7 @@ test.describe('Authenticated flows', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/expenses');
     await page.getByRole('button', { name: /^buscar$|^search$/i }).click();
-    await expect(page.getByPlaceholder(/buscar gastos|search expenses/i)).toBeVisible();
+    await expect(page.getByPlaceholder(/5000 supermercado|5000 groceries/i)).toBeVisible();
   });
 
   test('tab Gastos ↔ Saldos cambia sin recargar', async ({ page }) => {
@@ -66,14 +66,8 @@ test.describe('Authenticated flows', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/gastos|expenses/i);
   });
 
-  test('tip del buscador visible la primera vez en gastos', async ({ page }) => {
+  test('hint de cargar gasto visible en gastos', async ({ page }) => {
     await page.goto('/expenses');
-    await page.evaluate(() => {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith('kumo_tip_dismissed_'))
-        .forEach((k) => localStorage.removeItem(k));
-    });
-    await page.reload();
-    await expect(page.getByText(/buscador|search also adds/i)).toBeVisible();
+    await expect(page.getByText(/5000 supermercado|5000 groceries/i)).toBeVisible();
   });
 });

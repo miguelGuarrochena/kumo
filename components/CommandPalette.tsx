@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { searchEverywhere, type SearchResult } from '@/app/(app)/searchActions';
 import { useT } from '@/lib/i18n/client';
-import { looksLikeExpenseIntent, NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
+import { looksExpenseIntent, NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
 import { COMMAND_PALETTE_OPEN_EVENT, type OpenCommandPaletteOptions } from '@/lib/commandPalette';
 import { track } from '@/lib/analytics';
 
@@ -132,7 +132,7 @@ export const CommandPalette = () => {
 
   const nlpItem: NlpAction | null = useMemo(() => {
     const q = query.trim();
-    if (!looksLikeExpenseIntent(q)) return null;
+    if (!looksExpenseIntent(q)) return null;
     return {
       type: 'nlp',
       id: 'nlp-expense',
@@ -247,7 +247,7 @@ export const CommandPalette = () => {
 
         <div className="overflow-y-auto py-1">
           {combined.length === 0 ? (
-            <EmptyState query={query} minChars={t.command.min_chars} noResults={t.command.no_results} />
+            <EmptyState query={query} noResults={t.command.no_results} />
           ) : (
             <>
               {nlpItem && (
@@ -302,7 +302,9 @@ export const CommandPalette = () => {
           )}
         </div>
 
-        <div className="border-t border-slate-100 dark:border-slate-700/60 px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between bg-slate-50 dark:bg-slate-800/40">
+        <div className="border-t border-slate-100 dark:border-slate-700/60 px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/40 space-y-1.5">
+          <p className="text-sky-600/90 dark:text-sky-400/90">{t.command.nlp_footnote}</p>
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 font-mono text-[10px]">↑↓</kbd>
@@ -317,6 +319,7 @@ export const CommandPalette = () => {
             <kbd className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 font-mono text-[10px]">⌘K</kbd>
             {' '}{t.command.open_shortcut}
           </span>
+          </div>
         </div>
       </div>
     </div>
@@ -376,28 +379,48 @@ const ResultRow = ({
 
 const EmptyState = ({
   query,
-  minChars,
   noResults,
 }: {
   query: string;
-  minChars: string;
   noResults: string;
-}) => (
-  <div className="px-6 py-10 text-center">
-    {query.trim().length < 2 ? (
-      <>
-        <Search className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">{minChars}</p>
-      </>
-    ) : (
-      <>
+}) => {
+  const { t } = useT();
+  const q = query.trim();
+
+  if (q.length >= 2) {
+    return (
+      <div className="px-6 py-10 text-center">
         <div className="w-8 h-8 mx-auto mb-2 rounded-full bg-slate-100 dark:bg-slate-700 grid place-items-center">
           <Plus className="w-4 h-4 text-slate-400 rotate-45" />
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           {noResults.replace('{query}', query)}
         </p>
-      </>
-    )}
-  </div>
-);
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 py-4 space-y-3">
+      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">
+        {t.command.empty_title}
+      </p>
+      <div className="px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/40 text-sm text-slate-600 dark:text-slate-300">
+        {t.command.empty_search}
+      </div>
+      <div className="px-3 py-2.5 rounded-xl border border-sky-200/80 dark:border-sky-800/60 bg-sky-50/60 dark:bg-sky-900/15">
+        <div className="flex items-start gap-2.5">
+          <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+              {t.command.empty_nlp_title}
+            </p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+              {t.command.empty_nlp_desc}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
