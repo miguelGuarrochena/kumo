@@ -39,4 +39,36 @@ test.describe('Authenticated flows', () => {
     await page.locator('aside').getByRole('button').first().click();
     await expect(page.getByRole('listbox')).toBeVisible();
   });
+
+  test('command palette abre con ⌘K y muestra NLP', async ({ page }) => {
+    await page.goto('/expenses');
+    const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${mod}+KeyK`);
+    const input = page.getByPlaceholder(/gasté 5000|spent 5000/i);
+    await expect(input).toBeVisible();
+    await input.fill('gasté 5000 en el super');
+    await expect(page.getByText(/agregar gasto con ia|add expense with ai/i)).toBeVisible();
+  });
+
+  test('botón Con IA en gastos abre command palette', async ({ page }) => {
+    await page.goto('/expenses');
+    await page.getByRole('button', { name: /con ia|with ai/i }).click();
+    await expect(page.getByPlaceholder(/gasté 5000|spent 5000/i)).toBeVisible();
+  });
+
+  test('buscar en mobile abre command palette', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/expenses');
+    await page.getByRole('button', { name: /^buscar$|^search$/i }).click();
+    await expect(page.getByPlaceholder(/gasté 5000|spent 5000/i)).toBeVisible();
+  });
+
+  test('tab Gastos ↔ Saldos cambia sin recargar', async ({ page }) => {
+    await page.goto('/expenses');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/gastos|expenses/i);
+    await page.getByRole('button', { name: /^saldos$|^balances$/i }).click();
+    await expect(page.locator('body')).toContainText(/saldo|balance|deuda|owe/i);
+    await page.getByRole('button', { name: /^gastos$|^expenses$/i }).first().click();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/gastos|expenses/i);
+  });
 });

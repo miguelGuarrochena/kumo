@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check, BarChart3, PiggyBank } from 'lucide-react';
+import { ArrowLeft, Settings, Tags, FileText, Shield, LogOut, Check, BarChart3, PiggyBank, Search } from 'lucide-react';
 import { CloudLogo } from './CloudLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { Sheet } from './Sheet';
@@ -11,6 +11,7 @@ import { WorkspaceSwitcher, type WorkspaceOption } from './WorkspaceSwitcher';
 import { createClient } from '@/lib/supabase/client';
 import { resetAnalytics } from '@/lib/analytics';
 import { useT, setLocale } from '@/lib/i18n/client';
+import { openCommandPalette } from '@/lib/commandPalette';
 import type { Locale } from '@/lib/i18n/types';
 
 type Props = {
@@ -76,6 +77,15 @@ export const MobileHeader = ({ userEmail, workspaces, activeWorkspaceId }: Props
         </Link>
 
         <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => openCommandPalette()}
+            className="w-9 h-9 rounded-full grid place-items-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            aria-label={t.command.search_label}
+            title={t.command.search_title}
+          >
+            <Search className="w-5 h-5" />
+          </button>
           <ThemeToggle compact />
           <button
             type="button"

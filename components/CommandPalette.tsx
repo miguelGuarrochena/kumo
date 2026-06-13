@@ -14,6 +14,7 @@ import {
 import { searchEverywhere, type SearchResult } from '@/app/(app)/searchActions';
 import { useT } from '@/lib/i18n/client';
 import { looksLikeExpenseIntent, NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
+import { COMMAND_PALETTE_OPEN_EVENT, type OpenCommandPaletteOptions } from '@/lib/commandPalette';
 import { track } from '@/lib/analytics';
 
 type QuickAction = {
@@ -84,6 +85,16 @@ export const CommandPalette = () => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
+
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent<OpenCommandPaletteOptions>).detail;
+      setOpen(true);
+      if (detail?.query) setQuery(detail.query);
+    };
+    window.addEventListener(COMMAND_PALETTE_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(COMMAND_PALETTE_OPEN_EVENT, onOpen);
+  }, []);
 
   // Focus input al abrir
   useEffect(() => {
