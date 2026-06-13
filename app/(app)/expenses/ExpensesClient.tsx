@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -32,6 +32,7 @@ import { FilterChip } from './FilterChip';
 import { ExportMenu } from './ExportMenu';
 import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
 import { PaymentQuickSheet, type PaymentQuickCreditor } from '@/components/PaymentQuickSheet';
+import { NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
 
 type ExpensesSection = 'gastos' | 'saldos';
 
@@ -95,6 +96,7 @@ export const ExpensesClient = ({
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<ExtractedExpense | null>(null);
+  const [aiSource, setAiSource] = useState<'ocr' | 'nlp' | null>(null);
   const [splitPay, setSplitPay] = useState<{
     creditor: PaymentQuickCreditor;
     amount: number;
@@ -107,6 +109,27 @@ export const ExpensesClient = ({
     () => contacts.find((c) => c.is_self) ?? null,
     [contacts],
   );
+
+  useEffect(() => {
+    if (searchParams.get('nlp') !== '1') return;
+    const raw = sessionStorage.getItem(NLP_EXPENSE_STORAGE_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(NLP_EXPENSE_STORAGE_KEY);
+    try {
+      const parsed = JSON.parse(raw) as ExtractedExpense;
+      setAiSuggestion(parsed);
+      setAiSource('nlp');
+      setCreating(true);
+      toast.success(t.expenses.nlp_done);
+    } catch {
+      toast.error(t.expenses.nlp_failed);
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('nlp');
+    const qs = params.toString();
+    router.replace(qs ? `/expenses?${qs}` : '/expenses', { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const resolveCreditor = (expense: Expense): PaymentQuickCreditor | null => {
     const payerId = expense.paid_by_contact_id ?? selfContact?.id;
@@ -150,6 +173,7 @@ export const ExpensesClient = ({
         return;
       }
       setAiSuggestion(data as ExtractedExpense);
+      setAiSource('ocr');
       setCreating(true);
       toast.success(t.expenses.ocr_done);
       track('photo_ocr_used', { success: true });
@@ -642,6 +666,7 @@ export const ExpensesClient = ({
         open={!!editing || creating}
         expense={editing}
         aiSuggestion={aiSuggestion}
+        aiSource={aiSource}
         categories={categories}
         contacts={contacts}
         defaultCurrency={defaultCurrency}
@@ -651,6 +676,7 @@ export const ExpensesClient = ({
           setEditing(null);
           setCreating(false);
           setAiSuggestion(null);
+          setAiSource(null);
         }}
       />
 

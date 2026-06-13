@@ -28,7 +28,7 @@
     "no_results": "No results"
   },
   "command": {
-    "placeholder": "Search expenses, reminders, shopping...",
+    "placeholder": "Search or type an expense: spent $50 on groceries",
     "quick_actions": "Quick actions",
     "results": "Results",
     "navigate": "Navigate",
@@ -51,7 +51,10 @@
     "action_categories": "Go to Categories",
     "action_settings": "Go to Settings",
     "shopping_bought": "bought",
-    "shopping_pending": "pending"
+    "shopping_pending": "pending",
+    "nlp_add_expense": "Add expense with AI",
+    "nlp_processing": "Parsing expense...",
+    "nlp_hint": "AI · Pro"
   },
   "nav": {
     "dashboard": "Home",
@@ -107,6 +110,10 @@
     "scan_pro_only": "Receipt scanning is paid (uses AI). Tap to see pricing.",
     "ocr_processing": "Reading your receipt...",
     "ocr_done": "Receipt processed — review the data",
+    "nlp_done": "Expense parsed — review the details",
+    "nlp_failed": "Could not parse the expense",
+    "nlp_extracted_title": "Expense parsed from text",
+    "nlp_extracted_review": "Review amount, date, and category before saving.",
     "ocr_extracted_title": "AI-extracted data",
     "ocr_extracted_review": "Review amount, date, and category before saving.",
     "ocr_merchant_detected": "Merchant detected: {merchant}.",

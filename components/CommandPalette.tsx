@@ -6,12 +6,15 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Search, Wallet, Bell, ShoppingCart, Tags, Settings,
-  CalendarDays, BarChart3, ArrowRight, Loader2, Plus,
+  CalendarDays, BarChart3, ArrowRight, Loader2, Plus, Sparkles,
 } from 'lucide-react';
 import { searchEverywhere, type SearchResult } from '@/app/(app)/searchActions';
 import { useT } from '@/lib/i18n/client';
+import { looksLikeExpenseIntent, NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
+import { track } from '@/lib/analytics';
 
 type QuickAction = {
   type: 'action';
@@ -21,6 +24,16 @@ type QuickAction = {
   href: string;
   icon: typeof Wallet;
 };
+
+type NlpAction = {
+  type: 'nlp';
+  id: string;
+  title: string;
+  subtitle: string;
+  query: string;
+};
+
+type Combined = QuickAction | SearchResult | NlpAction;
 
 const ICON_FOR_TYPE: Record<SearchResult['type'], typeof Wallet> = {
   expense:   Wallet,
@@ -37,6 +50,7 @@ export const CommandPalette = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [highlight, setHighlight] = useState(0);
   const [pending, startTransition] = useTransition();
+  const [nlpLoading, setNlpLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -105,6 +119,18 @@ export const CommandPalette = () => {
     };
   }, [query]);
 
+  const nlpItem: NlpAction | null = useMemo(() => {
+    const q = query.trim();
+    if (!looksLikeExpenseIntent(q)) return null;
+    return {
+      type: 'nlp',
+      id: 'nlp-expense',
+      title: t.command.nlp_add_expense,
+      subtitle: q,
+      query: q,
+    };
+  }, [query, t.command.nlp_add_expense]);
+
   // Filtramos quick actions por la query
   const matchedActions: QuickAction[] = query.trim().length >= 1
     ? quickActions.filter((a) =>
@@ -112,12 +138,54 @@ export const CommandPalette = () => {
       )
     : quickActions.slice(0, 4);
 
-  type Combined = SearchResult | QuickAction;
-  const combined: Combined[] = [...matchedActions, ...results];
+  const combined: Combined[] = useMemo(
+    () => [...(nlpItem ? [nlpItem] : []), ...matchedActions, ...results],
+    [nlpItem, matchedActions, results],
+  );
 
-  const navigate = (item: Combined) => {
+  const runNlpExpense = async (text: string) => {
+    setNlpLoading(true);
+    try {
+      const res = await fetch('/api/nlp-expense', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.code === 'PRO_REQUIRED') {
+          setOpen(false);
+          toast.error(data.error ?? t.expenses.scan_pro_only);
+          router.push('/settings#plans');
+          return;
+        }
+        toast.error(data.error ?? t.expenses.nlp_failed);
+        track('nlp_expense_used', { success: false });
+        return;
+      }
+      sessionStorage.setItem(NLP_EXPENSE_STORAGE_KEY, JSON.stringify(data));
+      setOpen(false);
+      track('nlp_expense_used', { success: true });
+      router.push('/expenses?nlp=1');
+    } catch {
+      toast.error(t.expenses.nlp_failed);
+      track('nlp_expense_used', { success: false });
+    } finally {
+      setNlpLoading(false);
+    }
+  };
+
+  const navigate = (item: QuickAction | SearchResult) => {
     setOpen(false);
     router.push(item.href as never);
+  };
+
+  const pick = async (item: Combined) => {
+    if (item.type === 'nlp') {
+      await runNlpExpense(item.query);
+      return;
+    }
+    navigate(item);
   };
 
   // Keyboard navigation
@@ -131,7 +199,7 @@ export const CommandPalette = () => {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const picked = combined[highlight];
-      if (picked) navigate(picked);
+      if (picked) void pick(picked);
     }
   };
 
@@ -147,7 +215,7 @@ export const CommandPalette = () => {
         className="w-full max-w-xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[70vh]"
       >
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-100 dark:border-slate-700/60">
-          {pending ? (
+          {pending || nlpLoading ? (
             <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />
           ) : (
             <Search className="w-4 h-4 text-slate-400 shrink-0" />
@@ -171,33 +239,47 @@ export const CommandPalette = () => {
             <EmptyState query={query} minChars={t.command.min_chars} noResults={t.command.no_results} />
           ) : (
             <>
+              {nlpItem && (
+                <ResultRow
+                  key="nlp-expense"
+                  active={highlight === 0}
+                  onMouseEnter={() => setHighlight(0)}
+                  onClick={() => void pick(nlpItem)}
+                  icon={<Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400" />}
+                  title={nlpItem.title}
+                  subtitle={nlpLoading ? t.command.nlp_processing : nlpItem.subtitle}
+                  badge={t.command.nlp_hint}
+                />
+              )}
               {matchedActions.length > 0 && (
                 <SectionTitle>{t.command.quick_actions}</SectionTitle>
               )}
-              {matchedActions.map((a, i) => (
+              {matchedActions.map((a, idx) => {
+                const i = (nlpItem ? 1 : 0) + idx;
+                return (
                 <ResultRow
                   key={a.id}
                   active={highlight === i}
                   onMouseEnter={() => setHighlight(i)}
-                  onClick={() => navigate(a)}
+                  onClick={() => void pick(a)}
                   icon={<a.icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                   title={a.title}
                   subtitle={t.command.navigate}
                 />
-              ))}
+              );})}
 
               {results.length > 0 && (
                 <SectionTitle>{t.command.results}</SectionTitle>
               )}
               {results.map((r, idx) => {
-                const i = matchedActions.length + idx;
+                const i = (nlpItem ? 1 : 0) + matchedActions.length + idx;
                 const Icon = ICON_FOR_TYPE[r.type];
                 return (
                   <ResultRow
                     key={`${r.type}-${r.id}`}
                     active={highlight === i}
                     onMouseEnter={() => setHighlight(i)}
-                    onClick={() => navigate(r)}
+                    onClick={() => void pick(r)}
                     icon={<Icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                     title={r.title}
                     subtitle={r.subtitle ?? labelForType[r.type]}

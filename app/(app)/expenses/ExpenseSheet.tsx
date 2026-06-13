@@ -31,6 +31,7 @@ type ExpenseSheetProps = {
   open: boolean;
   expense: Expense | null;
   aiSuggestion?: ExtractedExpense | null;
+  aiSource?: 'ocr' | 'nlp' | null;
   categories: CategoryLite[];
   contacts: ContactLite[];
   defaultCurrency: Currency;
@@ -43,6 +44,7 @@ export const ExpenseSheet = ({
   open,
   expense,
   aiSuggestion,
+  aiSource = null,
   categories,
   contacts,
   defaultCurrency,
@@ -294,7 +296,11 @@ export const ExpenseSheet = ({
         }
         toast.success(expense ? t.expenses.saved_toast : t.expenses.created_toast);
         if (!expense) {
-          track('expense_created', { currency, has_due_date: hasDueDate, via: aiSuggestion ? 'ocr' : 'manual' });
+          track('expense_created', {
+            currency,
+            has_due_date: hasDueDate,
+            via: aiSuggestion ? (aiSource ?? 'ocr') : 'manual',
+          });
         }
         router.refresh();
         onClose();
@@ -355,10 +361,10 @@ export const ExpenseSheet = ({
             <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
             <div className="text-xs">
               <p className="font-medium text-sky-700 dark:text-sky-300">
-                {t.expenses.ocr_extracted_title}
+                {aiSource === 'nlp' ? t.expenses.nlp_extracted_title : t.expenses.ocr_extracted_title}
               </p>
               <p className="text-slate-600 dark:text-slate-400 mt-0.5">
-                {t.expenses.ocr_extracted_review}
+                {aiSource === 'nlp' ? t.expenses.nlp_extracted_review : t.expenses.ocr_extracted_review}
                 {aiSuggestion.merchant && (
                   <> {t.expenses.ocr_merchant_detected.replace('{merchant}', aiSuggestion.merchant)}</>
                 )}
