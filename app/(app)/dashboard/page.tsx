@@ -12,6 +12,7 @@ import { getRates, formatMoney, convertAmount, type Currency } from '@/lib/curre
 import { todayKey, parseLocalDate, daysBetween } from '@/lib/date';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { budgetStatus, type BudgetStatus } from '@/lib/budgets';
+import { monthProgress, projectMonthSpend, shouldShowForecast } from '@/lib/forecast';
 
 type CategoryEmbed = { name: string; color: string } | null;
 type DueExpenseRow = {
@@ -153,6 +154,12 @@ const DashboardPage = async () => {
   const budgetPct = budgetAmount && budgetAmount > 0 ? monthTotal / budgetAmount : null;
   const budgetState: BudgetStatus | null = budgetPct === null ? null : budgetStatus(budgetPct);
 
+  const progress = monthProgress(now);
+  const forecastProjected = projectMonthSpend(monthTotal, progress);
+  const showForecast = forecastProjected !== null && shouldShowForecast(monthCount, progress);
+  const forecastOverBudget =
+    showForecast && budgetAmount != null && budgetAmount > 0 && forecastProjected > budgetAmount;
+
   const dueExpensesArr = (dueExpenses ?? []) as unknown as DueExpenseRow[];
   const upcomingRemArr = (upcomingReminders ?? []) as UpcomingReminderRow[];
   const recentArr = (recentExpenses ?? []) as unknown as RecentExpenseRow[];
@@ -180,21 +187,42 @@ const DashboardPage = async () => {
       )}
 
       {/* Total del mes — hero card */}
-      <Link
-        href="/expenses"
-        className="block kumo-card p-5 sm:p-6 hover:border-sky-300 dark:hover:border-sky-500/40 transition-colors group"
-      >
+      <div className="kumo-card p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold mb-1">
-              {t.expenses.total_month}
-            </p>
-            <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
-              {formatMoney(monthTotal, displayCurrency, locale)}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-              {t.expenses.n_expenses.replace('{n}', String(monthCount))} {t.expenses.in_currency} {displayCurrency}
-            </p>
+          <div className="min-w-0 flex-1">
+            <Link
+              href="/expenses"
+              className="block hover:opacity-90 transition-opacity group"
+            >
+              <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold mb-1">
+                {t.expenses.total_month}
+              </p>
+              <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
+                {formatMoney(monthTotal, displayCurrency, locale)}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                {t.expenses.n_expenses.replace('{n}', String(monthCount))} {t.expenses.in_currency} {displayCurrency}
+              </p>
+            </Link>
+            {showForecast && forecastProjected !== null && (
+              <p
+                className={`text-xs mt-2 ${
+                  forecastOverBudget
+                    ? 'text-amber-600 dark:text-amber-400 font-medium'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {forecastOverBudget && budgetAmount != null
+                  ? t.dashboard.forecast_over_budget.replace(
+                      '{amount}',
+                      formatMoney(budgetAmount, displayCurrency, locale),
+                    )
+                  : t.dashboard.forecast.replace(
+                      '{amount}',
+                      formatMoney(forecastProjected, displayCurrency, locale),
+                    )}
+              </p>
+            )}
             {budgetPct !== null && budgetState !== null && budgetAmount !== null && (
               <Link href="/budgets" className="mt-3 max-w-xs space-y-1 block hover:opacity-90">
                 <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700/60 overflow-hidden">
@@ -209,11 +237,14 @@ const DashboardPage = async () => {
               </Link>
             )}
           </div>
-          <div className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 grid place-items-center shrink-0 group-hover:scale-110 transition-transform">
+          <Link
+            href="/expenses"
+            className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 grid place-items-center shrink-0 hover:scale-110 transition-transform"
+          >
             <TrendingUp className="w-5 h-5" />
-          </div>
+          </Link>
         </div>
-      </Link>
+      </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">

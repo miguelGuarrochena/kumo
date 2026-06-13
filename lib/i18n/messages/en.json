@@ -95,7 +95,9 @@
     "see_all": "See all",
     "upcoming_7_days": "Next 7 days",
     "recent_expenses": "Recent expenses",
-    "empty_hint": "When you add expenses or reminders, they'll show up here."
+    "empty_hint": "When you add expenses or reminders, they'll show up here.",
+    "forecast": "At this pace you'd spend {amount} by month end",
+    "forecast_over_budget": "Would exceed your budget ({amount})"
   },
   "expenses": {
     "title": "Expenses",

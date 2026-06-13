@@ -95,7 +95,9 @@
     "see_all": "Ver todo",
     "upcoming_7_days": "Próximos 7 días",
     "recent_expenses": "Últimos gastos",
-    "empty_hint": "Cuando cargues gastos o recordatorios, te los mostramos acá."
+    "empty_hint": "Cuando cargues gastos o recordatorios, te los mostramos acá.",
+    "forecast": "A este ritmo cerrarías en {amount}",
+    "forecast_over_budget": "Superarías el presupuesto ({amount})"
   },
   "expenses": {
     "title": "Gastos",
