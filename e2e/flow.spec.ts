@@ -71,4 +71,15 @@ test.describe('Authenticated flows', () => {
     await page.getByRole('button', { name: /^gastos$|^expenses$/i }).first().click();
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/gastos|expenses/i);
   });
+
+  test('tip de IA visible la primera vez en gastos', async ({ page }) => {
+    await page.goto('/expenses');
+    await page.evaluate(() => {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('kumo_tip_dismissed_'))
+        .forEach((k) => localStorage.removeItem(k));
+    });
+    await page.reload();
+    await expect(page.getByText(/cargá gastos|cargar gastos|add expenses|plain language/i)).toBeVisible();
+  });
 });

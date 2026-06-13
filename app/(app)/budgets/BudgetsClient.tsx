@@ -7,6 +7,8 @@ import { Pencil, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { Sheet } from '@/components/Sheet';
 import { useT } from '@/lib/i18n/client';
 import { iconFor, colorStyleFor } from '@/lib/categoryVisuals';
+import { FeatureTip } from '@/components/FeatureTip';
+import { FEATURE_TIP_IDS } from '@/lib/featureTips';
 import { formatMoney, CURRENCIES, type Currency } from '@/lib/currency';
 import { budgetStatus, type BudgetStatus } from '@/lib/budgets';
 import type { Locale } from '@/lib/i18n/types';
@@ -49,6 +51,12 @@ export const BudgetsClient = ({ overall, categories, defaultCurrency, locale }: 
 
   return (
     <>
+      <FeatureTip
+        id={FEATURE_TIP_IDS.budgetsIntro}
+        title={t.tips.budgets_title}
+        description={t.tips.budgets_desc}
+      />
+
       <BudgetCard data={overall} locale={locale} featured onEdit={() => setEditing(overall)} />
 
       <div>

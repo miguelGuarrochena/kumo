@@ -7,6 +7,12 @@ test.describe('Public routes', () => {
     await expect(page.getByRole('link', { name: /empezar|get started/i }).first()).toBeVisible();
   });
 
+  test('landing explica gratis vs Pro', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('body')).toContainText(/gratis/i);
+    await expect(page.locator('body')).toContainText(/lenguaje natural/i);
+  });
+
   test('login page carga con botón Google', async ({ page }) => {
     await page.goto('/auth/login');
     await expect(page.getByRole('button', { name: /google/i })).toBeVisible();

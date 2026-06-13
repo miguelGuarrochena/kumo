@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer';
 import { StructuredData } from '@/components/StructuredData';
 import {
   Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight,
+  Sparkles, PiggyBank,
 } from 'lucide-react';
 import { getPricing } from '@/lib/pricing';
 import { isWaBillingEnabled } from '@/lib/billing/waBilling';
@@ -51,10 +52,28 @@ const HomePage = async () => {
           <span className="kumo-gradient-text">como una nube perfecta</span>
         </h1>
 
-        <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
-          Cargá gastos en segundos, programá vencimientos, recibí avisos por push
-          y nunca te olvides de un cumpleaños ni de pagar el alquiler.
+        <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-6">
+          <strong className="text-slate-800 dark:text-slate-200">Gratis:</strong> gastos, dividir cuentas,
+          presupuestos, calendario, compras, push y espacios compartidos.
+          <span className="block mt-2">
+            <strong className="text-slate-800 dark:text-slate-200">Opcional (Pro):</strong> escaneá tickets
+            o escribí <em className="not-italic text-sky-600 dark:text-sky-400">«gasté 5000 en el super»</em> con IA.
+          </span>
         </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-8 max-w-xl mx-auto">
+          {['Gastos', 'Presupuestos', 'Dividir', 'Calendario', 'Push'].map((label) => (
+            <span
+              key={label}
+              className="text-xs font-medium px-2.5 py-1 rounded-full bg-mint-100 dark:bg-mint-500/20 text-mint-700 dark:text-mint-300"
+            >
+              {label} · gratis
+            </span>
+          ))}
+          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300">
+            IA · Pro
+          </span>
+        </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
@@ -96,8 +115,20 @@ const HomePage = async () => {
           <Feature
             icon={<Camera className="w-5 h-5" />}
             tone="lavender"
-            title="Foto del ticket"
-            description="Sacá una foto del ticket y la IA extrae monto, comercio, fecha y categoría. Vos solo confirmás."
+            title="Foto del ticket (Pro)"
+            description="Sacá una foto y la IA extrae monto, comercio, fecha y categoría. Vos solo confirmás."
+          />
+          <Feature
+            icon={<Sparkles className="w-5 h-5" />}
+            tone="lavender"
+            title="Lenguaje natural (Pro)"
+            description="Escribí «gasté 5000 en el super» desde Buscar o Con IA. Mismo plan que el escaneo OCR."
+          />
+          <Feature
+            icon={<PiggyBank className="w-5 h-5" />}
+            tone="mint"
+            title="Presupuestos"
+            description="Tope mensual total o por categoría. Aviso push al 80% y si te pasás. Gratis."
           />
           <Feature
             icon={<MessageCircle className="w-5 h-5" />}
@@ -135,7 +166,7 @@ const HomePage = async () => {
 
         <div className="space-y-3">
           {([
-            { icon: Camera, title: 'Escaneo OCR', price: pricing.ocr.monthly, desc: 'Foto del ticket → IA extrae monto y categoría.', available: true, highlight: !waBillingOn },
+            { icon: Camera, title: 'IA para gastos', price: pricing.ocr.monthly, desc: 'Escaneá tickets o escribí en lenguaje natural. Gemini interpreta, vos confirmás.', available: true, highlight: !waBillingOn },
             { icon: MessageCircle, title: 'WhatsApp automático', price: pricing.wa.monthly, desc: 'Kumo avisa solo antes de vencimientos y recordatorios.', available: waBillingOn },
             { icon: Wallet, title: 'Kumo Pro (combo)', price: pricing.bundle.monthly, desc: 'Escaneá tickets y que Kumo avise solo por WhatsApp.', available: waBillingOn, highlight: waBillingOn },
           ] as { icon: typeof Camera; title: string; price: string; desc: string; available: boolean; highlight?: boolean }[]).map(({ icon: Icon, title, price, desc, available, highlight }) => (
@@ -184,7 +215,7 @@ const HomePage = async () => {
           <Step
             n="2"
             title="Cargá tus primeros gastos"
-            description="Con la cámara, escribiéndolos o desde un ticket pasado. Vienen categorías por default."
+            description="A mano, con la cámara, escribiendo «gasté X en Y» (Pro) o dejando que Kumo detecte gastos repetidos."
           />
           <Step
             n="3"

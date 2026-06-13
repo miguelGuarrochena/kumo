@@ -26,6 +26,7 @@ import type { ContactLite as SplitContactLite } from './splitTypes';
 import { toggleNotifyContactId } from '@/lib/notifyContacts';
 import { WA_MAX_RECIPIENTS } from '@/lib/notifications/waLimitsClient';
 import { suggestCategory } from './suggestCategoryAction';
+import { suggestRecurring } from './suggestRecurringAction';
 
 type ExpenseSheetProps = {
   open: boolean;
@@ -73,6 +74,11 @@ export const ExpenseSheet = ({
   const [extraSplitContacts, setExtraSplitContacts] = useState<SplitContactLite[]>([]);
   const [categoryManual, setCategoryManual] = useState(false);
   const [suggestedCategoryId, setSuggestedCategoryId] = useState<string | null>(null);
+  const [recurringSuggest, setRecurringSuggest] = useState<{
+    recurrenceType: 'monthly' | 'weekly' | 'yearly';
+    matchCount: number;
+  } | null>(null);
+  const [recurringDismissed, setRecurringDismissed] = useState(false);
 
   useEffect(() => {
     if (!open) setExtraSplitContacts([]);
@@ -134,6 +140,8 @@ export const ExpenseSheet = ({
       setCategoryManual(false);
     }
     setSuggestedCategoryId(null);
+    setRecurringSuggest(null);
+    setRecurringDismissed(false);
     if (!expense) {
       setSplitOn(false);
       setSplitState(emptySplitState());
@@ -163,6 +171,35 @@ export const ExpenseSheet = ({
       clearTimeout(timer);
     };
   }, [description, open, expense, aiSuggestion, categoryManual]);
+
+  useEffect(() => {
+    if (!open || expense || isRecurring || recurringDismissed) {
+      setRecurringSuggest(null);
+      return;
+    }
+    const desc = description.trim();
+    if (desc.length < 2) {
+      setRecurringSuggest(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const result = await suggestRecurring(desc);
+      if (cancelled) return;
+      if (result.suggest) {
+        setRecurringSuggest({
+          recurrenceType: result.recurrenceType,
+          matchCount: result.matchCount,
+        });
+      } else {
+        setRecurringSuggest(null);
+      }
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [description, open, expense, isRecurring, recurringDismissed]);
 
   useEffect(() => {
     if (!open || !expense?.id) return;
@@ -526,6 +563,44 @@ export const ExpenseSheet = ({
         </div>
 
         <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2">
+          {!isRecurring && recurringSuggest && !expense && (
+            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60">
+              <p className="text-xs text-amber-800 dark:text-amber-200 flex-1">
+                {t.expenses.recurring_inline_hint
+                  .replace('{count}', String(recurringSuggest.matchCount))
+                  .replace(
+                    '{period}',
+                    recurringSuggest.recurrenceType === 'weekly'
+                      ? t.expenses.recurrence_weekly.toLowerCase()
+                      : recurringSuggest.recurrenceType === 'yearly'
+                        ? t.expenses.recurrence_yearly.toLowerCase()
+                        : t.expenses.recurrence_monthly.toLowerCase(),
+                  )}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRecurring(true);
+                  setRecurrenceType(recurringSuggest.recurrenceType);
+                  setRecurringSuggest(null);
+                }}
+                className="shrink-0 text-xs font-medium text-amber-700 dark:text-amber-300 hover:underline"
+              >
+                {t.expenses.recurring_inline_yes}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRecurringDismissed(true);
+                  setRecurringSuggest(null);
+                }}
+                className="shrink-0 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 px-1"
+                aria-label={t.common.close}
+              >
+                ×
+              </button>
+            </div>
+          )}
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

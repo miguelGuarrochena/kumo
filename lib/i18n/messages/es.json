@@ -145,6 +145,12 @@
     "recurrence_weekly": "Semanal",
     "recurrence_monthly": "Mensual",
     "recurrence_yearly": "Anual",
+    "recurring_suggest_title": "¿{name} es recurrente?",
+    "recurring_suggest_desc": "Lo cargaste {count} veces — parece un gasto {period}.",
+    "recurring_suggest_cta": "Marcar {period}",
+    "recurring_marked": "Gasto marcado como recurrente",
+    "recurring_inline_hint": "Lo cargaste {count} veces — parece {period}.",
+    "recurring_inline_yes": "Sí, marcar",
     "notify_who": "Avisar a",
     "notify_who_desc": "A quién mandamos WhatsApp cuando se acerque el vencimiento.",
     "notify_who_desc_wa": "WhatsApp automático: hasta {max} contactos por vencimiento (incluido en tu plan).",
@@ -470,6 +476,13 @@
     "progress": "{done}/{total} completados",
     "skip": "Saltar por ahora",
     "skipping": "Listo, podés volver a este checklist desde Configuración."
+  },
+  "tips": {
+    "expenses_nlp_title": "Cargá gastos hablando",
+    "expenses_nlp_desc": "Tocá Con IA o Buscar (⌘K) y escribí algo como «gasté 5000 en el super». La IA completa monto, fecha y categoría.",
+    "expenses_nlp_cta": "Probar ahora",
+    "budgets_title": "Presupuestos del mes",
+    "budgets_desc": "Definí un tope total o por categoría. Kumo te avisa por push si llegás al 80% o te pasás."
   },
   "settings": {
     "title": "Configuración",

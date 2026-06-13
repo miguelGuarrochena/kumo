@@ -3,6 +3,7 @@ import { ExpensesClient } from './ExpensesClient';
 import { getRates, convertAmount, type Currency } from '@/lib/currency';
 import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
+import { findRecurringCandidates, type ExpenseRecurringRow } from '@/lib/recurringSuggest';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { EXPENSES_PAGE_SIZE, clampPage, pageRange } from '@/lib/pagination';
 import type { BalanceRow, PaymentRow } from '../split/types';
@@ -276,6 +277,23 @@ const ExpensesPage = async ({
 
   const pricing = getPricing();
 
+  let recurringSuggestions: ReturnType<typeof findRecurringCandidates> = [];
+  if (section !== 'saldos') {
+    const since = new Date();
+    since.setDate(since.getDate() - 180);
+    const { data: recurringHistory } = await supabase
+      .from('expenses')
+      .select('id, description, amount, expense_date, is_recurring')
+      .eq('workspace_id', ctx.workspaceId)
+      .gte('expense_date', since.toISOString().slice(0, 10))
+      .not('description', 'is', null)
+      .order('expense_date', { ascending: false })
+      .limit(300);
+    recurringSuggestions = findRecurringCandidates(
+      (recurringHistory ?? []) as ExpenseRecurringRow[],
+    );
+  }
+
   return (
     <ExpensesClient
       section={section}
@@ -298,6 +316,7 @@ const ExpensesPage = async ({
       hasWa={subscription.hasWa}
       trialDaysLeft={subscription.daysLeftInTrial}
       pricing={pricing}
+      recurringSuggestions={recurringSuggestions}
       filters={{
         q: params.q ?? '',
         cat: params.cat?.split(',').filter(Boolean) ?? [],

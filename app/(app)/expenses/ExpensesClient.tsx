@@ -34,6 +34,10 @@ import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
 import { PaymentQuickSheet, type PaymentQuickCreditor } from '@/components/PaymentQuickSheet';
 import { NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
 import { openCommandPalette } from '@/lib/commandPalette';
+import { FeatureTip } from '@/components/FeatureTip';
+import { FEATURE_TIP_IDS } from '@/lib/featureTips';
+import { RecurringSuggestionsBanner } from './RecurringSuggestionsBanner';
+import type { RecurringSuggestion } from '@/lib/recurringSuggest';
 
 type ExpensesSection = 'gastos' | 'saldos';
 
@@ -59,6 +63,7 @@ type Props = {
   hasWa: boolean;
   trialDaysLeft: number | null;
   pricing: import('@/lib/pricing').Pricing;
+  recurringSuggestions: RecurringSuggestion[];
 };
 
 export const ExpensesClient = ({
@@ -83,6 +88,7 @@ export const ExpensesClient = ({
   hasWa,
   trialDaysLeft,
   pricing,
+  recurringSuggestions,
 }: Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -362,6 +368,20 @@ export const ExpensesClient = ({
         </div>
         )}
       </header>
+
+      {activeSection === 'gastos' && (
+        <FeatureTip
+          id={FEATURE_TIP_IDS.expensesNlp}
+          title={t.tips.expenses_nlp_title}
+          description={t.tips.expenses_nlp_desc}
+          ctaLabel={t.tips.expenses_nlp_cta}
+          onCta={() => openCommandPalette()}
+        />
+      )}
+
+      {activeSection === 'gastos' && recurringSuggestions.length > 0 && (
+        <RecurringSuggestionsBanner suggestions={recurringSuggestions} />
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 w-full sm:w-auto sm:min-w-[14rem]">

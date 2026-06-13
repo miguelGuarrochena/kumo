@@ -145,6 +145,12 @@
     "recurrence_weekly": "Weekly",
     "recurrence_monthly": "Monthly",
     "recurrence_yearly": "Yearly",
+    "recurring_suggest_title": "Is {name} recurring?",
+    "recurring_suggest_desc": "You logged it {count} times — looks like a {period} expense.",
+    "recurring_suggest_cta": "Mark as {period}",
+    "recurring_marked": "Expense marked as recurring",
+    "recurring_inline_hint": "Logged {count} times — looks {period}.",
+    "recurring_inline_yes": "Yes, mark it",
     "notify_who": "Notify",
     "notify_who_desc": "Who to WhatsApp when the due date approaches.",
     "notify_who_desc_wa": "Automatic WhatsApp: up to {max} contacts per due date (included in your plan).",
@@ -470,6 +476,13 @@
     "progress": "{done}/{total} completed",
     "skip": "Skip for now",
     "skipping": "Done — you can revisit this checklist from Settings."
+  },
+  "tips": {
+    "expenses_nlp_title": "Add expenses in plain language",
+    "expenses_nlp_desc": "Tap With AI or Search (⌘K) and type something like \"spent 50 on uber\". AI fills amount, date, and category.",
+    "expenses_nlp_cta": "Try it",
+    "budgets_title": "Monthly budgets",
+    "budgets_desc": "Set a total cap or per category. Kumo sends a push alert at 80% and if you go over."
   },
   "settings": {
     "title": "Settings",

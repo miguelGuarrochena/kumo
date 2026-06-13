@@ -102,3 +102,27 @@ export async function togglePaid(id: string, paid: boolean): Promise<{ ok: boole
   revalidatePath('/budgets');
   return { ok: true };
 }
+
+export async function markExpenseRecurring(
+  expenseId: string,
+  recurrenceType: 'monthly' | 'weekly' | 'yearly',
+): Promise<{ ok: boolean; error?: string }> {
+  let ctx;
+  try {
+    ctx = await requireAdmin();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('expenses')
+    .update({ is_recurring: true, recurrence_type: recurrenceType })
+    .eq('id', expenseId)
+    .eq('workspace_id', ctx.workspaceId);
+  if (error) return { ok: false, error: error.message };
+  scheduleExpenseSync(ctx.userId, expenseId);
+  revalidatePath('/expenses');
+  revalidatePath('/dashboard');
+  revalidatePath('/budgets');
+  return { ok: true };
+}
