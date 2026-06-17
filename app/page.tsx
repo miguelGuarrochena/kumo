@@ -53,9 +53,9 @@ const HomePage = async () => {
       {/* Hero */}
       <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 text-center">
         <h1 className="text-4xl sm:text-6xl font-bold tracking-tight mb-5">
-          Tus gastos,
+          {t.tagline_pre}
           <br />
-          <span className="kumo-gradient-text">como una nube perfecta</span>
+          <span className="kumo-gradient-text">{t.tagline_highlight}</span>
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-6">
@@ -86,79 +86,83 @@ const HomePage = async () => {
             href="/auth/login"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl kumo-gradient text-white font-semibold shadow-lg hover:opacity-90 active:scale-95 transition-all"
           >
-            Empezar gratis
+            {t.cta_primary}
             <ArrowRight className="w-4 h-4" />
           </Link>
           <a
             href="#features"
             className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-4 py-3"
           >
-            Ver cómo funciona ↓
+            {t.cta_secondary}
           </a>
         </div>
 
         <p className="mt-6 text-xs text-slate-500 dark:text-slate-500">
-          Sin tarjeta. Sin instalación. Privacidad por diseño.
+          {t.hero_fineprint}
         </p>
       </section>
 
       {/* Features */}
       <section id="features" className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">
-          Todo lo que necesitás para no perder el control
+          {t.features_title}
         </h2>
         <p className="text-center text-slate-500 dark:text-slate-400 mb-10 text-sm sm:text-base">
-          Sin hojas de Excel, sin recordatorios olvidados.
+          {t.features_subtitle}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Feature
             icon={<Wallet className="w-5 h-5" />}
             tone="sky"
-            title="Gastos con categorías"
-            description="Cargá un gasto en 5 segundos. Filtrá por mes, año, categoría o monto. 8 monedas con conversión en vivo."
+            title={t.feature_expenses_title}
+            description={t.feature_expenses_desc}
           />
           <Feature
             icon={<Camera className="w-5 h-5" />}
             tone="lavender"
-            title="Foto del ticket (Pro)"
-            description="Sacá una foto y la IA extrae monto, comercio, fecha y categoría. Vos solo confirmás."
+            title={t.feature_ocr_title}
+            description={t.feature_ocr_desc}
           />
           <Feature
             icon={<Sparkles className="w-5 h-5" />}
             tone="lavender"
-            title="Lenguaje natural (Pro)"
-            description="Escribí «gasté 5000 en el super» en Buscar (⌘K). Mismo plan Pro que el escaneo OCR."
+            title={locale === 'en' ? 'Natural language (Pro)' : 'Lenguaje natural (Pro)'}
+            description={locale === 'en'
+              ? 'Type "I spent 5000 at the supermarket" in Search (⌘K). Same Pro plan as OCR.'
+              : 'Escribí «gasté 5000 en el super» en Buscar (⌘K). Mismo plan Pro que el escaneo OCR.'}
           />
           <Feature
             icon={<PiggyBank className="w-5 h-5" />}
             tone="mint"
-            title="Presupuestos"
-            description="Tope mensual total o por categoría. Aviso push al 80% y si te pasás. Gratis."
+            title={locale === 'en' ? 'Budgets' : 'Presupuestos'}
+            description={locale === 'en'
+              ? 'Monthly cap by total or category. Push alert at 80% and when you cross. Free.'
+              : 'Tope mensual total o por categoría. Aviso push al 80% y si te pasás. Gratis.'}
           />
           <Feature
             icon={<MessageCircle className="w-5 h-5" />}
             tone="mint"
-            title="WhatsApp"
-            description="Avisá manualmente por WhatsApp (gratis) o activá avisos automáticos con plan de pago. Push siempre gratis."
+            title={t.feature_wa_title}
+            description={t.feature_wa_desc}
           />
           <Feature
             icon={<Bell className="w-5 h-5" />}
             tone="rose"
-            title="Recordatorios"
-            description="Citas médicas, cumpleaños, lo que necesites. Con anticipación configurable."
+            title={t.feature_reminders_title}
+            description={t.feature_reminders_desc}
           />
           <Feature
             icon={<BarChart3 className="w-5 h-5" />}
             tone="peach"
-            title="Métricas claras"
-            description="Cuánto, en qué y cuándo. Gráficos por categoría, evolución temporal y comparativas mes a mes."
+            title={t.feature_metrics_title}
+            description={t.feature_metrics_desc}
           />
           <Feature
             icon={<ShoppingCart className="w-5 h-5" />}
             tone="sky"
-            title="Lista de compras"
-            description="Múltiples listas (supermercado, farmacia). Tickeá mientras comprás. Limpiá con un click."
+            title={t.feature_shopping_title}
+            description={t.feature_shopping_desc}
           />
         </div>
       </section>
@@ -210,23 +214,23 @@ const HomePage = async () => {
       {/* How it works */}
       <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
-          Empezar es facilísimo
+          {t.how_title}
         </h2>
         <ol className="space-y-6">
           <Step
             n="1"
-            title="Entrá con Google o email"
-            description="Un click con Google o un magic link a tu casilla. Sin contraseñas ni formularios largos."
+            title={t.step1_title}
+            description={t.step1_desc}
           />
           <Step
             n="2"
-            title="Cargá tus primeros gastos"
-            description="A mano, con la cámara, escribiendo «gasté X en Y» (Pro) o dejando que Kumo detecte gastos repetidos."
+            title={t.step2_title}
+            description={t.step2_desc}
           />
           <Step
             n="3"
-            title="Activá avisos (opcional)"
-            description="Push gratis siempre. WhatsApp manual gratis. Automático con plan de pago si lo querés."
+            title={t.step3_title}
+            description={t.step3_desc}
           />
         </ol>
       </section>
@@ -234,15 +238,15 @@ const HomePage = async () => {
       {/* Final CTA */}
       <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-20 text-center">
         <CloudLogo className="w-16 h-16 mx-auto mb-4" />
-        <h2 className="text-2xl sm:text-3xl font-bold mb-3">Empezá hoy. Es gratis.</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t.final_cta_title}</h2>
         <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm sm:text-base">
-          Tardás menos en empezar que en armar un Excel.
+          {t.final_cta_desc}
         </p>
         <Link
           href="/auth/login"
           className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl kumo-gradient text-white font-semibold shadow-lg hover:opacity-90 active:scale-95 transition-all"
         >
-          Crear mi cuenta
+          {t.final_cta_button}
           <ArrowRight className="w-4 h-4" />
         </Link>
       </section>
