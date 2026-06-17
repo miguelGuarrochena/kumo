@@ -1035,5 +1035,11 @@
     "col_currency": "Moneda",
     "col_status": "Estado",
     "col_recurring": "Recurrente"
+  },
+  "seo": {
+    "site_title": "Kumo · Tus gastos como una nube perfecta",
+    "site_description": "Organizá tus gastos personales, vencimientos, recordatorios y lista de compras. Con notificaciones por WhatsApp y OCR de tickets.",
+    "site_description_short": "Organizá tus gastos, vencimientos y recordatorios. Con notificaciones por WhatsApp.",
+    "og_image_alt": "Kumo · Tus gastos como una nube perfecta"
   }
 }

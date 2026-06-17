@@ -6,89 +6,90 @@ import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider, themeInitScript } from '@/lib/theme';
 import { PostHogProvider } from '@/components/PostHogProvider';
 import { I18nProvider } from '@/lib/i18n/client';
-import { getLocale } from '@/lib/i18n/server';
+import { getLocale, getMessages } from '@/lib/i18n/server';
 import './globals.css';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
-export const metadata: Metadata = {
-  metadataBase: new URL(appUrl),
-  title: {
-    default: 'Kumo · Tus gastos como una nube perfecta',
-    template: '%s · Kumo',
-  },
-  description:
-    'Organizá tus gastos personales, vencimientos, recordatorios y lista de compras. Con notificaciones por WhatsApp y OCR de tickets.',
-  keywords: [
-    'finanzas personales',
-    'gastos',
-    'presupuesto',
-    'vencimientos',
-    'recordatorios',
-    'WhatsApp',
-    'OCR ticket',
-    'budget app',
-    'finance',
-  ],
-  authors: [{ name: 'Kumo' }],
-  manifest: '/manifest.webmanifest',
-  icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icons/icon-32.png', type: 'image/png', sizes: '32x32' },
-      { url: '/icons/icon-192.png', type: 'image/png', sizes: '192x192' },
-    ],
-    apple: '/apple-touch-icon.png',
-    shortcut: '/favicon.ico',
-  },
-  openGraph: {
-    type: 'website',
-    locale: 'es_AR',
-    url: appUrl,
-    siteName: 'Kumo',
-    title: 'Kumo · Tus gastos como una nube perfecta',
-    description:
-      'Organizá tus gastos personales, vencimientos, recordatorios y lista de compras. Notificaciones por WhatsApp.',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Kumo · Tus gastos como una nube perfecta',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Kumo · Tus gastos como una nube perfecta',
-    description:
-      'Organizá tus gastos, vencimientos y recordatorios. Con notificaciones por WhatsApp.',
-    images: ['/og-image.png'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+// Metadata dinámica: title/description/OG/Twitter cambian según el locale
+// activo (cookie 'locale'). Así el SEO y los previews al compartir el link
+// quedan en el idioma que el user eligió.
+export const generateMetadata = async (): Promise<Metadata> => {
+  const locale = await getLocale();
+  const m = await getMessages();
+  const seo = m.seo;
+
+  const keywords =
+    locale === 'en'
+      ? ['personal finance', 'expenses', 'budget', 'due dates', 'reminders', 'WhatsApp', 'receipt OCR', 'finance']
+      : ['finanzas personales', 'gastos', 'presupuesto', 'vencimientos', 'recordatorios', 'WhatsApp', 'OCR ticket', 'budget app', 'finance'];
+
+  return {
+    metadataBase: new URL(appUrl),
+    title: {
+      default: seo.site_title,
+      template: '%s · Kumo',
+    },
+    description: seo.site_description,
+    keywords,
+    authors: [{ name: 'Kumo' }],
+    manifest: '/manifest.webmanifest',
+    icons: {
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/icons/icon-32.png', type: 'image/png', sizes: '32x32' },
+        { url: '/icons/icon-192.png', type: 'image/png', sizes: '192x192' },
+      ],
+      apple: '/apple-touch-icon.png',
+      shortcut: '/favicon.ico',
+    },
+    openGraph: {
+      type: 'website',
+      locale: locale === 'en' ? 'en_US' : 'es_AR',
+      url: appUrl,
+      siteName: 'Kumo',
+      title: seo.site_title,
+      description: seo.site_description,
+      images: [
+        {
+          url: '/og-image.png',
+          width: 1200,
+          height: 630,
+          alt: seo.og_image_alt,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: seo.site_title,
+      description: seo.site_description_short,
+      images: ['/og-image.png'],
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-image-preview': 'large',
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+      },
     },
-  },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION,
-  },
-  alternates: {
-    canonical: appUrl,
-    languages: {
-      'es-AR': appUrl,
-      'en-US': appUrl,
+    verification: {
+      google: process.env.GOOGLE_SITE_VERIFICATION,
     },
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Kumo',
-  },
+    alternates: {
+      canonical: appUrl,
+      languages: {
+        'es-AR': appUrl,
+        'en-US': appUrl,
+      },
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: 'Kumo',
+    },
+  };
 };
 
 export const viewport: Viewport = {

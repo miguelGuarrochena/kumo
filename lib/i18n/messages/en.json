@@ -1035,5 +1035,11 @@
     "col_currency": "Currency",
     "col_status": "Status",
     "col_recurring": "Recurring"
+  },
+  "seo": {
+    "site_title": "Kumo · Your expenses, like a perfect cloud",
+    "site_description": "Organize your personal expenses, due dates, reminders and shopping list. With WhatsApp alerts and receipt OCR.",
+    "site_description_short": "Organize your expenses, due dates and reminders. With WhatsApp alerts.",
+    "og_image_alt": "Kumo · Your expenses, like a perfect cloud"
   }
 }
