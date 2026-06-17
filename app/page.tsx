@@ -59,25 +59,24 @@ const HomePage = async () => {
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-6">
-          <strong className="text-slate-800 dark:text-slate-200">Gratis:</strong> gastos, dividir cuentas,
-          presupuestos, calendario, compras, push y espacios compartidos.
+          <strong className="text-slate-800 dark:text-slate-200">{t.hero_desc_free_label}</strong> {t.hero_desc_free_list}
           <span className="block mt-2">
-            <strong className="text-slate-800 dark:text-slate-200">Opcional (Pro):</strong> escaneá tickets
-            o escribí <em className="not-italic text-sky-600 dark:text-sky-400">«gasté 5000 en el super»</em> con IA.
+            <strong className="text-slate-800 dark:text-slate-200">{t.hero_desc_pro_label}</strong> {t.hero_desc_pro_list}{' '}
+            <em className="not-italic text-sky-600 dark:text-sky-400">{t.hero_desc_pro_example}</em> {t.hero_desc_pro_tail}
           </span>
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-2 mb-8 max-w-xl mx-auto">
-          {['Gastos', 'Presupuestos', 'Dividir', 'Calendario', 'Push'].map((label) => (
+          {[t.chip_expenses, t.chip_budgets, t.chip_split, t.chip_calendar, t.chip_push].map((label) => (
             <span
               key={label}
               className="text-xs font-medium px-2.5 py-1 rounded-full bg-mint-100 dark:bg-mint-500/20 text-mint-700 dark:text-mint-300"
             >
-              {label} · gratis
+              {label} · {t.chip_free_suffix}
             </span>
           ))}
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300">
-            IA · Pro
+            {t.chip_ai_pro}
           </span>
         </div>
 
@@ -127,18 +126,14 @@ const HomePage = async () => {
           <Feature
             icon={<Sparkles className="w-5 h-5" />}
             tone="lavender"
-            title={locale === 'en' ? 'Natural language (Pro)' : 'Lenguaje natural (Pro)'}
-            description={locale === 'en'
-              ? 'Type "I spent 5000 at the supermarket" in Search (⌘K). Same Pro plan as OCR.'
-              : 'Escribí «gasté 5000 en el super» en Buscar (⌘K). Mismo plan Pro que el escaneo OCR.'}
+            title={t.feature_nl_title}
+            description={t.feature_nl_desc}
           />
           <Feature
             icon={<PiggyBank className="w-5 h-5" />}
             tone="mint"
-            title={locale === 'en' ? 'Budgets' : 'Presupuestos'}
-            description={locale === 'en'
-              ? 'Monthly cap by total or category. Push alert at 80% and when you cross. Free.'
-              : 'Tope mensual total o por categoría. Aviso push al 80% y si te pasás. Gratis.'}
+            title={t.feature_budgets_title}
+            description={t.feature_budgets_desc}
           />
           <Feature
             icon={<MessageCircle className="w-5 h-5" />}
@@ -169,16 +164,16 @@ const HomePage = async () => {
 
       {/* Paid add-ons */}
       <section id="plans" className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Kumo es gratis</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">{t.plans_title}</h2>
         <p className="text-center text-slate-500 dark:text-slate-400 mb-8 text-sm sm:text-base">
-          Gastos, recordatorios, compras, push, espacios y WhatsApp manual — sin costo. Solo pagás lo que tiene costo de terceros.
+          {t.plans_subtitle}
         </p>
 
         <div className="space-y-3">
           {([
-            { icon: Camera, title: 'IA para gastos', price: pricing.ocr.monthly, desc: 'Escaneá tickets o escribí en lenguaje natural. Gemini interpreta, vos confirmás.', available: true, highlight: !waBillingOn },
-            { icon: MessageCircle, title: 'WhatsApp automático', price: pricing.wa.monthly, desc: 'Kumo avisa solo antes de vencimientos y recordatorios.', available: waBillingOn },
-            { icon: Wallet, title: 'Kumo Pro (combo)', price: pricing.bundle.monthly, desc: 'Escaneá tickets y que Kumo avise solo por WhatsApp.', available: waBillingOn, highlight: waBillingOn },
+            { icon: Camera, title: t.plan_ocr_title, price: pricing.ocr.monthly, desc: t.plan_ocr_desc, available: true, highlight: !waBillingOn },
+            { icon: MessageCircle, title: t.plan_wa_title, price: pricing.wa.monthly, desc: t.plan_wa_desc, available: waBillingOn },
+            { icon: Wallet, title: t.plan_bundle_title, price: pricing.bundle.monthly, desc: t.plan_bundle_desc, available: waBillingOn, highlight: waBillingOn },
           ] as { icon: typeof Camera; title: string; price: string; desc: string; available: boolean; highlight?: boolean }[]).map(({ icon: Icon, title, price, desc, available, highlight }) => (
             <div
               key={title}
@@ -193,13 +188,13 @@ const HomePage = async () => {
                     <h3 className="text-lg font-semibold">{title}</h3>
                     {!available && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-medium">
-                        Próximamente
+                        {t.plan_coming_soon}
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{desc}</p>
                   <p className="text-sm font-bold mt-2">
-                    {available ? `${price}/mes` : 'En revisión con Meta'}
+                    {available ? `${price}${t.plan_per_month_suffix}` : t.plan_under_review_meta}
                   </p>
                 </div>
               </div>
@@ -207,7 +202,7 @@ const HomePage = async () => {
           ))}
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-500 text-center mt-6">
-          Precios en pesos argentinos. Podemos ajustarlos si suben mucho los costos internacionales, con aviso previo.
+          {t.plans_footnote}
         </p>
       </section>
 
