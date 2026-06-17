@@ -5,13 +5,14 @@ import { CloudLogo } from '@/components/CloudLogo';
 import { CloudDecorations } from '@/components/CloudDecorations';
 import { Footer } from '@/components/Footer';
 import { StructuredData } from '@/components/StructuredData';
+import { LangPill } from '@/components/LangPill';
 import {
   Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight,
   Sparkles, PiggyBank,
 } from 'lucide-react';
 import { getPricing } from '@/lib/pricing';
 import { isWaBillingEnabled } from '@/lib/billing/waBilling';
-import { getLocale } from '@/lib/i18n/server';
+import { getLocale, getMessages } from '@/lib/i18n/server';
 
 const HomePage = async () => {
   const supabase = await createClient();
@@ -22,6 +23,8 @@ const HomePage = async () => {
   if (user) redirect('/dashboard');
 
   const locale = await getLocale();
+  const m = await getMessages();
+  const t = m.landing;
   const waBillingOn = isWaBillingEnabled();
   const pricing = getPricing();
 
@@ -31,17 +34,20 @@ const HomePage = async () => {
       <CloudDecorations />
 
       {/* Nav */}
-      <header className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
+      <header className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <CloudLogo className="w-9 h-9" />
           <span className="font-bold text-xl tracking-tight kumo-gradient-text">Kumo</span>
         </Link>
-        <Link
-          href="/auth/login"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold kumo-gradient text-white shadow-md hover:opacity-90 active:scale-95 transition-all"
-        >
-          Iniciar sesión
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <LangPill />
+          <Link
+            href="/auth/login"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold kumo-gradient text-white shadow-md hover:opacity-90 active:scale-95 transition-all"
+          >
+            {t.login}
+          </Link>
+        </div>
       </header>
 
       {/* Hero */}
