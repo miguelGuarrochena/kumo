@@ -3,10 +3,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/workspace';
-import { scheduleReminderDelete, scheduleReminderSync } from '@/lib/calendar/scheduleSync';
+import { scheduleReminderDelete } from '@/lib/calendar/scheduleSync';
+import {
+  deleteReminderFromGoogle,
+  syncReminderToGoogle,
+} from '@/lib/calendar/googleSync';
+import { isGoogleCalendarOAuthConfigured } from '@/lib/calendar/googleConfigured';
 import { reminderSchema } from '@/lib/schemas';
 
-export type ReminderFormState = { ok: boolean; error?: string };
+// `syncWarning` se setea cuando el guardado fue exitoso PERO la sync con
+// Google Calendar falló. El cliente lo usa para mostrar un toast.warning
+// además del toast.success. Antes esto quedaba mudo en `after()` y el user
+// no sabía por qué los eventos no aparecían en Google.
+export type ReminderFormState = { ok: boolean; error?: string; syncWarning?: string };
 
 export async function upsertReminder(
   _prev: ReminderFormState,
@@ -54,12 +63,22 @@ export async function upsertReminder(
     reminderId = created.id;
   }
 
-  if (reminderId) scheduleReminderSync(ctx.userId, reminderId);
+  // Sync inline con Google Calendar para que el user vea errores en el toast
+  // si falla. El reminder ya está guardado en DB; si la sync falla, el CRUD
+  // sigue siendo exitoso pero el cliente recibe `syncWarning` con el motivo.
+  let syncWarning: string | undefined;
+  if (reminderId && isGoogleCalendarOAuthConfigured()) {
+    try {
+      await syncReminderToGoogle(ctx.userId, reminderId);
+    } catch (e) {
+      syncWarning = `Reminder saved, but Google Calendar sync failed: ${(e as Error).message}`;
+    }
+  }
 
   revalidatePath('/reminders');
   revalidatePath('/calendar');
   revalidatePath('/dashboard');
-  return { ok: true };
+  return { ok: true, syncWarning };
 }
 
 export async function deleteReminder(id: string): Promise<ReminderFormState> {
@@ -72,9 +91,22 @@ export async function deleteReminder(id: string): Promise<ReminderFormState> {
   const supabase = await createClient();
   const { error } = await supabase.from('reminders').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
-  scheduleReminderDelete(ctx.userId, id);
+
+  // Mantenemos scheduleReminderDelete por compat, pero también intentamos
+  // borrar inline para reportar errores al cliente.
+  let syncWarning: string | undefined;
+  if (isGoogleCalendarOAuthConfigured()) {
+    try {
+      await deleteReminderFromGoogle(ctx.userId, id);
+    } catch (e) {
+      syncWarning = `Reminder deleted, but Google Calendar sync failed: ${(e as Error).message}`;
+      // Fallback al schedule por si fue un timeout transitorio
+      scheduleReminderDelete(ctx.userId, id);
+    }
+  }
+
   revalidatePath('/reminders');
   revalidatePath('/calendar');
   revalidatePath('/dashboard');
-  return { ok: true };
+  return { ok: true, syncWarning };
 }

@@ -107,6 +107,7 @@ export const FullReminderSheet = ({ open, reminder, contacts, hasWa, onClose }: 
       const result = await upsertReminder({ ok: false }, fd);
       if (result.ok) {
         toast.success(reminder ? t.calendar.reminder_updated : t.calendar.reminder_created);
+        if (result.syncWarning) toast.warning(result.syncWarning);
         if (!reminder) {
           track('reminder_created', { type, contacts_count: notifyContactIds.length });
         }

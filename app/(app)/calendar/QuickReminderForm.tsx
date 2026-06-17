@@ -61,6 +61,7 @@ export const QuickReminderForm = ({ dateStr, contacts, hasWa, onCancel, onCreate
       const result = await upsertReminder({ ok: false }, fd);
       if (result.ok) {
         toast.success(t.calendar.reminder_created);
+        if (result.syncWarning) toast.warning(result.syncWarning);
         track('reminder_created', { type });
         router.refresh();
         onCreated();
