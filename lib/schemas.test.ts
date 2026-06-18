@@ -2,11 +2,23 @@ import { describe, expect, it } from 'vitest';
 import { expenseSchema, reminderSchema, shoppingItemSchema } from './schemas';
 
 describe('reminderSchema', () => {
+  // Fecha futura para que los tests no se rompan por la validación
+  // "reminder_date >= today" agregada en schemas.ts.
+  const futureDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
   const base = {
     title: 'Cumpleaños Juampi',
-    reminder_date: '2026-05-18',
+    reminder_date: futureDate,
     reminder_type: 'birthday',
   };
+
+  it('rechaza fecha en el pasado', () => {
+    const r = reminderSchema.safeParse({ ...base, reminder_date: '2020-01-01' });
+    expect(r.success).toBe(false);
+  });
 
   it('acepta un payload mínimo válido', () => {
     const r = reminderSchema.safeParse(base);

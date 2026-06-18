@@ -206,7 +206,7 @@ export const FullReminderSheet = ({ open, reminder, contacts, hasWa, onClose }: 
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              min={!reminder ? todayKey() : undefined}
+              min={todayKey()}
               className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               required
             />

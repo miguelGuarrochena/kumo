@@ -9,11 +9,24 @@ import { z } from 'zod';
 
 export const REMINDER_TYPES = ['medical', 'birthday', 'generic'] as const;
 
+// Hoy en formato YYYY-MM-DD usando hora local del server. Lo recalculamos
+// en cada validación (no lo memorizamos a nivel módulo) para que un proceso
+// long-running siempre compare contra la fecha actual.
+const todayKey = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const reminderSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(1, 'Título requerido').max(100),
   description: z.string().max(500).optional().nullable(),
-  reminder_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
+  reminder_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida')
+    // Bloqueamos fechas pasadas: un recordatorio del pasado no tiene sentido
+    // y antes confundía al user (creaba eventos que ya nunca se iban a disparar).
+    .refine((d) => d >= todayKey(), 'La fecha no puede ser anterior a hoy'),
   reminder_time: z
     .string()
     .regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Hora inválida')

@@ -311,7 +311,9 @@
     "rel_tomorrow": "Tomorrow",
     "rel_in_days": "In {n} days",
     "rel_yesterday": "Yesterday",
-    "rel_days_ago": "{n} days ago"
+    "rel_days_ago": "{n} days ago",
+    "cannot_create_in_past": "You can't create reminders for past dates",
+    "past_day_label": "Past date"
   },
   "shopping": {
     "title": "Shopping list",
@@ -591,7 +593,9 @@
     "language": "Language",
     "language_desc": "Interface language.",
     "account": "Account",
-    "autosave_hint": "Changes are saved automatically."
+    "autosave_hint": "Changes are saved automatically.",
+    "open_in_google_calendar": "Open in Google Calendar",
+    "google_calendar_synced": "Synced with Google Calendar"
   },
   "landing": {
     "tagline_pre": "Your expenses,",

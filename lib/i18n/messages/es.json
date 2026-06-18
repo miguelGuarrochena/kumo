@@ -311,7 +311,9 @@
     "rel_tomorrow": "Mañana",
     "rel_in_days": "En {n} días",
     "rel_yesterday": "Ayer",
-    "rel_days_ago": "Hace {n} días"
+    "rel_days_ago": "Hace {n} días",
+    "cannot_create_in_past": "No podés crear recordatorios en fechas pasadas",
+    "past_day_label": "Día pasado"
   },
   "shopping": {
     "title": "Lista de compras",
@@ -591,7 +593,9 @@
     "language": "Idioma",
     "language_desc": "Idioma de la interfaz.",
     "account": "Cuenta",
-    "autosave_hint": "Los cambios se guardan automáticamente."
+    "autosave_hint": "Los cambios se guardan automáticamente.",
+    "open_in_google_calendar": "Abrir en Google Calendar",
+    "google_calendar_synced": "Sincronizado con Google Calendar"
   },
   "landing": {
     "tagline_pre": "Tus gastos,",

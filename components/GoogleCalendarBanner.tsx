@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, X } from 'lucide-react';
+import { Calendar, ExternalLink, X } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 
 const GOOGLE_CALENDAR_DONE_KEY = 'kumo_google_calendar_done';
@@ -51,6 +51,26 @@ export const GoogleCalendarBanner = ({ connected }: Props) => {
   useEffect(() => {
     setVisible(!connected && !isGoogleCalendarDone() && !isCalendarBannerDismissed());
   }, [connected]);
+
+  // Si Google Calendar ya está conectado, mostramos un pill chico con shortcut
+  // a calendar.google.com (antes había que ir a Settings para encontrar el link).
+  if (connected) {
+    return (
+      <div className="flex items-center justify-end">
+        <a
+          href="https://calendar.google.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border border-sky-200 dark:border-sky-500/30 bg-sky-50/60 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors"
+          title={s.google_calendar_synced}
+        >
+          <Calendar className="w-3 h-3" />
+          {s.open_in_google_calendar}
+          <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
+    );
+  }
 
   if (!visible) return null;
 

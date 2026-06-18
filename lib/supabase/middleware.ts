@@ -62,8 +62,9 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && url.pathname === '/auth/login') {
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+    const next = url.searchParams.get('next');
+    const safeNext = next?.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
+    return NextResponse.redirect(new URL(safeNext, request.url));
   }
 
   return response;

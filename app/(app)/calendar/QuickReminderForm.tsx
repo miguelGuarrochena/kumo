@@ -46,8 +46,19 @@ export const QuickReminderForm = ({ dateStr, contacts, hasWa, onCancel, onCreate
     );
   };
 
+  // YYYY-MM-DD de hoy en zona local — usado para bloquear reminders en el pasado.
+  const today = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const isPastDate = dateStr < today;
+
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isPastDate) {
+      toast.error(t.calendar.cannot_create_in_past);
+      return;
+    }
     const fd = new FormData();
     fd.set('title', title);
     fd.set('reminder_type', type);
@@ -73,9 +84,16 @@ export const QuickReminderForm = ({ dateStr, contacts, hasWa, onCancel, onCreate
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="text-xs px-3 py-2 rounded-lg bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 flex items-center gap-2">
+      <div className={`text-xs px-3 py-2 rounded-lg flex items-center gap-2 ${
+        isPastDate
+          ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300'
+          : 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300'
+      }`}>
         <CalendarIcon className="w-3.5 h-3.5 shrink-0" />
-        <span>{t.calendar.will_create_for} <strong>{formatDateFull(dateStr, localeTag(locale))}</strong></span>
+        <span>
+          {isPastDate ? t.calendar.cannot_create_in_past : t.calendar.will_create_for}{' '}
+          <strong>{formatDateFull(dateStr, localeTag(locale))}</strong>
+        </span>
       </div>
 
       <div>
@@ -196,7 +214,7 @@ export const QuickReminderForm = ({ dateStr, contacts, hasWa, onCancel, onCreate
         </button>
         <button
           type="submit"
-          disabled={pending || !title.trim()}
+          disabled={pending || !title.trim() || isPastDate}
           className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
         >
           {pending ? t.common.saving : t.calendar.create}
