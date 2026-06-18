@@ -2,16 +2,20 @@ import type { Database } from '@/lib/supabase/database.types';
 
 export type Item = Database['public']['Tables']['shopping_items']['Row'];
 
-export const DEFAULT_LISTS = ['Supermercado', 'Farmacia', 'Ferretería'];
+export const DEFAULT_LISTS = ['Supermercado', 'Farmacia', 'Ferretería'] as const;
+export type DefaultListName = typeof DEFAULT_LISTS[number];
+
+export const isDefaultListName = (list: string): list is DefaultListName =>
+  DEFAULT_LISTS.includes(list as DefaultListName);
 
 export const UNITS = [
-  { value: '',       label: 'un.',  full: 'Unidad' },
-  { value: 'kg',     label: 'kg',   full: 'Kilos' },
-  { value: 'g',      label: 'g',    full: 'Gramos' },
-  { value: 'L',      label: 'L',    full: 'Litros' },
-  { value: 'ml',     label: 'ml',   full: 'Mililitros' },
-  { value: 'paq.',   label: 'paq.', full: 'Paquete' },
-  { value: 'docena', label: 'doc.', full: 'Docena' },
+  { value: '',       label: 'un.',  i18nKey: 'unit_each' },
+  { value: 'kg',     label: 'kg',   i18nKey: 'unit_kg' },
+  { value: 'g',      label: 'g',    i18nKey: 'unit_g' },
+  { value: 'L',      label: 'L',    i18nKey: 'unit_l' },
+  { value: 'ml',     label: 'ml',   i18nKey: 'unit_ml' },
+  { value: 'paq.',   label: 'paq.', i18nKey: 'unit_pack' },
+  { value: 'docena', label: 'doc.', i18nKey: 'unit_dozen' },
 ] as const;
 
 export const formatQuantity = (qty: string | null, unit: string | null): string => {

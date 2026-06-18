@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { UNITS } from './constants';
+import { useT } from '@/lib/i18n/client';
 
 type UnitPickerProps = {
   value: string;
@@ -11,6 +12,7 @@ type UnitPickerProps = {
 };
 
 export const UnitPicker = ({ value, onChange, align = 'left' }: UnitPickerProps) => {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const current = UNITS.find((u) => u.value === value) ?? UNITS[0];
 
@@ -62,7 +64,9 @@ export const UnitPicker = ({ value, onChange, align = 'left' }: UnitPickerProps)
                 >
                   <span className="flex items-center gap-2">
                     <span className="w-8 text-center font-medium">{u.label}</span>
-                    <span className="text-slate-400 dark:text-slate-500 text-xs">{u.full}</span>
+                    <span className="text-slate-400 dark:text-slate-500 text-xs">
+                      {t.shopping[u.i18nKey]}
+                    </span>
                   </span>
                   {active && <Check className="w-4 h-4 text-sky-500" />}
                 </button>

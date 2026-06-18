@@ -7,7 +7,7 @@ import { Plus, ShoppingCart, Sparkles, X } from 'lucide-react';
 import { addItem, toggleBought, removeItem, clearBought } from './actions';
 import { track } from '@/lib/analytics';
 import { useT } from '@/lib/i18n/client';
-import { type Item, DEFAULT_LISTS } from './constants';
+import { type Item, DEFAULT_LISTS, isDefaultListName } from './constants';
 import { UnitPicker } from './UnitPicker';
 import { ItemRow } from './ItemRow';
 
@@ -35,6 +35,8 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
   const itemsInList = optimisticItems.filter((i) => i.list_name === activeList);
   const pendingItems = itemsInList.filter((i) => !i.bought);
   const boughtItems = itemsInList.filter((i) => i.bought);
+  const listLabel = (list: string) =>
+    isDefaultListName(list) ? t.shopping.default_lists[list] : list;
 
   // --- Quick add ---
   const [quickName, setQuickName] = useState('');
@@ -96,7 +98,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
     setActiveList(newListName.trim());
     setNewListName('');
     setCreatingList(false);
-    toast.success(`Lista "${newListName.trim()}" creada`);
+    toast.success(t.shopping.list_created.replace('{name}', newListName.trim()));
   };
 
   return (
@@ -130,7 +132,7 @@ export const ShoppingClient = ({ initialItems }: { initialItems: Item[] }) => {
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300'
               }`}
             >
-              <span>{list}</span>
+              <span>{listLabel(list)}</span>
               {count > 0 && (
                 <span
                   className={`px-1.5 rounded-full text-[10px] tabular-nums ${

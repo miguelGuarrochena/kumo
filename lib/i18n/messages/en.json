@@ -332,7 +332,20 @@
     "cleared": "Bought items cleared",
     "name_required": "Name cannot be empty",
     "mark_bought": "Mark as bought",
-    "mark_pending": "Mark as pending"
+    "mark_pending": "Mark as pending",
+    "list_created": "List \"{name}\" created",
+    "default_lists": {
+      "Supermercado": "Grocery",
+      "Farmacia": "Pharmacy",
+      "Ferretería": "Hardware"
+    },
+    "unit_each": "Unit",
+    "unit_kg": "Kilos",
+    "unit_g": "Grams",
+    "unit_l": "Liters",
+    "unit_ml": "Milliliters",
+    "unit_pack": "Pack",
+    "unit_dozen": "Dozen"
   },
   "metrics": {
     "title": "Metrics",

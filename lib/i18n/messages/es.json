@@ -332,7 +332,20 @@
     "cleared": "Comprados limpiados",
     "name_required": "El nombre no puede estar vacío",
     "mark_bought": "Marcar como comprado",
-    "mark_pending": "Marcar como pendiente"
+    "mark_pending": "Marcar como pendiente",
+    "list_created": "Lista \"{name}\" creada",
+    "default_lists": {
+      "Supermercado": "Supermercado",
+      "Farmacia": "Farmacia",
+      "Ferretería": "Ferretería"
+    },
+    "unit_each": "Unidad",
+    "unit_kg": "Kilos",
+    "unit_g": "Gramos",
+    "unit_l": "Litros",
+    "unit_ml": "Mililitros",
+    "unit_pack": "Paquete",
+    "unit_dozen": "Docena"
   },
   "metrics": {
     "title": "Métricas",

@@ -7,6 +7,7 @@ import { Check, Pencil, Trash2 } from 'lucide-react';
 import { updateItem } from './actions';
 import { type Item, formatQuantity } from './constants';
 import { UnitPicker } from './UnitPicker';
+import { useT } from '@/lib/i18n/client';
 
 type ItemRowProps = {
   item: Item;
@@ -16,6 +17,7 @@ type ItemRowProps = {
 
 export const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
   const router = useRouter();
+  const { t } = useT();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(item.name);
   const [qty, setQty] = useState(item.quantity ?? '');
@@ -29,7 +31,7 @@ export const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
 
   const onSave = async () => {
     if (!name.trim()) {
-      toast.error('El nombre no puede estar vacío');
+      toast.error(t.shopping.name_required);
       return;
     }
     const result = await updateItem(item.id, {
@@ -66,7 +68,7 @@ export const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
             min="0"
             step="any"
             className="w-16 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base bg-white dark:bg-slate-900 text-center placeholder:text-slate-300 dark:placeholder:text-slate-600 shrink-0"
-            aria-label="Cantidad"
+            aria-label={t.shopping.quantity}
           />
           <UnitPicker value={unit} onChange={setUnit} align="left" />
         </div>
@@ -76,7 +78,7 @@ export const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
             onClick={() => setEditing(false)}
             className="flex-1 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
           >
-            Cancelar
+            {t.common.cancel}
           </button>
           <button
             type="button"
@@ -84,7 +86,7 @@ export const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
             className="flex-1 px-3 py-2 rounded-lg text-sm font-medium kumo-gradient text-white hover:opacity-90 flex items-center justify-center gap-1.5"
           >
             <Check className="w-4 h-4" />
-            Guardar
+            {t.common.save}
           </button>
         </div>
       </div>
@@ -100,7 +102,7 @@ export const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
         type="button"
         onClick={onToggle}
         className="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70 transition-opacity"
-        aria-label={item.bought ? 'Marcar como pendiente' : 'Marcar como comprado'}
+        aria-label={item.bought ? t.shopping.mark_pending : t.shopping.mark_bought}
       >
         <span
           className={`w-6 h-6 rounded-full border-2 grid place-items-center shrink-0 transition-all ${
@@ -125,7 +127,7 @@ export const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
           type="button"
           onClick={() => setEditing(true)}
           className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300"
-          aria-label="Editar"
+          aria-label={t.common.edit}
         >
           <Pencil className="w-4 h-4" />
         </button>
@@ -133,7 +135,7 @@ export const ItemRow = ({ item, onToggle, onRemove }: ItemRowProps) => {
           type="button"
           onClick={onRemove}
           className="p-2 rounded-lg text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-900/20 hover:text-rose-500"
-          aria-label="Borrar"
+          aria-label={t.common.delete}
         >
           <Trash2 className="w-4 h-4" />
         </button>
