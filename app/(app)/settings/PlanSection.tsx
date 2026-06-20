@@ -75,10 +75,18 @@ export const PlanSection = ({ sub, pricing, waUsageMonth = 0, waMonthlyCap = 200
   const showCheckout = !isPaying && !isCanceledWithAccess && !isInActiveTrial;
   const dateFmt = (d: Date) => d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR');
 
+  // Si la cuenta tiene bundle/wa pero WA está pending (no implementado),
+  // la mostramos como plan OCR — el user pagó por algo que sólo va a tener
+  // OCR mientras dure la pausa de WhatsApp.
+  const effectivePlanType =
+    (sub.planType === 'bundle' || sub.planType === 'wa') && !sub.hasWa
+      ? 'ocr'
+      : sub.planType;
+
   const activePlanLabel =
-    sub.planType === 'bundle' ? tb.product_bundle_title
-    : sub.planType === 'wa' ? tb.product_wa_title
-    : sub.planType === 'ocr' ? tb.product_ocr_title
+    effectivePlanType === 'bundle' ? tb.product_bundle_title
+    : effectivePlanType === 'wa' ? tb.product_wa_title
+    : effectivePlanType === 'ocr' ? tb.product_ocr_title
     : tb.title;
 
   const activeFeatures = [

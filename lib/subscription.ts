@@ -108,11 +108,17 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
   const isYearly = isYearlyPlanVariant(row.provider_variant_id);
   const isYearlyOneTime = isYearlyOneTimeVariant(row.provider_variant_id);
 
+  // Si la función de WhatsApp automático no está pública (NEXT_PUBLIC_WHATSAPP_PENDING),
+  // forzamos `hasWa: false` aunque el usuario tenga plan WA o Bundle. Así no se
+  // muestran avisos automáticos ni el contador de "X avisos este mes" en la UI;
+  // tampoco se renderiza el feature en PlanSection.
+  const waPending = process.env.NEXT_PUBLIC_WHATSAPP_PENDING === 'true';
+
   return {
     tier,
     planType,
     hasOcr: paid && planIncludesOcr(planType),
-    hasWa: paid && planIncludesWa(planType),
+    hasWa: paid && planIncludesWa(planType) && !waPending,
     status: row.status,
     trialEndsAt,
     daysLeftInTrial,
