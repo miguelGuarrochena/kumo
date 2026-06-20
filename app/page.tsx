@@ -164,49 +164,50 @@ const HomePage = async () => {
         </div>
       </section>
 
-      {/* Paid add-ons */}
-      <section id="plans" className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">{t.plans_title}</h2>
-        <p className="text-center text-slate-500 dark:text-slate-400 mb-8 text-sm sm:text-base">
-          {t.plans_subtitle}
-        </p>
+      {/* Paid add-ons — filtramos los planes que dependen de WhatsApp automático
+          (WA solo + Bundle) cuando esa función no está pública. Si no queda
+          ningún plan disponible, ocultamos toda la sección. */}
+      {(() => {
+        const plans = [
+          { icon: Camera, title: t.plan_ocr_title, price: pricing.ocr.monthly, desc: t.plan_ocr_desc, available: true, highlight: !waBillingOn },
+          { icon: MessageCircle, title: t.plan_wa_title, price: pricing.wa.monthly, desc: t.plan_wa_desc, available: waBillingOn },
+          { icon: Wallet, title: t.plan_bundle_title, price: pricing.bundle.monthly, desc: t.plan_bundle_desc, available: waBillingOn, highlight: waBillingOn },
+        ] as { icon: typeof Camera; title: string; price: string; desc: string; available: boolean; highlight?: boolean }[];
+        const visiblePlans = plans.filter((p) => p.available);
+        if (visiblePlans.length === 0) return null;
 
-        <div className="space-y-3">
-          {([
-            { icon: Camera, title: t.plan_ocr_title, price: pricing.ocr.monthly, desc: t.plan_ocr_desc, available: true, highlight: !waBillingOn },
-            { icon: MessageCircle, title: t.plan_wa_title, price: pricing.wa.monthly, desc: t.plan_wa_desc, available: waBillingOn },
-            { icon: Wallet, title: t.plan_bundle_title, price: pricing.bundle.monthly, desc: t.plan_bundle_desc, available: waBillingOn, highlight: waBillingOn },
-          ] as { icon: typeof Camera; title: string; price: string; desc: string; available: boolean; highlight?: boolean }[]).map(({ icon: Icon, title, price, desc, available, highlight }) => (
-            <div
-              key={title}
-              className={`kumo-card p-5 sm:p-6 border-2 ${highlight ? 'border-amber-300/60 dark:border-amber-500/40' : 'border-slate-200/80 dark:border-slate-700'} ${!available ? 'opacity-75' : ''}`}
-            >
-              <div className="flex items-start gap-4">
-                <div className={`w-11 h-11 rounded-xl grid place-items-center shrink-0 ${highlight ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600' : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600'}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-lg font-semibold">{title}</h3>
-                    {!available && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-medium">
-                        {t.plan_coming_soon}
-                      </span>
-                    )}
+        return (
+          <section id="plans" className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">{t.plans_title}</h2>
+            <p className="text-center text-slate-500 dark:text-slate-400 mb-8 text-sm sm:text-base">
+              {t.plans_subtitle}
+            </p>
+
+            <div className="space-y-3">
+              {visiblePlans.map(({ icon: Icon, title, price, desc, highlight }) => (
+                <div
+                  key={title}
+                  className={`kumo-card p-5 sm:p-6 border-2 ${highlight ? 'border-amber-300/60 dark:border-amber-500/40' : 'border-slate-200/80 dark:border-slate-700'}`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-11 h-11 rounded-xl grid place-items-center shrink-0 ${highlight ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600' : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600'}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">{title}</h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{desc}</p>
+                      <p className="text-sm font-bold mt-2">{price}{t.plan_per_month_suffix}</p>
+                    </div>
                   </div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{desc}</p>
-                  <p className="text-sm font-bold mt-2">
-                    {available ? `${price}${t.plan_per_month_suffix}` : t.plan_under_review_meta}
-                  </p>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <p className="text-xs text-slate-500 dark:text-slate-500 text-center mt-6">
-          {t.plans_footnote}
-        </p>
-      </section>
+            <p className="text-xs text-slate-500 dark:text-slate-500 text-center mt-6">
+              {t.plans_footnote}
+            </p>
+          </section>
+        );
+      })()}
 
       {/* How it works */}
       <section className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
