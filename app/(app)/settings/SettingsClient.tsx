@@ -133,9 +133,9 @@ export const SettingsClient = ({
               <Shield className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Panel de administración</p>
+              <p className="text-sm font-medium">{t.settings.admin_panel_title}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Gestionar usuarios, regalar Pro, cancelar suscripciones.
+                {t.settings.admin_panel_desc}
               </p>
             </div>
             <span className="text-xs text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">

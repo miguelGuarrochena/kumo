@@ -4,11 +4,17 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { Sheet } from '@/components/Sheet';
+import { useT } from '@/lib/i18n/client';
 import { deleteAccount } from './workspaceActions';
 
-const CONFIRM_WORD = 'ELIMINAR';
-
 export const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
+  const { t } = useT();
+  const s = t.settings;
+  const c = t.common;
+  // Palabra de confirmación: ELIMINAR / DELETE según locale. Lo leemos del
+  // diccionario para que el placeholder y validación coincidan con el idioma.
+  const CONFIRM_WORD = s.delete_account_word;
+
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [pending, startTransition] = useTransition();
@@ -18,10 +24,10 @@ export const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
     startTransition(async () => {
       const result = await deleteAccount();
       if (result.ok) {
-        toast.success('Cuenta eliminada');
+        toast.success(s.delete_account_done);
         window.location.href = '/';
       } else {
-        toast.error(result.error ?? 'No se pudo eliminar');
+        toast.error(result.error ?? s.delete_account_fail);
       }
     });
   };
@@ -34,9 +40,9 @@ export const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-semibold">Eliminar cuenta</h3>
+            <h3 className="font-semibold">{s.delete_account_title}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Borra tu usuario y todos los espacios donde sos dueño. No hay vuelta atrás.
+              {s.delete_account_desc}
             </p>
           </div>
         </div>
@@ -46,14 +52,14 @@ export const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
         >
           <Trash2 className="w-4 h-4" />
-          Eliminar mi cuenta
+          {s.delete_account_cta}
         </button>
       </div>
 
       <Sheet
         open={open}
         onClose={() => { setOpen(false); setConfirmText(''); }}
-        title="Eliminar cuenta"
+        title={s.delete_account_title}
         footer={
           <div className="flex gap-2">
             <button
@@ -61,7 +67,7 @@ export const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
               onClick={() => { setOpen(false); setConfirmText(''); }}
               className="flex-1 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
             >
-              Cancelar
+              {c.cancel}
             </button>
             <button
               type="button"
@@ -69,7 +75,7 @@ export const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
               disabled={confirmText !== CONFIRM_WORD || pending}
               className="flex-1 px-4 py-3 rounded-xl text-sm font-medium bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {pending ? 'Borrando...' : 'Eliminar'}
+              {pending ? s.delete_account_deleting : c.delete}
             </button>
           </div>
         }
@@ -78,17 +84,27 @@ export const DeleteAccountSection = ({ userEmail }: { userEmail: string }) => {
           <div className="flex items-start gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/40">
             <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
             <div className="text-sm text-rose-700 dark:text-rose-200 space-y-1.5">
-              <p className="font-medium">Vas a perder permanentemente:</p>
+              <p className="font-medium">{s.delete_account_will_lose_title}</p>
               <ul className="list-disc pl-4 space-y-0.5 text-rose-600/90 dark:text-rose-200/90">
-                <li>Todos los espacios donde sos dueño (con sus gastos, recordatorios y listas)</li>
-                <li>Tu acceso a espacios compartidos</li>
-                <li>Tu cuenta <span className="font-mono text-xs">{userEmail}</span></li>
+                <li>{s.delete_account_lose_spaces}</li>
+                <li>{s.delete_account_lose_shared}</li>
+                <li>
+                  {s.delete_account_lose_user.split('{email}').map((part, i, arr) =>
+                    i < arr.length - 1
+                      ? [part, <span key={i} className="font-mono text-xs">{userEmail}</span>]
+                      : part,
+                  )}
+                </li>
               </ul>
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Escribí <span className="font-mono font-semibold">{CONFIRM_WORD}</span> para confirmar
+              {s.delete_account_confirm_label.split('{word}').map((part, i, arr) =>
+                i < arr.length - 1
+                  ? [part, <span key={i} className="font-mono font-semibold">{CONFIRM_WORD}</span>]
+                  : part,
+              )}
             </label>
             <input
               type="text"

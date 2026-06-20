@@ -75,9 +75,9 @@ export const ContactsSection = ({ contacts, hasWa = false, waBillingEnabled = tr
           <Users className="w-5 h-5" />
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold">Contactos para notificaciones</h3>
+          <h3 className="font-semibold">{t.settings.contacts_section_title}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Gente a la que podés avisar por WhatsApp (vos, familia, etc.)
+            {t.settings.contacts_section_desc}
           </p>
         </div>
         <button
@@ -86,7 +86,7 @@ export const ContactsSection = ({ contacts, hasWa = false, waBillingEnabled = tr
           className="flex items-center gap-1 px-3 py-1.5 rounded-lg kumo-gradient text-white text-sm font-medium hover:opacity-90"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Agregar</span>
+          <span className="hidden sm:inline">{t.settings.contacts_add}</span>
         </button>
       </div>
 
@@ -159,10 +159,11 @@ type ContactRowProps = {
 };
 
 const ContactRow = ({ contact, onEdit, onDelete }: ContactRowProps) => {
+  const { t } = useT();
   const relMeta = RELATIONSHIP_OPTIONS.find((r) => r.value === contact.relationship);
   const Icon = relMeta?.icon ?? User;
 
-  const phoneDisplay = contact.phone ? formatPhone(contact.phone) : 'Sin número';
+  const phoneDisplay = contact.phone ? formatPhone(contact.phone) : t.settings.contacts_no_phone;
 
   return (
     <div className="py-3 flex items-center gap-3 group">

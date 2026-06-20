@@ -2,11 +2,23 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { verifyGoogleCalendarState } from '@/lib/calendar/googleOAuth';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const callbackUrl = new URL(request.url);
+  const { searchParams, origin } = callbackUrl;
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
   const next = searchParams.get('next') ?? '/dashboard';
+
+  // Si Google Calendar quedó configurado con /auth/callback como redirect URI,
+  // llega acá con nuestro state firmado. Redirigimos al handler de Calendar antes
+  // de que Supabase intente intercambiar un código que no le pertenece.
+  if (state && verifyGoogleCalendarState(state)) {
+    const googleCalendarCallback = new URL('/api/auth/google-calendar/callback', origin);
+    googleCalendarCallback.search = callbackUrl.search;
+    return NextResponse.redirect(googleCalendarCallback);
+  }
 
   if (!code) {
     return NextResponse.redirect(`${origin}/auth/login?error=missing_code`);

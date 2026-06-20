@@ -7,20 +7,23 @@ import { createClient } from '@/lib/supabase/client';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { Mail, ArrowLeft, Check, Loader2 } from 'lucide-react';
-
-const ERROR_LABELS: Record<string, string> = {
-  auth_failed:   'No pudimos completar el login. Probá de nuevo.',
-  no_user:       'La sesión no se creó correctamente. Probá de nuevo.',
-  missing_code:  'Falta el código de autenticación.',
-};
+import { useT } from '@/lib/i18n/client';
 
 type Mode = 'choose' | 'email' | 'email-sent';
 
 const LoginInner = () => {
+  const { t } = useT();
+  const a = t.auth;
   const sp = useSearchParams();
   const errorCode = sp.get('error');
   const errorDetail = sp.get('detail');
   const next = sp.get('next');
+
+  const ERROR_LABELS: Record<string, string> = {
+    auth_failed: a.error_auth_failed,
+    no_user: a.error_no_user,
+    missing_code: a.error_missing_code,
+  };
 
   const [mode, setMode] = useState<Mode>('choose');
   const [email, setEmail] = useState('');
@@ -77,11 +80,11 @@ const LoginInner = () => {
 
       <div className="kumo-card relative w-full max-w-md p-8 space-y-6">
         <div className="flex flex-col items-center gap-2">
-          <Link href="/" className="hover:opacity-80 transition-opacity" aria-label="Volver al inicio">
+          <Link href="/" className="hover:opacity-80 transition-opacity" aria-label={a.back_home_aria}>
             <CloudLogo className="w-40 cloud-float" withWordmark />
           </Link>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
-            Tus gastos, organizados como una nube perfecta
+            {a.tagline}
           </p>
         </div>
 
@@ -120,7 +123,7 @@ const LoginInner = () => {
           )}
 
           <p className="mt-6 text-xs text-slate-400 dark:text-slate-500 text-center">
-            Tus datos son privados. Sólo vos los ves.
+            {a.privacy_note}
           </p>
         </div>
       </div>
@@ -136,35 +139,39 @@ const ChooseMode = ({
   loading: boolean;
   onGoogle: () => void;
   onEmailMode: () => void;
-}) => (
-  <div className="space-y-2.5">
-    <button
-      onClick={onGoogle}
-      disabled={loading}
-      className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-slate-700 dark:text-slate-200"
-    >
-      <GoogleIcon />
-      {loading ? 'Conectando...' : 'Continuar con Google'}
-    </button>
+}) => {
+  const { t } = useT();
+  const a = t.auth;
+  return (
+    <div className="space-y-2.5">
+      <button
+        onClick={onGoogle}
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-slate-700 dark:text-slate-200"
+      >
+        <GoogleIcon />
+        {loading ? a.connecting : a.continue_google}
+      </button>
 
-    <div className="relative flex items-center gap-3 py-1">
-      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-      <span className="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">
-        o
-      </span>
-      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+      <div className="relative flex items-center gap-3 py-1">
+        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+        <span className="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">
+          {a.or_separator}
+        </span>
+        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+      </div>
+
+      <button
+        onClick={onEmailMode}
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50 font-medium text-slate-700 dark:text-slate-200"
+      >
+        <Mail className="w-4 h-4" />
+        {a.continue_email}
+      </button>
     </div>
-
-    <button
-      onClick={onEmailMode}
-      disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50 font-medium text-slate-700 dark:text-slate-200"
-    >
-      <Mail className="w-4 h-4" />
-      Continuar con email
-    </button>
-  </div>
-);
+  );
+};
 
 const EmailMode = ({
   email,
@@ -178,75 +185,89 @@ const EmailMode = ({
   loading: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onBack: () => void;
-}) => (
-  <form onSubmit={onSubmit} className="space-y-3">
-    <button
-      type="button"
-      onClick={onBack}
-      className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-    >
-      <ArrowLeft className="w-3.5 h-3.5" />
-      Otra forma de entrar
-    </button>
+}) => {
+  const { t } = useT();
+  const a = t.auth;
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        {a.back_other_way}
+      </button>
 
-    <div>
-      <label htmlFor="login-email" className="block text-sm font-medium mb-1.5">Tu email</label>
-      <input
-        id="login-email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="vos@email.com"
-        required
-        autoFocus
-        className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
-      />
-      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
-        Te mandamos un link mágico para entrar. Sin contraseña.
-      </p>
-    </div>
+      <div>
+        <label htmlFor="login-email" className="block text-sm font-medium mb-1.5">{a.email_label}</label>
+        <input
+          id="login-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder={a.email_placeholder}
+          required
+          autoFocus
+          className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+        />
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+          {a.email_help}
+        </p>
+      </div>
 
-    <button
-      type="submit"
-      disabled={loading || !email.trim()}
-      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl kumo-gradient text-white font-medium hover:opacity-90 disabled:opacity-50 active:scale-[0.98] transition-all"
-    >
-      {loading ? (
-        <>
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Enviando…
-        </>
-      ) : (
-        <>Enviar link</>
-      )}
-    </button>
-  </form>
-);
+      <button
+        type="submit"
+        disabled={loading || !email.trim()}
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl kumo-gradient text-white font-medium hover:opacity-90 disabled:opacity-50 active:scale-[0.98] transition-all"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {a.sending}
+          </>
+        ) : (
+          <>{a.send_link}</>
+        )}
+      </button>
+    </form>
+  );
+};
 
-const EmailSent = ({ email, onBack }: { email: string; onBack: () => void }) => (
-  <div className="space-y-4 text-center">
-    <div className="w-14 h-14 rounded-full bg-mint-100 dark:bg-mint-500/20 grid place-items-center mx-auto">
-      <Check className="w-7 h-7 text-mint-500" strokeWidth={3} />
+const EmailSent = ({ email, onBack }: { email: string; onBack: () => void }) => {
+  const { t } = useT();
+  const a = t.auth;
+  return (
+    <div className="space-y-4 text-center">
+      <div className="w-14 h-14 rounded-full bg-mint-100 dark:bg-mint-500/20 grid place-items-center mx-auto">
+        <Check className="w-7 h-7 text-mint-500" strokeWidth={3} />
+      </div>
+      <div className="space-y-1">
+        <h2 className="font-semibold text-lg">{a.check_email_title}</h2>
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          {a.check_email_desc
+            .split('{email}')
+            .map((part, i, arr) =>
+              i < arr.length - 1
+                ? [part, <strong key={i} className="text-slate-900 dark:text-white break-all">{email}</strong>]
+                : part,
+            )}
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
+          {a.check_email_help}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 inline-flex items-center gap-1.5"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        {a.use_another}
+      </button>
     </div>
-    <div className="space-y-1">
-      <h2 className="font-semibold text-lg">Revisá tu email</h2>
-      <p className="text-sm text-slate-600 dark:text-slate-300">
-        Mandamos un link a <strong className="text-slate-900 dark:text-white break-all">{email}</strong>.
-      </p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
-        Hacé click en el link para entrar. Si no lo encontrás, revisá spam.
-      </p>
-    </div>
-    <button
-      type="button"
-      onClick={onBack}
-      className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 inline-flex items-center gap-1.5"
-    >
-      <ArrowLeft className="w-3.5 h-3.5" />
-      Usar otra forma
-    </button>
-  </div>
-);
+  );
+};
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">

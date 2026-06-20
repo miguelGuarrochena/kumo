@@ -36,29 +36,32 @@ export const Section = ({
   );
 };
 
-export const DonateSection = () => (
-  <a
-    href={DONATE_URL}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="block kumo-card p-4 hover:border-amber-300 dark:hover:border-amber-500/40 transition-colors group"
-  >
-    <div className="flex items-center gap-3">
-      <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 grid place-items-center text-lg">
-        ☕
+export const DonateSection = () => {
+  const { t } = useT();
+  return (
+    <a
+      href={DONATE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block kumo-card p-4 hover:border-amber-300 dark:hover:border-amber-500/40 transition-colors group"
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 grid place-items-center text-lg">
+          ☕
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">{t.settings.cafecito_title}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {t.settings.cafecito_desc}
+          </p>
+        </div>
+        <span className="text-xs text-slate-400 dark:text-slate-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+          →
+        </span>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium">¿Te sirve Kumo?</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Invitanos un cafecito — nos banca para seguir mejorando la app.
-        </p>
-      </div>
-      <span className="text-xs text-slate-400 dark:text-slate-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-        →
-      </span>
-    </div>
-  </a>
-);
+    </a>
+  );
+};
 
 export const LanguageSection = () => {
   const { t } = useT();
