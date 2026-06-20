@@ -153,21 +153,11 @@ export const SettingsClient = ({
         initialMpPaymentLink={selfContact?.mp_payment_link}
       />
 
-      <Section icon={<MessageCircle className="w-5 h-5" />} title={t.settings.section_whatsapp} tone="mint">
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-          {t.settings.whatsapp_desc}
-        </p>
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-          {t.settings.whatsapp_label}
-        </label>
-        <input
-          type="tel"
-          value={whatsapp}
-          onChange={(e) => setWhatsapp(e.target.value)}
-          placeholder="+54911XXXXXXXX"
-          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400"
-        />
-      </Section>
+      {/* Sección WhatsApp principal eliminada: confundía porque mencionaba
+          "Automatic WhatsApp requires a paid plan" — feature que no está
+          disponible mientras Meta revisa la app. El número del propio user
+          ya vive en su notification_contact (is_self) y se edita desde la
+          sección "Tus contactos" abajo. */}
 
       <Section icon={<DollarSign className="w-5 h-5" />} title={t.settings.section_currency} tone="sky">
         <Select
