@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getSubscription } from '@/lib/subscription';
 import { getMessages } from '@/lib/i18n/server';
 import { parseExpenseFromText } from '@/lib/nlp/geminiExpense';
+import { logGeminiCall } from '@/lib/billing/geminiUsage';
 import { looksExpenseIntent } from '@/lib/nlp/detect';
 
 export const maxDuration = 15;
@@ -67,6 +68,8 @@ export async function POST(request: Request) {
   try {
     const result = await parseExpenseFromText(text);
     await supabase.rpc('increment_ocr_usage');
+    // Trackeo de costo para alertas internas del admin.
+    await logGeminiCall({ userId: user.id, kind: 'nlp' });
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error desconocido';

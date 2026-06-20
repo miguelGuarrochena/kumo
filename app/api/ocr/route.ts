@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getOcrProvider } from '@/lib/ocr';
 import { getSubscription } from '@/lib/subscription';
 import { getMessages } from '@/lib/i18n/server';
+import { logGeminiCall } from '@/lib/billing/geminiUsage';
 
 export const maxDuration = 30; // segundos — OCR puede tardar varios
 
@@ -94,6 +95,8 @@ export async function POST(request: Request) {
     const buffer = await file.arrayBuffer();
     const result = await provider.extractFromImage(buffer, mimeType);
     await supabase.rpc('increment_ocr_usage');
+    // Trackeo de costo para alertas internas del admin (no afecta al user).
+    await logGeminiCall({ userId: user.id, kind: 'ocr' });
     return NextResponse.json(result);
   } catch (error) {
     console.error('[OCR] error:', error);
