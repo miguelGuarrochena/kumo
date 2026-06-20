@@ -52,8 +52,21 @@ const getConnection = async (userId: string): Promise<ConnectionRow | null> => {
 const getAccessTokenForUser = async (userId: string): Promise<string | null> => {
   const conn = await getConnection(userId);
   if (!conn?.google_calendar_refresh_token) return null;
-  const refresh = decryptToken(conn.google_calendar_refresh_token);
-  return refreshGoogleAccessToken(refresh);
+  // Si la TOKEN_KEY cambió o el dato está corrupto, decryptToken lanza
+  // "Unsupported state or unable to authenticate data". No queremos que
+  // eso rompa el disconnect (el user necesita poder limpiar el estado roto)
+  // ni que cuelgue otras operaciones — devolvemos null y el caller decide.
+  let refresh: string;
+  try {
+    refresh = decryptToken(conn.google_calendar_refresh_token);
+  } catch {
+    return null;
+  }
+  try {
+    return await refreshGoogleAccessToken(refresh);
+  } catch {
+    return null;
+  }
 };
 
 const googleFetch = async (
@@ -464,23 +477,34 @@ export const fullSyncToGoogle = async (userId: string): Promise<{ synced: number
 };
 
 export const disconnectGoogleCalendar = async (userId: string): Promise<void> => {
-  const accessToken = await getAccessTokenForUser(userId);
+  // El disconnect tiene que funcionar SIEMPRE, incluso si:
+  //   - El refresh token está cifrado con una key vieja (descifrado falla).
+  //   - El token fue revocado en Google y refresh ya no anda.
+  //   - Google API está caída.
+  // Por eso intentamos limpiar eventos remotos en best-effort, pero siempre
+  // borramos el estado local al final.
   const supabase = createServiceClient();
 
-  if (accessToken) {
-    const { data: mappings } = await supabase
-      .from('google_calendar_events')
-      .select('google_event_id')
-      .eq('user_id', userId);
+  try {
+    const accessToken = await getAccessTokenForUser(userId);
+    if (accessToken) {
+      const { data: mappings } = await supabase
+        .from('google_calendar_events')
+        .select('google_event_id')
+        .eq('user_id', userId);
 
-    for (const row of mappings ?? []) {
-      const eventId = (row as { google_event_id: string }).google_event_id;
-      try {
-        await deleteGoogleEvent(accessToken, eventId);
-      } catch {
-        // Seguimos aunque falle un evento suelto.
+      for (const row of mappings ?? []) {
+        const eventId = (row as { google_event_id: string }).google_event_id;
+        try {
+          await deleteGoogleEvent(accessToken, eventId);
+        } catch {
+          // Seguimos aunque falle un evento suelto.
+        }
       }
     }
+  } catch {
+    // Cualquier error en la limpieza remota se ignora: lo importante es
+    // dejar a Kumo desconectado, no rompernos por un side-effect.
   }
 
   await supabase.from('google_calendar_events').delete().eq('user_id', userId);

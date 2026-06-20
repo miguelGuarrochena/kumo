@@ -19,6 +19,9 @@ type Props = {
   lastSyncAt: string | null;
   syncError: string | null;
   oauthConfigured: boolean;
+  // Cuando false, escondemos el botón Connect (feature en revisión por Google).
+  // Los users ya conectados igual ven el estado y pueden desconectar.
+  featurePublic: boolean;
 };
 
 const formatWhen = (iso: string | null, locale: string): string | null => {
@@ -39,6 +42,7 @@ export const GoogleCalendarSection = ({
   lastSyncAt,
   syncError,
   oauthConfigured,
+  featurePublic,
 }: Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -192,7 +196,7 @@ export const GoogleCalendarSection = ({
               </button>
             </div>
           </div>
-        ) : (
+        ) : featurePublic ? (
           <div className="space-y-4">
             <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
               <li>{s.google_calendar_step1}</li>
@@ -209,6 +213,23 @@ export const GoogleCalendarSection = ({
               {s.google_calendar_connect_cta}
             </button>
             <p className="text-[11px] text-slate-400 dark:text-slate-500">{s.google_calendar_note}</p>
+          </div>
+        ) : (
+          // Feature en revisión por Google — escondemos el botón Connect.
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200/60 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 px-4 py-3">
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 grid place-items-center shrink-0">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm text-slate-800 dark:text-slate-100">
+                  {s.google_calendar_coming_soon_title}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                  {s.google_calendar_coming_soon_desc}
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </Section>

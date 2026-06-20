@@ -10,7 +10,10 @@ import { getPricing } from '@/lib/pricing';
 import { isAdmin } from '@/lib/admin';
 import { Suspense } from 'react';
 import { GoogleCalendarSection } from './GoogleCalendarSection';
-import { isGoogleCalendarOAuthConfigured } from '@/lib/calendar/googleConfigured';
+import {
+  isGoogleCalendarOAuthConfigured,
+  isGoogleCalendarFeaturePublic,
+} from '@/lib/calendar/googleConfigured';
 import { getMessages } from '@/lib/i18n/server';
 import { isWhatsAppConfigured } from '@/lib/notifications/whatsapp';
 import { currentWaMonthKey, WA_MONTHLY_CAP } from '@/lib/notifications/waLimits';
@@ -153,6 +156,7 @@ const SettingsPage = async () => {
           lastSyncAt={settingsRow?.google_calendar_last_sync_at ?? null}
           syncError={settingsRow?.google_calendar_sync_error ?? null}
           oauthConfigured={isGoogleCalendarOAuthConfigured()}
+          featurePublic={isGoogleCalendarFeaturePublic()}
         />
       </Suspense>
 

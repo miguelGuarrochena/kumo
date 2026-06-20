@@ -608,7 +608,9 @@
     "account": "Cuenta",
     "autosave_hint": "Los cambios se guardan automáticamente.",
     "open_in_google_calendar": "Abrir en Google Calendar",
-    "google_calendar_synced": "Sincronizado con Google Calendar"
+    "google_calendar_synced": "Sincronizado con Google Calendar",
+    "google_calendar_coming_soon_title": "Próximamente",
+    "google_calendar_coming_soon_desc": "Estamos esperando la verificación de Google. Mientras tanto, podés usar Kumo sin Google Calendar — los recordatorios y vencimientos quedan dentro de la app."
   },
   "landing": {
     "tagline_pre": "Tus gastos,",

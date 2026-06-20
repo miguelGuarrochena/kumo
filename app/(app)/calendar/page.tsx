@@ -4,6 +4,7 @@ import { type Currency } from '@/lib/currency';
 import { countryFromTimezone } from '@/lib/holidays';
 import { getCurrentWorkspace } from '@/lib/workspace';
 import { getSubscription } from '@/lib/subscription';
+import { isGoogleCalendarFeaturePublic } from '@/lib/calendar/googleConfigured';
 
 type SearchParams = {
   month?: string;
@@ -124,6 +125,7 @@ const CalendarPage = async ({
   return (
     <CalendarClient
       googleCalendarConnected={googleCalendarConnected}
+      googleCalendarFeaturePublic={isGoogleCalendarFeaturePublic()}
       year={year}
       month={month}
       startDate={startDate}

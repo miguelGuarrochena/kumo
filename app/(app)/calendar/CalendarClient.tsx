@@ -43,6 +43,7 @@ type Props = {
   workspaces: WorkspaceLite[];
   activeWorkspaceId: string;
   googleCalendarConnected: boolean;
+  googleCalendarFeaturePublic?: boolean;
   hasWa: boolean;
 };
 
@@ -61,6 +62,7 @@ export const CalendarClient = ({
   workspaces,
   activeWorkspaceId,
   googleCalendarConnected,
+  googleCalendarFeaturePublic = true,
   hasWa,
 }: Props) => {
   const router = useRouter();
@@ -187,7 +189,10 @@ export const CalendarClient = ({
         </button>
       </header>
 
-      <GoogleCalendarBanner connected={googleCalendarConnected} />
+      <GoogleCalendarBanner
+        connected={googleCalendarConnected}
+        featurePublic={googleCalendarFeaturePublic}
+      />
 
       {workspaces.length > 1 && (
         <div className="kumo-card p-3 flex flex-wrap items-center gap-2">

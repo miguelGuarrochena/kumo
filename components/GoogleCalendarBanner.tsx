@@ -41,16 +41,21 @@ const isCalendarBannerDismissed = () => {
 
 type Props = {
   connected: boolean;
+  // Si la feature aún no es pública (en revisión por Google), no mostramos
+  // el CTA para conectar a usuarios nuevos. Los ya conectados ven el pill.
+  featurePublic?: boolean;
 };
 
-export const GoogleCalendarBanner = ({ connected }: Props) => {
+export const GoogleCalendarBanner = ({ connected, featurePublic = true }: Props) => {
   const { t } = useT();
   const s = t.settings;
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    setVisible(!connected && !isGoogleCalendarDone() && !isCalendarBannerDismissed());
-  }, [connected]);
+    setVisible(
+      featurePublic && !connected && !isGoogleCalendarDone() && !isCalendarBannerDismissed(),
+    );
+  }, [connected, featurePublic]);
 
   // Si Google Calendar ya está conectado, mostramos un pill chico con shortcut
   // a calendar.google.com (antes había que ir a Settings para encontrar el link).
