@@ -9,7 +9,21 @@ export const GET = async () => {
 
   const present = (v: string | undefined) => Boolean(v && v.length > 0);
 
+  const planPreview = (v: string | undefined) =>
+    v && v.length > 0 ? `${v.slice(0, 8)}…${v.slice(-4)}` : null;
+
   return NextResponse.json({
+    deploy: {
+      commit:    process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+      commitMsg: process.env.VERCEL_GIT_COMMIT_MESSAGE ?? null,
+      branch:    process.env.VERCEL_GIT_COMMIT_REF ?? null,
+      builtAt:   process.env.VERCEL_DEPLOYMENT_ID ?? null,
+    },
+    plans: {
+      OCR_MONTHLY:     planPreview(process.env.MP_PLAN_OCR_MONTHLY ?? process.env.MP_PLAN_MONTHLY),
+      OCR_YEARLY:      planPreview(process.env.MP_PLAN_OCR_YEARLY ?? process.env.MP_PLAN_YEARLY),
+      OCR_YEARLY_AUTO: planPreview(process.env.MP_PLAN_OCR_YEARLY_AUTO),
+    },
     env: {
       MP_ACCESS_TOKEN:          present(process.env.MP_ACCESS_TOKEN),
       MP_WEBHOOK_SECRET:        present(process.env.MP_WEBHOOK_SECRET),
