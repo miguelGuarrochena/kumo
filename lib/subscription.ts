@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { isAdmin } from '@/lib/admin';
 import {
   isYearlyOneTimeVariant,
   isYearlyPlanVariant,
@@ -72,6 +73,29 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
   };
 
   if (!user) return emptyInfo;
+
+  // Admins / staff: Pro lifetime de cortesía sin importar lo que diga la fila
+  // de subscriptions. Se modela como `isCourtesy + isLifetime` para que la UI
+  // (PlanSection) ya oculte checkout y muestre el badge correspondiente.
+  const waPendingForAdmin = process.env.NEXT_PUBLIC_WHATSAPP_PENDING === 'true';
+  if (isAdmin(user.email)) {
+    const fiftyYearsFromNow = new Date(Date.now() + 50 * 365 * 86400_000);
+    return {
+      tier: 'pro',
+      planType: 'bundle',
+      hasOcr: true,
+      hasWa: !waPendingForAdmin,
+      status: 'active',
+      trialEndsAt: null,
+      daysLeftInTrial: null,
+      currentPeriodEnd: fiftyYearsFromNow,
+      providerSubscriptionId: null,
+      isLifetime: true,
+      isCourtesy: true,
+      isYearly: false,
+      isYearlyOneTime: false,
+    };
+  }
 
   const { data } = await supabase
     .from('subscriptions')
