@@ -142,7 +142,7 @@ export const ProPlansGrid = ({
         />
         <div className="relative rounded-xl border-2 border-amber-300 dark:border-amber-500/50 bg-amber-50/60 dark:bg-amber-500/5 p-3">
           <span className="absolute -top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-medium">
-            {b.save_label.replace('{pct}', String(pricing.yearlyPct))}
+            {b.save_label}
           </span>
           <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{b.plan_yearly}</p>
           <div className="mt-1 flex items-baseline gap-1">

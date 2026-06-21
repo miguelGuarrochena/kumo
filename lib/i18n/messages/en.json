@@ -818,7 +818,7 @@
     "yearly_auto_desc": "Renews yearly via MercadoPago until you cancel. We'll email you 30 and 7 days before each charge.",
     "per_month": "/ month",
     "per_year": "/ year",
-    "save_label": "Save {pct}%",
+    "save_label": "2 months free",
     "subscribe_button": "Subscribe",
     "checkout_monthly_note": "Monthly: automatic charge each month via MercadoPago until you cancel in Settings.",
     "checkout_yearly_once_note": "Yearly (no auto-renew): one payment for 12 months. After that you return to the free plan unless you subscribe again.",
