@@ -157,7 +157,9 @@ const SettingsPage = async () => {
           lastSyncAt={settingsRow?.google_calendar_last_sync_at ?? null}
           syncError={settingsRow?.google_calendar_sync_error ?? null}
           oauthConfigured={isGoogleCalendarOAuthConfigured()}
-          featurePublic={isGoogleCalendarFeaturePublic()}
+          // Los admins ven Connect siempre (necesario para grabar el video
+          // de verificación de Google sin tener que togglear la env flag).
+          featurePublic={isGoogleCalendarFeaturePublic() || isAdmin(user?.email)}
         />
       </Suspense>
 
