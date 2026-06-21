@@ -32,6 +32,14 @@ const mpFetch = async <T>(path: string, init?: RequestInit): Promise<T> => {
   });
   if (!res.ok) {
     const body = await res.text();
+    // TEMP debug: capturar request/response del bug `card_token_id is required`.
+    // Sacar este bloque cuando esté resuelto.
+    if (init?.method === 'POST' && path === '/preapproval') {
+      const sentBody = typeof init.body === 'string' ? init.body : '<non-string body>';
+      console.error('[MP preapproval] sent body:', sentBody);
+      console.error('[MP preapproval] response status:', res.status, 'body:', body);
+      console.error('[MP preapproval] token prefix:', ACCESS_TOKEN.slice(0, 12), 'len:', ACCESS_TOKEN.length);
+    }
     throw new Error(`MP ${res.status}: ${body}`);
   }
   return res.json() as Promise<T>;
