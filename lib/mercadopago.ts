@@ -51,7 +51,14 @@ export type MpPreapproval = {
 
 export const createPreapproval = (params: {
   planId: string;
-  payerEmail: string;
+  /**
+   * @deprecated Antes mandábamos `payer_email`, pero eso le decía a MP que
+   * el cobro era "direct" (sin checkout) y exigía `card_token_id`. En el
+   * checkout flow (que es el que queremos) el email lo carga el usuario
+   * cuando se loguea en MP. Lo dejamos en la signature para no romper
+   * callers que ya lo pasan; pero NO se envía al body.
+   */
+  payerEmail?: string;
   userId: string;
   reason: string;
   backUrl: string;
@@ -60,9 +67,10 @@ export const createPreapproval = (params: {
     method: 'POST',
     body: JSON.stringify({
       preapproval_plan_id: params.planId,
-      payer_email: params.payerEmail,
       reason: params.reason,
       back_url: params.backUrl,
+      // `external_reference` es lo que nos permite linkear el preapproval con
+      // el user de Kumo en el webhook. No depende de payer_email.
       external_reference: params.userId,
     }),
   });
