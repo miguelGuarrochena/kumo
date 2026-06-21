@@ -5,7 +5,6 @@ import {
   checkoutIntervalToPlan,
   getMpPlanId,
   type CheckoutInterval,
-  type PlanInterval,
   type PlanProduct,
 } from '@/lib/plans';
 import { BILLING_TERMS_VERSION } from '@/lib/legal/billingTerms';
@@ -58,6 +57,11 @@ export const POST = async (req: Request) => {
   // (eso exige `card_token_id` y es para el flow direct/sin checkout).
   const checkoutUrl = getPlanCheckoutUrl({ planId, userId: user.id });
 
+  // La constraint de billing_terms_acceptances exige 'monthly' (no 'month').
+  // Mapeamos antes de pasar al RPC para evitar check_violation.
+  const billingIntervalForDb: 'monthly' | 'year' | 'year_auto' =
+    billingInterval === 'month' ? 'monthly' : billingInterval;
+
   // Registramos la aceptación de términos sin `mp_preapproval_id` — cuando
   // llegue el webhook con el preapproval creado, lo linkeamos por user_id.
   // Pasamos `p_mp_preapproval_id: null` explícito porque PostgREST no siempre
@@ -65,7 +69,7 @@ export const POST = async (req: Request) => {
   const { error: termsErr } = await supabase.rpc('record_billing_terms_acceptance', {
     p_terms_version: BILLING_TERMS_VERSION,
     p_plan_product: product,
-    p_billing_interval: billingInterval as PlanInterval,
+    p_billing_interval: billingIntervalForDb,
     p_mp_preapproval_id: null,
   });
   if (termsErr) {
