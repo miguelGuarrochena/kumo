@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createPreapproval, isMpProductConfigured } from '@/lib/mercadopago';
+import { getPlanCheckoutUrl, isMpProductConfigured } from '@/lib/mercadopago';
 import {
   checkoutIntervalToPlan,
-  checkoutReason,
   getMpPlanId,
   type CheckoutInterval,
   type PlanInterval,
@@ -53,30 +52,23 @@ export const POST = async (req: Request) => {
     return NextResponse.json({ error: 'Plan no configurado' }, { status: 503 });
   }
 
-  const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kumo-app.com';
+  // El flow de suscripciones de MP es redirigir al `init_point` del plan;
+  // MP crea el `preapproval` cuando el usuario completa el checkout y nos
+  // avisa por webhook. NO hay que llamar `POST /preapproval` previamente
+  // (eso exige `card_token_id` y es para el flow direct/sin checkout).
+  const checkoutUrl = getPlanCheckoutUrl({ planId, userId: user.id });
 
-  try {
-    const pre = await createPreapproval({
-      planId,
-      payerEmail: user.email,
-      userId: user.id,
-      reason: checkoutReason(product, billingInterval),
-      backUrl: `${origin}/settings?subscribed=1`,
-    });
-
-    const { error: termsErr } = await supabase.rpc('record_billing_terms_acceptance', {
-      p_terms_version: BILLING_TERMS_VERSION,
-      p_plan_product: product,
-      p_billing_interval: billingInterval as PlanInterval,
-      p_mp_preapproval_id: pre.id,
-    });
-    if (termsErr) {
-      console.error('record_billing_terms_acceptance:', termsErr);
-      return NextResponse.json({ error: 'No se pudo registrar la aceptación de términos' }, { status: 500 });
-    }
-
-    return NextResponse.json({ url: pre.init_point });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  // Registramos la aceptación de términos sin `mp_preapproval_id` — cuando
+  // llegue el webhook con el preapproval creado, lo linkeamos por user_id.
+  const { error: termsErr } = await supabase.rpc('record_billing_terms_acceptance', {
+    p_terms_version: BILLING_TERMS_VERSION,
+    p_plan_product: product,
+    p_billing_interval: billingInterval as PlanInterval,
+  });
+  if (termsErr) {
+    console.error('record_billing_terms_acceptance:', termsErr);
+    return NextResponse.json({ error: 'No se pudo registrar la aceptación de términos' }, { status: 500 });
   }
+
+  return NextResponse.json({ url: checkoutUrl });
 };

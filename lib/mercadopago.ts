@@ -32,14 +32,6 @@ const mpFetch = async <T>(path: string, init?: RequestInit): Promise<T> => {
   });
   if (!res.ok) {
     const body = await res.text();
-    // TEMP debug: capturar request/response del bug `card_token_id is required`.
-    // Sacar este bloque cuando esté resuelto.
-    if (init?.method === 'POST' && path === '/preapproval') {
-      const sentBody = typeof init.body === 'string' ? init.body : '<non-string body>';
-      console.error('[MP preapproval] sent body:', sentBody);
-      console.error('[MP preapproval] response status:', res.status, 'body:', body);
-      console.error('[MP preapproval] token prefix:', ACCESS_TOKEN.slice(0, 12), 'len:', ACCESS_TOKEN.length);
-    }
     throw new Error(`MP ${res.status}: ${body}`);
   }
   return res.json() as Promise<T>;
@@ -57,15 +49,36 @@ export type MpPreapproval = {
   init_point: string;
 };
 
+/**
+ * Devuelve la URL de checkout de MP para suscribirse a un plan.
+ *
+ * Importante: para suscripciones con `preapproval_plan_id` el flow de MP es
+ * redirigir al usuario al `init_point` del plan — MP crea el `preapproval`
+ * automáticamente cuando el usuario completa el checkout, y nos lo notifica
+ * vía webhook. Llamar a `POST /preapproval` con plan_id es el flow "direct"
+ * (sin checkout) y exige `card_token_id`.
+ *
+ * Por eso este helper NO hace POST: arma la URL del checkout del plan y le
+ * adjunta `external_reference` para que después el webhook pueda linkear
+ * el preapproval con el user de Kumo.
+ */
+export const getPlanCheckoutUrl = (params: {
+  planId: string;
+  userId: string;
+}): string => {
+  const base = `https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=${encodeURIComponent(params.planId)}`;
+  const externalRef = `&external_reference=${encodeURIComponent(params.userId)}`;
+  return `${base}${externalRef}`;
+};
+
+/**
+ * @deprecated Usar `getPlanCheckoutUrl`. Este wrapper queda para no romper
+ * callers viejos pero NO debe usarse para iniciar checkouts nuevos — MP rechaza
+ * el POST `/preapproval` con `card_token_id is required` cuando se usa un
+ * `preapproval_plan_id` (ese endpoint es para el flow "direct").
+ */
 export const createPreapproval = (params: {
   planId: string;
-  /**
-   * @deprecated Antes mandábamos `payer_email`, pero eso le decía a MP que
-   * el cobro era "direct" (sin checkout) y exigía `card_token_id`. En el
-   * checkout flow (que es el que queremos) el email lo carga el usuario
-   * cuando se loguea en MP. Lo dejamos en la signature para no romper
-   * callers que ya lo pasan; pero NO se envía al body.
-   */
   payerEmail?: string;
   userId: string;
   reason: string;
@@ -77,8 +90,6 @@ export const createPreapproval = (params: {
       preapproval_plan_id: params.planId,
       reason: params.reason,
       back_url: params.backUrl,
-      // `external_reference` es lo que nos permite linkear el preapproval con
-      // el user de Kumo en el webhook. No depende de payer_email.
       external_reference: params.userId,
     }),
   });
