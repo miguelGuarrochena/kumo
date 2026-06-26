@@ -5,6 +5,8 @@ import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
 import { findRecurringCandidates, type ExpenseRecurringRow } from '@/lib/recurringSuggest';
 import { getCurrentWorkspace } from '@/lib/workspace';
+import { getMessages } from '@/lib/i18n/server';
+import { categoryDisplayName } from '@/lib/categoryLabels';
 import { EXPENSES_PAGE_SIZE, clampPage, pageRange } from '@/lib/pagination';
 import type { BalanceRow, PaymentRow } from '../split/types';
 
@@ -51,6 +53,7 @@ const applyExpenseFilters = (
   view: ExpensesView,
   monthStr: string,
   params: SearchParams,
+  qCatIds: string[] = [],
 ) => {
   // El filtro por tipo (gasto/ingreso) aplica en todas las vistas.
   if (params.kind === 'expense') query = query.eq('kind', 'expense');
@@ -77,7 +80,17 @@ const applyExpenseFilters = (
   if (params.cur) query = query.eq('currency', params.cur);
   if (params.min) query = query.gte('amount', Number(params.min));
   if (params.max) query = query.lte('amount', Number(params.max));
-  if (params.q) query = query.ilike('description', `%${params.q}%`);
+  if (params.q) {
+    // Escapamos comas/paréntesis que romperían la sintaxis de `.or()`.
+    const safe = params.q.replace(/[,()]/g, ' ');
+    const pattern = `%${safe}%`;
+    if (qCatIds.length > 0) {
+      // Coincide por descripción O por categoría (nombre).
+      query = query.or(`description.ilike.${pattern},category_id.in.(${qCatIds.join(',')})`);
+    } else {
+      query = query.ilike('description', pattern);
+    }
+  }
   return query;
 };
 
@@ -213,11 +226,28 @@ const ExpensesPage = async ({
       .sort((a, b) => b.year - a.year);
   } else if (section !== 'saldos') {
     const sort = params.sort ?? 'date-desc';
+
+    // Para que la búsqueda también encuentre por categoría (no solo por
+    // descripción), resolvemos qué categorías matchean el texto.
+    const qLower = (params.q ?? '').trim().toLowerCase();
+    let qCatIds: string[] = [];
+    if (qLower.length >= 1) {
+      const t = await getMessages();
+      qCatIds = ((categories ?? []) as Array<{ id: string; name: string }>)
+        .filter(
+          (c) =>
+            c.name.toLowerCase().includes(qLower) ||
+            categoryDisplayName(c.name, t).toLowerCase().includes(qLower),
+        )
+        .map((c) => c.id);
+    }
+
     const base = applyExpenseFilters(
       supabase.from('expenses').select('amount, currency, kind').eq('workspace_id', ctx.workspaceId),
       view,
       monthStr,
       params,
+      qCatIds,
     );
     const { data: summaryRows } = await applyExpenseSort(base, sort);
 
@@ -251,6 +281,7 @@ const ExpensesPage = async ({
       view,
       monthStr,
       params,
+      qCatIds,
     );
     listQuery = applyExpenseSort(listQuery, sort);
     const { data } = await listQuery.range(from, to);

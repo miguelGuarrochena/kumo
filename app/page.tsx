@@ -6,7 +6,6 @@ import { CloudDecorations } from '@/components/CloudDecorations';
 import { Footer } from '@/components/Footer';
 import { StructuredData } from '@/components/StructuredData';
 import { LangPill } from '@/components/LangPill';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Wallet, Bell, ShoppingCart, BarChart3, MessageCircle, Camera, ArrowRight,
   Sparkles, PiggyBank,
@@ -41,7 +40,6 @@ const HomePage = async () => {
           <span className="font-bold text-xl tracking-tight kumo-gradient-text">Kumo</span>
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggle compact />
           <LangPill />
           <Link
             href="/auth/login"

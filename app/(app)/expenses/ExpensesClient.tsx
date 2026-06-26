@@ -339,14 +339,35 @@ export const ExpensesClient = ({
     setUrlParam('page', next <= 1 ? null : String(next));
   };
 
+  // Buscar: si hay texto, mostramos resultados en la vista "Todos".
+  const runSearch = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const v = value.trim();
+    if (v) {
+      params.set('view', 'all');
+      params.set('q', v);
+    } else {
+      params.delete('q');
+    }
+    params.delete('page');
+    pushParams(params);
+  };
+
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('view', 'all');
-    if (searchInput.trim()) params.set('q', searchInput.trim());
-    else params.delete('q');
-    router.push(`/expenses?${params.toString()}`);
+    runSearch(searchInput);
   };
+
+  // Búsqueda en vivo: filtra mientras escribís (con un pequeño retardo).
+  useEffect(() => {
+    const v = searchInput.trim();
+    if (v === (filters.q ?? '')) return;
+    // En "Por mes" sin texto y sin búsqueda previa no navegamos.
+    if (!v && view === 'month' && !filters.q) return;
+    const handler = setTimeout(() => runSearch(searchInput), 350);
+    return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput, view, filters.q]);
 
   // Cantidad de filtros activos
   const activeFilterCount =
@@ -565,6 +586,19 @@ export const ExpensesClient = ({
           }}
         />
       ) : view === 'month' ? (
+        <>
+        <form onSubmit={onSearchSubmit}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t.expenses.search_placeholder}
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            />
+          </div>
+        </form>
         <div className="kumo-card p-5 sm:p-6">
           <div className="flex items-center justify-between mb-3">
             <button
@@ -634,6 +668,7 @@ export const ExpensesClient = ({
             )}
           </div>
         </div>
+        </>
       ) : (
         <>
           <form onSubmit={onSearchSubmit} className="flex gap-2">

@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -39,31 +40,43 @@ const applyTheme = (theme: Theme): 'light' | 'dark' => {
 };
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const pathname = usePathname();
+  // La landing ("/") siempre se muestra en modo claro.
+  const forceLight = pathname === '/';
   const [theme, setThemeState] = useState<Theme>('system');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
+  // Cargar la preferencia guardada una sola vez. Se hace en un efecto (no en el
+  // initializer de useState) para evitar mismatch de hidratación: el server no
+  // tiene acceso a localStorage.
   useEffect(() => {
     const stored = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null) as Theme | null;
     const initial: Theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- init desde almacenamiento solo disponible en cliente
     setThemeState(initial);
-    setResolvedTheme(applyTheme(initial));
   }, []);
 
+  // Aplicar el tema al DOM (sincronización con sistema externo) y guardar el
+  // tema resuelto para exponerlo por contexto.
   useEffect(() => {
-    if (theme !== 'system' || typeof window === 'undefined') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deriva de aplicar el tema al DOM
+    setResolvedTheme(applyTheme(forceLight ? 'light' : theme));
+  }, [theme, forceLight]);
+
+  useEffect(() => {
+    if (forceLight || theme !== 'system' || typeof window === 'undefined') return;
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => setResolvedTheme(applyTheme('system'));
     mql.addEventListener('change', onChange);
     return () => mql.removeEventListener('change', onChange);
-  }, [theme]);
+  }, [theme, forceLight]);
 
   const setTheme = useCallback((t: Theme) => {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, t);
-    const resolved = applyTheme(t);
     setThemeState(t);
-    setResolvedTheme(resolved);
-  }, []);
+    if (!forceLight) setResolvedTheme(applyTheme(t));
+  }, [forceLight]);
 
   return (
     <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
@@ -74,4 +87,4 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useTheme = (): Ctx => useContext(ThemeContext);
 
-export const themeInitScript = `(function(){try{var t=localStorage.getItem('${STORAGE_KEY}');var d=t==='dark'||((t==='system'||!t)&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}else{document.documentElement.style.colorScheme='light';}}catch(e){}})();`;
+export const themeInitScript = `(function(){try{if(location.pathname==='/'){document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light';return;}var t=localStorage.getItem('${STORAGE_KEY}');var d=t==='dark'||((t==='system'||!t)&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}else{document.documentElement.style.colorScheme='light';}}catch(e){}})();`;
