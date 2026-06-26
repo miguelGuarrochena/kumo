@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Search, Gift, XCircle, Clock, Sparkles, Loader2, Camera, MessageCircle, Wallet } from 'lucide-react';
+import { Search, Gift, XCircle, Clock, Sparkles, Loader2, Camera } from 'lucide-react';
 import { grantPro, cancelAtPeriodEnd, extendTrial, adjustPlan } from './actions';
 import { planIncludesOcr, planIncludesWa } from '@/lib/plans';
 import type { PlanProduct } from '@/lib/plans';
@@ -43,10 +43,10 @@ type ConfirmDlg = {
   action: () => Promise<{ ok: boolean; error?: string }>;
 };
 
+// Solo otorgamos OCR (que incluye agregar gastos desde la búsqueda / NLP).
+// WA y Bundle quedan fuera del grant para no activar WhatsApp por error.
 const PLAN_OPTIONS: { id: PlanProduct; icon: typeof Camera }[] = [
   { id: 'ocr', icon: Camera },
-  { id: 'wa', icon: MessageCircle },
-  { id: 'bundle', icon: Wallet },
 ];
 
 export const AdminClient = ({ rows, page, pageSize, totalCount, hasMore, stats, searchQuery = '', waMonthlyCap = 200 }: Props) => {
@@ -56,7 +56,7 @@ export const AdminClient = ({ rows, page, pageSize, totalCount, hasMore, stats, 
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchQuery);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [grantPlan, setGrantPlan] = useState<PlanProduct>('bundle');
+  const [grantPlan, setGrantPlan] = useState<PlanProduct>('ocr');
   const serverSearch = searchQuery.length > 0;
 
   useEffect(() => {
