@@ -47,6 +47,7 @@ const MetricsPage = async ({
     { data: trailExpenses },
     { data: currentIncome },
     { data: previousIncome },
+    { data: trailIncome },
     { data: settings },
     rates,
   ] = await Promise.all([
@@ -83,7 +84,7 @@ const MetricsPage = async ({
     (() => {
       let q = supabase
         .from('expenses')
-        .select('id, amount, currency, expense_date')
+        .select('id, amount, currency, expense_date, description, category_id, categories(name, color)')
         .eq('kind', 'income')
         .gte('expense_date', start)
         .lte('expense_date', end);
@@ -97,6 +98,16 @@ const MetricsPage = async ({
         .eq('kind', 'income')
         .gte('expense_date', prevStart)
         .lte('expense_date', prevEnd);
+      if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
+      return q;
+    })(),
+    (() => {
+      let q = supabase
+        .from('expenses')
+        .select('id, amount, currency, expense_date')
+        .eq('kind', 'income')
+        .gte('expense_date', trailStart)
+        .lte('expense_date', end);
       if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
       return q;
     })(),
@@ -117,6 +128,7 @@ const MetricsPage = async ({
       trailExpenses={(trailExpenses ?? []) as never}
       currentIncome={(currentIncome ?? []) as never}
       previousIncome={(previousIncome ?? []) as never}
+      trailIncome={(trailIncome ?? []) as never}
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}
       rates={rates.rates}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  ComposedChart, Line, Legend,
 } from 'recharts';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { CURRENCIES, formatMoney, convertAmount, type Currency } from '@/lib/currency';
@@ -39,8 +40,9 @@ type Props = {
   currentExpenses: ExpenseFull[];
   previousExpenses: ExpenseLite[];
   trailExpenses: ExpenseLite[];
-  currentIncome: ExpenseLite[];
+  currentIncome: ExpenseFull[];
   previousIncome: ExpenseLite[];
+  trailIncome: ExpenseLite[];
   defaultCurrency: Currency;
   displayCurrency: Currency;
   rates: Partial<Record<Currency, number>>;
@@ -67,6 +69,7 @@ export const MetricsClient = ({
   trailExpenses,
   currentIncome,
   previousIncome,
+  trailIncome,
   defaultCurrency,
   displayCurrency,
   rates,
@@ -109,6 +112,8 @@ export const MetricsClient = ({
   const net = incomeTotal - total;
   const previousNet = previousIncomeTotal - previousTotal;
   const hasIncomeData = currentIncome.length > 0 || previousIncome.length > 0;
+  // Tasa de ahorro: qué porción de los ingresos quedó sin gastar.
+  const savingsRate = incomeTotal > 0 ? (net / incomeTotal) * 100 : null;
 
   // Agregación por categoría
   const byCategory = useMemo(() => {
@@ -143,6 +148,42 @@ export const MetricsClient = ({
     convert,
     tag,
   ]);
+
+  // Ingresos por categoría (espejo de byCategory pero sobre los ingresos).
+  const incomeByCategory = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; color: string; total: number }>();
+    for (const e of currentIncome) {
+      const id = e.category_id ?? '__none__';
+      const name = e.categories?.name
+        ? categoryDisplayName(e.categories.name, t)
+        : t.expenses.no_category;
+      const color = e.categories?.color ?? 'mint';
+      const existing = map.get(id);
+      const amount = convert(Number(e.amount), e.currency) ?? 0;
+      if (existing) existing.total += amount;
+      else map.set(id, { id, name, color, total: amount });
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [currentIncome, convert, t]);
+
+  // Cruce Ingresos vs Gastos por período (mismos buckets que el trail de gastos).
+  const incomeTrail = useMemo(() => buildTrail(period, refDate, trailIncome, convert, tag), [
+    period,
+    refDate,
+    trailIncome,
+    convert,
+    tag,
+  ]);
+  const crossTrail = useMemo(
+    () =>
+      trailData.map((d, i) => ({
+        label: d.label,
+        gastos: d.total,
+        ingresos: incomeTrail[i]?.total ?? 0,
+        neto: (incomeTrail[i]?.total ?? 0) - d.total,
+      })),
+    [trailData, incomeTrail],
+  );
 
   // ---- Navegación de período ----
   const navigate = (delta: number) => {
@@ -307,15 +348,91 @@ export const MetricsClient = ({
               </p>
             </div>
           </div>
-          {previousNet !== 0 && (
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-3 text-center">
-              {t.metrics.net_previous.replace('{period}', t.metrics[period])}:{' '}
-              <span className={previousNet >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}>
-                {previousNet >= 0 ? '+' : '−'}{formatMoney(Math.abs(previousNet), displayCurrency, locale)}
+          <div className="mt-3 flex items-center justify-center gap-4 flex-wrap text-[11px] text-slate-400 dark:text-slate-500">
+            {savingsRate !== null && (
+              <span>
+                {t.metrics.savings_rate}:{' '}
+                <span className={`font-semibold ${savingsRate >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}`}>
+                  {savingsRate.toFixed(0)}%
+                </span>
               </span>
-            </p>
-          )}
+            )}
+            {previousNet !== 0 && (
+              <span>
+                {t.metrics.net_previous.replace('{period}', t.metrics[period])}:{' '}
+                <span className={previousNet >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}>
+                  {previousNet >= 0 ? '+' : '−'}{formatMoney(Math.abs(previousNet), displayCurrency, locale)}
+                </span>
+              </span>
+            )}
+          </div>
         </div>
+      )}
+
+      {/* Ingresos vs Gastos (cruce) + Ingresos por categoría — solo si hay ingresos */}
+      {hasIncomeData && (
+        <>
+          <div className="kumo-card p-5">
+            <h3 className="font-semibold mb-3">
+              {t.metrics.income_vs_expense} · {t.metrics.evolution_suffix} {t.metrics[`period_${period}_plural` as 'period_day_plural']}
+            </h3>
+            <div className="h-60">
+              <ResponsiveContainer>
+                <ComposedChart data={crossTrail} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'rgb(148 163 184)' }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 11, fill: 'rgb(148 163 184)' }} tickFormatter={(v) => abbreviateNumber(v)} width={50} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [formatMoney(value, displayCurrency, locale), name]}
+                    contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="ingresos" name={t.metrics.income_label} radius={[6, 6, 0, 0]} fill="#34d399" />
+                  <Bar dataKey="gastos" name={t.metrics.expense_label} radius={[6, 6, 0, 0]} fill="#8b5cf6" />
+                  <Line dataKey="neto" name={t.metrics.net_label} type="monotone" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {incomeByCategory.length > 0 && (
+            <div className="kumo-card p-5">
+              <h3 className="font-semibold mb-3">{t.metrics.income_by_category}</h3>
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-full sm:w-44 h-44 shrink-0">
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie data={incomeByCategory} dataKey="total" nameKey="name" innerRadius={45} outerRadius={72} paddingAngle={2}>
+                        {incomeByCategory.map((c, i) => (
+                          <Cell key={c.id} fill={COLOR_HEX[c.color] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => formatMoney(value, displayCurrency, locale)}
+                        contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex-1 w-full min-w-0 space-y-1.5">
+                  {incomeByCategory.slice(0, 6).map((c, i) => {
+                    const pct = incomeTotal > 0 ? (c.total / incomeTotal) * 100 : 0;
+                    return (
+                      <div key={c.id} className="flex items-center gap-2 text-sm">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLOR_HEX[c.color] ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length] }} />
+                        <span className="flex-1 truncate">{c.name}</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">{pct.toFixed(0)}%</span>
+                        <span className="font-medium tabular-nums whitespace-nowrap text-xs sm:text-sm text-mint-600 dark:text-mint-400">
+                          +{formatMoney(c.total, displayCurrency, locale)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Gráficos solo si hay data */}

@@ -345,7 +345,11 @@ export const ExpenseSheet = ({
             });
           }
         }
-        toast.success(expense ? t.expenses.saved_toast : t.expenses.created_toast);
+        toast.success(
+          expense
+            ? isIncome ? t.expenses.income_saved_toast : t.expenses.saved_toast
+            : isIncome ? t.expenses.income_created_toast : t.expenses.created_toast,
+        );
         if (!expense) {
           track('expense_created', {
             currency,

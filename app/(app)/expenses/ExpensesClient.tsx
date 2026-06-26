@@ -666,6 +666,30 @@ export const ExpensesClient = ({
         </>
       )}
 
+      {/* Filtro por tipo: Todos / Gastos / Ingresos */}
+      {view !== 'archive' && (
+        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          {([
+            ['', t.expenses.filter_kind_all],
+            ['expense', t.expenses.filter_kind_expense],
+            ['income', t.expenses.filter_kind_income],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value || 'all'}
+              type="button"
+              onClick={() => setUrlParam('kind', value || null)}
+              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filters.kind === value
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* --- Lista (no aplica a archive) --- */}
       {view === 'archive' ? null : totalCount === 0 ? (
         <div className="kumo-card p-10 text-center">

@@ -24,6 +24,7 @@ export type Filters = {
   paid: '' | 'paid' | 'pending';
   rec: '' | 'recurring' | 'one-time';
   cur: string;
+  kind: '' | 'expense' | 'income';
   sort: string;
 };
 

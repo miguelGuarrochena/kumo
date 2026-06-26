@@ -63,7 +63,7 @@
   },
   "nav": {
     "dashboard": "Inicio",
-    "expenses": "Gastos",
+    "expenses": "Movimientos",
     "budgets": "Presupuestos",
     "metrics": "Métricas",
     "categories": "Categorías",
@@ -108,8 +108,8 @@
     "forecast_over_budget": "Superarías el presupuesto ({amount})"
   },
   "expenses": {
-    "title": "Gastos",
-    "subtitle": "Cargá, filtrá y revisá tus gastos.",
+    "title": "Movimientos",
+    "subtitle": "Cargá, filtrá y revisá tus gastos e ingresos.",
     "search_nlp_hint": "También podés cargar un gasto escribiendo en Buscar — ej. «5000 supermercado» (plan Pro).",
     "search_nlp_hint_short": "Buscar · también cargar gastos con texto",
     "new": "Nuevo",
@@ -231,7 +231,7 @@
     "default_name": "Gasto",
     "shared": "Compartido",
     "divided": "Dividido",
-    "tab_expenses": "Gastos",
+    "tab_expenses": "Movimientos",
     "tab_balances": "Saldos",
     "saldos_subtitle": "Quién debe a quién según los gastos divididos del espacio.",
     "split_paid": "Pagó",
@@ -248,7 +248,12 @@
     "income_badge": "Ingreso",
     "income_default_name": "Ingreso",
     "total_income": "Ingresos",
-    "net_balance": "Neto"
+    "net_balance": "Neto",
+    "income_created_toast": "Ingreso creado",
+    "income_saved_toast": "Ingreso actualizado",
+    "filter_kind_all": "Todos",
+    "filter_kind_expense": "Gastos",
+    "filter_kind_income": "Ingresos"
   },
   "calendar": {
     "title": "Calendario",
@@ -381,7 +386,10 @@
     "income_label": "Ingresos",
     "expense_label": "Gastos",
     "net_label": "Neto",
-    "net_previous": "Neto {period} anterior"
+    "net_previous": "Neto {period} anterior",
+    "income_by_category": "Ingresos por categoría",
+    "income_vs_expense": "Ingresos vs Gastos",
+    "savings_rate": "Tasa de ahorro"
   },
   "reminders": {
     "title": "Recordatorios",

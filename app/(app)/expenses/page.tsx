@@ -38,6 +38,7 @@ type SearchParams = {
   paid?: string;
   rec?: string;
   cur?: string;
+  kind?: string;
   asCurrency?: string;
   sort?: string;
   section?: string;
@@ -69,6 +70,8 @@ const applyExpenseFilters = (
   if (params.paid === 'pending') query = query.eq('paid', false);
   if (params.rec === 'recurring') query = query.eq('is_recurring', true);
   if (params.rec === 'one-time') query = query.eq('is_recurring', false);
+  if (params.kind === 'expense') query = query.eq('kind', 'expense');
+  if (params.kind === 'income') query = query.eq('kind', 'income');
   if (params.cur) query = query.eq('currency', params.cur);
   if (params.min) query = query.gte('amount', Number(params.min));
   if (params.max) query = query.lte('amount', Number(params.max));
@@ -343,6 +346,7 @@ const ExpensesPage = async ({
         paid: (params.paid ?? '') as '' | 'paid' | 'pending',
         rec: (params.rec ?? '') as '' | 'recurring' | 'one-time',
         cur: params.cur ?? '',
+        kind: (params.kind ?? '') as '' | 'expense' | 'income',
         sort: params.sort ?? 'date-desc',
       }}
     />

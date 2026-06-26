@@ -63,7 +63,7 @@
   },
   "nav": {
     "dashboard": "Home",
-    "expenses": "Expenses",
+    "expenses": "Transactions",
     "budgets": "Budgets",
     "metrics": "Metrics",
     "categories": "Categories",
@@ -108,8 +108,8 @@
     "forecast_over_budget": "Would exceed your budget ({amount})"
   },
   "expenses": {
-    "title": "Expenses",
-    "subtitle": "Log, filter, and review your expenses.",
+    "title": "Transactions",
+    "subtitle": "Log, filter, and review your expenses and income.",
     "search_nlp_hint": "You can also add an expense in Search — e.g. \"5000 groceries\" (Pro plan).",
     "search_nlp_hint_short": "Search · add expenses by typing too",
     "new": "New",
@@ -231,7 +231,7 @@
     "default_name": "Expense",
     "shared": "Shared",
     "divided": "Split",
-    "tab_expenses": "Expenses",
+    "tab_expenses": "Transactions",
     "tab_balances": "Balances",
     "saldos_subtitle": "Who owes whom based on split expenses in this workspace.",
     "split_paid": "Paid",
@@ -248,7 +248,12 @@
     "income_badge": "Income",
     "income_default_name": "Income",
     "total_income": "Income",
-    "net_balance": "Net"
+    "net_balance": "Net",
+    "income_created_toast": "Income created",
+    "income_saved_toast": "Income updated",
+    "filter_kind_all": "All",
+    "filter_kind_expense": "Expenses",
+    "filter_kind_income": "Income"
   },
   "calendar": {
     "title": "Calendar",
@@ -381,7 +386,10 @@
     "income_label": "Income",
     "expense_label": "Expenses",
     "net_label": "Net",
-    "net_previous": "Previous {period} net"
+    "net_previous": "Previous {period} net",
+    "income_by_category": "Income by category",
+    "income_vs_expense": "Income vs Expenses",
+    "savings_rate": "Savings rate"
   },
   "reminders": {
     "title": "Reminders",
