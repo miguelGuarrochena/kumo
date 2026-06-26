@@ -252,6 +252,16 @@ export const ExpensesClient = ({
   // El desglose Ingresos/Gastos solo tiene sentido en modo neto.
   const showBreakdown = headlineMode === 'net';
 
+  // Filtros para exportar: en vista "Por mes" acotamos al mes visible; en
+  // "Todos" usamos los filtros activos. Siempre respeta el tipo (chip).
+  const exportFilters: Filters = view === 'month'
+    ? (() => {
+        const [y, m] = monthStr.split('-').map(Number) as [number, number];
+        const lastDay = new Date(y, m, 0).getDate();
+        return { ...filters, from: `${monthStr}-01`, to: `${monthStr}-${String(lastDay).padStart(2, '0')}` };
+      })()
+    : filters;
+
   const [year, month] = monthStr.split('-').map(Number) as [number, number];
   const prevMonth = monthShift(year, month, -1);
   const nextMonth = monthShift(year, month, 1);
@@ -503,33 +513,36 @@ export const ExpensesClient = ({
       ) : (
       <>
 
-      {/* Filtro por tipo: Todos / Gastos / Ingresos */}
+      {/* Filtro por tipo: Todos / Gastos / Ingresos + exportar */}
       {view !== 'archive' && (
-        <div className={`flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl transition-opacity ${isNavPending ? 'opacity-60' : ''}`}>
-          {([
-            ['', t.expenses.filter_kind_all],
-            ['expense', t.expenses.filter_kind_expense],
-            ['income', t.expenses.filter_kind_income],
-          ] as const).map(([value, label]) => (
-            <button
-              key={value || 'all'}
-              type="button"
-              onClick={() => {
-                if (optimisticKind === value) return;
-                setOptimisticKind(value);
-                setUrlParam('kind', value || null);
-              }}
-              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                optimisticKind === value
-                  ? value === 'income'
-                    ? 'bg-white dark:bg-slate-700 text-mint-600 dark:text-mint-400 shadow-sm'
-                    : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className={`flex-1 flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl transition-opacity ${isNavPending ? 'opacity-60' : ''}`}>
+            {([
+              ['', t.expenses.filter_kind_all],
+              ['expense', t.expenses.filter_kind_expense],
+              ['income', t.expenses.filter_kind_income],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value || 'all'}
+                type="button"
+                onClick={() => {
+                  if (optimisticKind === value) return;
+                  setOptimisticKind(value);
+                  setUrlParam('kind', value || null);
+                }}
+                className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  optimisticKind === value
+                    ? value === 'income'
+                      ? 'bg-white dark:bg-slate-700 text-mint-600 dark:text-mint-400 shadow-sm'
+                      : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <ExportMenu filters={exportFilters} label={t.expenses.export} />
         </div>
       )}
 
@@ -647,7 +660,6 @@ export const ExpensesClient = ({
                 </span>
               )}
             </button>
-            <ExportMenu filters={filters} label={t.expenses.export} />
           </form>
 
           {/* Chips de filtros activos */}

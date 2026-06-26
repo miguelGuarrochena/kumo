@@ -50,5 +50,6 @@ export function buildExportUrl(filters: Filters, format: 'xlsx' | 'csv' = 'xlsx'
   if (filters.to)     params.set('to', filters.to);
   if (filters.cur)    params.set('currency', filters.cur);
   if (filters.paid)   params.set('paid', filters.paid);
+  if (filters.kind)   params.set('kind', filters.kind);
   return `/api/export/expenses?${params.toString()}`;
 }

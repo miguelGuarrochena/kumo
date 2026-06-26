@@ -1120,7 +1120,8 @@
     "col_amount": "Monto",
     "col_currency": "Moneda",
     "col_status": "Estado",
-    "col_recurring": "Recurrente"
+    "col_recurring": "Recurrente",
+    "col_type": "Tipo"
   },
   "seo": {
     "site_title": "Kumo · Tus gastos como una nube perfecta",

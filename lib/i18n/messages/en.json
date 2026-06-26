@@ -1120,7 +1120,8 @@
     "col_amount": "Amount",
     "col_currency": "Currency",
     "col_status": "Status",
-    "col_recurring": "Recurring"
+    "col_recurring": "Recurring",
+    "col_type": "Type"
   },
   "seo": {
     "site_title": "Kumo · Your expenses, like a perfect cloud",

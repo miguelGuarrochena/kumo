@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 
 type ExpenseRow = {
   expense_date: string;
+  kind: 'expense' | 'income';
   due_date: string | null;
   description: string | null;
   category_name: string;
@@ -27,6 +28,7 @@ type RawExportRow = {
   paid: boolean;
   is_recurring: boolean;
   recurrence_type: string | null;
+  kind: 'expense' | 'income';
   categories: { name: string } | null;
 };
 
@@ -36,6 +38,7 @@ export async function GET(request: Request) {
 
   const rowHeaders = [
     t.export.col_date,
+    t.export.col_type,
     t.export.col_due,
     t.export.col_description,
     t.export.col_category,
@@ -64,6 +67,7 @@ export async function GET(request: Request) {
   const to = url.searchParams.get('to');
   const currency = url.searchParams.get('currency');
   const paid = url.searchParams.get('paid'); // 'paid' | 'pending' | null
+  const kind = url.searchParams.get('kind'); // 'expense' | 'income' | null
 
   if (format !== 'xlsx' && format !== 'csv') {
     return new NextResponse(t.export.invalid_format, { status: 400 });
@@ -75,7 +79,7 @@ export async function GET(request: Request) {
 
   let q = supabase
     .from('expenses')
-    .select('expense_date, due_date, description, amount, currency, paid, is_recurring, recurrence_type, categories(name)')
+    .select('expense_date, due_date, description, amount, currency, paid, is_recurring, recurrence_type, kind, categories(name)')
     .eq('workspace_id', ctx.workspaceId)
     .order('expense_date', { ascending: false });
 
@@ -84,12 +88,15 @@ export async function GET(request: Request) {
   if (currency) q = q.eq('currency', currency);
   if (paid === 'paid')    q = q.eq('paid', true);
   if (paid === 'pending') q = q.eq('paid', false);
+  if (kind === 'expense') q = q.eq('kind', 'expense');
+  if (kind === 'income')  q = q.eq('kind', 'income');
 
   const { data, error } = await q;
   if (error) return new NextResponse(`Error: ${error.message}`, { status: 500 });
 
   const rows = ((data ?? []) as unknown as RawExportRow[]).map<ExpenseRow>((e) => ({
     expense_date: e.expense_date,
+    kind: e.kind ?? 'expense',
     due_date: e.due_date,
     description: e.description,
     category_name: e.categories?.name ? categoryDisplayName(e.categories.name, t) : '—',
@@ -104,6 +111,7 @@ export async function GET(request: Request) {
     rowHeaders,
     ...rows.map((r) => [
       r.expense_date,
+      r.kind === 'income' ? t.expenses.kind_income : t.expenses.kind_expense,
       r.due_date ?? '',
       r.description ?? '',
       r.category_name,
