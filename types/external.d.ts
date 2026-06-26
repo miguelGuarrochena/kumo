@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 declare module 'posthog-js' {
   const posthog: any;

@@ -47,7 +47,7 @@ type SearchParams = {
   page?: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const applyExpenseFilters = (
   query: any,
   view: ExpensesView,
@@ -95,7 +95,7 @@ const applyExpenseFilters = (
 };
 
 const applyExpenseSort = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   query: any,
   sort: string,
 ) => {

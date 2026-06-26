@@ -16,7 +16,7 @@ type Totals = {
 
 const sumRange = async (start: Date, end: Date): Promise<Totals> => {
   const supabase = createServiceClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data } = await (supabase.from('gemini_usage' as any) as any)
     .select('kind, est_cost_usd')
     .gte('created_at', start.toISOString())

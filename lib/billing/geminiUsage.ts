@@ -28,7 +28,7 @@ export const logGeminiCall = async (params: {
 }): Promise<void> => {
   try {
     const supabase = createServiceClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     await (supabase.from('gemini_usage' as any) as any).insert({
       user_id: params.userId,
       kind: params.kind,
@@ -43,7 +43,7 @@ type UsageRange = { start: Date; end: Date };
 
 const sumUsage = async (range: UsageRange) => {
   const supabase = createServiceClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data } = await (supabase.from('gemini_usage' as any) as any)
     .select('kind, est_cost_usd')
     .gte('created_at', range.start.toISOString())
@@ -86,7 +86,7 @@ export const topUsersThisMonth = async (limit = 5) => {
   const supabase = createServiceClient();
   const now = new Date();
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data } = await (supabase.from('gemini_usage' as any) as any)
     .select('user_id, est_cost_usd')
     .gte('created_at', start.toISOString());

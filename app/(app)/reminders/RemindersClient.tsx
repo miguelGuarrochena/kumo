@@ -328,6 +328,9 @@ const ReminderSheet = ({ open, reminder, contacts, onClose }: ReminderSheetProps
     } else {
       setNotifyContactIds(reminder.notify_contact_ids ?? []);
     }
+    // Re-sincronizamos el form solo al abrir o al cambiar de recordatorio (por id),
+    // no en cada cambio de campo del objeto `reminder`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, reminder?.id, contacts]);
 
   // Si elige cumpleaños, sugerir recurrencia anual

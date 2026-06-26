@@ -233,6 +233,8 @@ const ContactSheet = ({ open, contact, onClose }: ContactSheetProps) => {
     setMpAlias(contact?.mp_alias ?? '');
     setMpPaymentLink(contact?.mp_payment_link ?? '');
     setRelationship(contact?.relationship ?? 'other');
+    // Re-sincronizamos el form solo al abrir o al cambiar de contacto (por id).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, contact?.id]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

@@ -130,7 +130,7 @@ export const MetricsClient = ({
       else map.set(id, { id, name, color, total: amount });
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
-  }, [currentExpenses, convert, t.expenses.no_category]);
+  }, [currentExpenses, convert, t]);
 
   // Top 5 gastos individuales
   const topExpenses = useMemo(() => {

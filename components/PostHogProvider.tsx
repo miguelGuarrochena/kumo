@@ -19,7 +19,7 @@ if (typeof window !== 'undefined' && KEY) {
       element_allowlist: ['a', 'button', 'form', 'input', 'select', 'textarea', 'label'],
       css_selector_allowlist: ['[data-attr]'],
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     loaded: (ph: any) => {
       if (process.env.NODE_ENV === 'development') ph.debug();
     },

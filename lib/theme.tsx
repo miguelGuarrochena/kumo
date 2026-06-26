@@ -52,14 +52,12 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const stored = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null) as Theme | null;
     const initial: Theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- init desde almacenamiento solo disponible en cliente
     setThemeState(initial);
   }, []);
 
   // Aplicar el tema al DOM (sincronización con sistema externo) y guardar el
   // tema resuelto para exponerlo por contexto.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- deriva de aplicar el tema al DOM
     setResolvedTheme(applyTheme(forceLight ? 'light' : theme));
   }, [theme, forceLight]);
 

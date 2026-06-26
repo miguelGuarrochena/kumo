@@ -16,7 +16,7 @@ if (dsn) {
       /chrome-extension/,
       /moz-extension/,
     ],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     beforeSend(event: any) {
       if (process.env.NODE_ENV === 'development') return null;
       return event;

@@ -71,7 +71,7 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
     setPaid(filters.paid);
     setRec(filters.rec);
     setCur(filters.cur);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [open, filters]);
 
   const toggleCat = (id: string) => {

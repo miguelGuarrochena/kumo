@@ -63,6 +63,9 @@ export const PaymentAssistPanel = ({
       margin: 2,
       color: { dark: '#0f172a', light: '#ffffff' },
     }).catch(() => {});
+    // Regeneramos el QR según los campos que lo componen (alias, monto, concepto),
+    // no por la identidad del objeto `info`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qrOpen, showQr, mpAlias, amount, concept, compact]);
 
   if (!ready) return null;
