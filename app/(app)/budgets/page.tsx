@@ -25,6 +25,7 @@ const BudgetsPage = async () => {
       .from('categories')
       .select('id, name, icon, color')
       .eq('workspace_id', ctx.workspaceId)
+      .eq('kind', 'expense')
       .order('name', { ascending: true }),
     supabase
       .from('budgets')

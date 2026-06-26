@@ -138,12 +138,12 @@ export const ExpenseRow = ({
       </div>
       <div className="text-right shrink-0 pt-0.5">
         {isDifferentCurrency && convertedAmount === null ? (
-          <p className={`font-semibold text-sm whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : ''}`}>
+          <p className={`font-semibold text-sm whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : 'text-lavender-500 dark:text-lavender-400'}`}>
             {isIncome ? '+' : ''}{formatMoney(Number(expense.amount), expense.currency as Currency, locale)}
           </p>
         ) : (
           <>
-            <p className={`font-semibold text-sm whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : ''}`}>
+            <p className={`font-semibold text-sm whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : 'text-lavender-500 dark:text-lavender-400'}`}>
               {isIncome ? '+' : ''}{formatMoney(
                 isDifferentCurrency ? (convertedAmount ?? 0) : Number(expense.amount),
                 displayCurrency,

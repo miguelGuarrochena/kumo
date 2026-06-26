@@ -394,9 +394,9 @@ const DashboardPage = async () => {
               return (
               <div key={e.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                 <div className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 ${
-                  isIncome ? 'bg-mint-100 dark:bg-mint-500/20' : 'bg-slate-100 dark:bg-slate-700'
+                  isIncome ? 'bg-mint-100 dark:bg-mint-500/20' : 'bg-lavender-100 dark:bg-lavender-500/20'
                 }`}>
-                  <Wallet className={`w-4 h-4 ${isIncome ? 'text-mint-600 dark:text-mint-400' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <Wallet className={`w-4 h-4 ${isIncome ? 'text-mint-600 dark:text-mint-400' : 'text-lavender-500 dark:text-lavender-400'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
@@ -406,7 +406,7 @@ const DashboardPage = async () => {
                     {e.categories?.name ? categoryDisplayName(e.categories.name, t) : t.expenses.no_category} · {formatShortDate(e.expense_date, dateLocale)}
                   </p>
                 </div>
-                <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : ''}`}>
+                <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : 'text-lavender-500 dark:text-lavender-400'}`}>
                   {isIncome ? '+' : ''}{formatMoney(Number(e.amount), e.currency as Currency, locale)}
                 </p>
               </div>
