@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -228,10 +228,8 @@ export const ExpensesClient = ({
     headlineMode === 'income' ? t.expenses.income_month_label
     : headlineMode === 'expense' ? t.expenses.expenses_month_label
     : t.expenses.net_month_label;
-  const headlinePrefix =
-    headlineMode === 'income' ? '+'
-    : headlineMode === 'expense' ? ''
-    : netInDisplay >= 0 ? '+' : '−';
+  // Sin "+": solo mostramos "−" cuando el neto es negativo (pérdida).
+  const headlinePrefix = headlineMode === 'net' && netInDisplay < 0 ? '−' : '';
   const headlineColorClass =
     headlineMode === 'expense'
       ? 'kumo-gradient-text'
@@ -251,12 +249,19 @@ export const ExpensesClient = ({
   const nextMonth = monthShift(year, month, 1);
   const monthLabel = formatMonth(year, month, locale);
 
+  // Navegación con transición: mantiene la UI actual visible (sin flash de
+  // skeleton) mientras el server responde → el switch se siente instantáneo.
+  const [isNavPending, startNav] = useTransition();
+  const pushParams = (params: URLSearchParams) => {
+    startNav(() => router.push(`/expenses?${params.toString()}`, { scroll: false }));
+  };
+
   const switchView = (next: ExpensesView) => {
     const params = new URLSearchParams(searchParams.toString());
     if (next !== 'month') params.set('view', next);
     else params.delete('view');
     params.delete('page');
-    router.push(`/expenses?${params.toString()}`);
+    pushParams(params);
   };
 
   const switchSection = (next: ExpensesSection) => {
@@ -280,7 +285,7 @@ export const ExpensesClient = ({
     if (value) params.set(key, value);
     else params.delete(key);
     if (key !== 'page') params.delete('page');
-    router.push(`/expenses?${params.toString()}`);
+    pushParams(params);
   };
 
   const onExpensePageChange = (next: number) => {
@@ -463,7 +468,7 @@ export const ExpensesClient = ({
 
       {/* Filtro por tipo: Todos / Gastos / Ingresos */}
       {view !== 'archive' && (
-        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        <div className={`flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl transition-opacity ${isNavPending ? 'opacity-60' : ''}`}>
           {([
             ['', t.expenses.filter_kind_all],
             ['expense', t.expenses.filter_kind_expense],
@@ -475,7 +480,9 @@ export const ExpensesClient = ({
               onClick={() => setUrlParam('kind', value || null)}
               className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 filters.kind === value
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                  ? value === 'income'
+                    ? 'bg-white dark:bg-slate-700 text-mint-600 dark:text-mint-400 shadow-sm'
+                    : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                   : 'text-slate-600 dark:text-slate-400'
               }`}
             >

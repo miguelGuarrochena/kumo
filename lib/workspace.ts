@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import type { WorkspaceRole } from '@/lib/supabase/database.types';
-import { DEFAULT_CATEGORIES } from '@/lib/categoryLabels';
+import { DEFAULT_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '@/lib/categoryLabels';
 
 const COOKIE_NAME = 'workspace_id';
 
@@ -80,9 +80,10 @@ export const getCurrentWorkspace = async (): Promise<WorkspaceContext> => {
     role: 'admin',
   });
 
-  await supabase.from('categories').insert(
-    DEFAULT_CATEGORIES.map((d) => ({ ...d, user_id: user.id, workspace_id: ws.id })),
-  );
+  await supabase.from('categories').insert([
+    ...DEFAULT_CATEGORIES.map((d) => ({ ...d, kind: 'expense' as const, user_id: user.id, workspace_id: ws.id })),
+    ...DEFAULT_INCOME_CATEGORIES.map((d) => ({ ...d, kind: 'income' as const, user_id: user.id, workspace_id: ws.id })),
+  ]);
 
   await supabase.from('notification_contacts').insert({
     workspace_id: ws.id,

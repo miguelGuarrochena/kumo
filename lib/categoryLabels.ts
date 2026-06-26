@@ -14,6 +14,19 @@ export const DEFAULT_CATEGORIES = [
   { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
 ] as const;
 
+/**
+ * Categorías de ingreso sembradas al crear un workspace.
+ * Mantener sincronizado con el trigger SQL `handle_new_user`.
+ */
+export const DEFAULT_INCOME_CATEGORIES = [
+  { name: 'Sueldo',       icon: 'briefcase',       color: 'mint' },
+  { name: 'Freelance',    icon: 'sparkles',        color: 'sky' },
+  { name: 'Venta',        icon: 'credit-card',     color: 'peach' },
+  { name: 'Inversiones',  icon: 'piggy-bank',      color: 'lavender' },
+  { name: 'Regalo',       icon: 'gift',            color: 'rose' },
+  { name: 'Otros',        icon: 'more-horizontal', color: 'slate' },
+] as const;
+
 export const CATEGORY_PRESET_KEYS = [
   'rent',
   'groceries',
@@ -21,6 +34,12 @@ export const CATEGORY_PRESET_KEYS = [
   'transport',
   'health',
   'other',
+  // ingresos
+  'salary',
+  'freelance',
+  'sale',
+  'investments',
+  'gift',
 ] as const;
 
 export type CategoryPresetKey = (typeof CATEGORY_PRESET_KEYS)[number];
@@ -42,6 +61,21 @@ const NAME_TO_PRESET: Record<string, CategoryPresetKey> = {
   otros: 'other',
   other: 'other',
   others: 'other',
+  // ingresos
+  sueldo: 'salary',
+  salario: 'salary',
+  salary: 'salary',
+  freelance: 'freelance',
+  venta: 'sale',
+  ventas: 'sale',
+  sale: 'sale',
+  sales: 'sale',
+  inversiones: 'investments',
+  inversion: 'investments',
+  investments: 'investments',
+  investment: 'investments',
+  regalo: 'gift',
+  gift: 'gift',
 };
 
 export const getCategoryPresetKey = (name: string): CategoryPresetKey | null =>
