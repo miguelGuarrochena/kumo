@@ -260,37 +260,58 @@ const ExpensesPage = async ({
           .map((c) => c.id);
       }
 
-      const base = applyExpenseFilters(
-        supabase.from('expenses').select('amount, currency, kind').eq('workspace_id', ctx.workspaceId),
-        view,
-        monthStr,
-        params,
-        qCatIds,
-      );
-      const { data: summaryRows } = await base;
-
-      type Mini = { amount: number; currency: string; kind?: 'expense' | 'income' };
       const counts = new Map<string, number>();
       let totalInDisplay = 0;
       let incomeInDisplay = 0;
       let hasIncome = false;
       let someRateMissing = false;
-      for (const row of (summaryRows ?? []) as Mini[]) {
-        counts.set(row.currency, (counts.get(row.currency) ?? 0) + 1);
-        const isIncome = row.kind === 'income';
-        if (isIncome) hasIncome = true;
-        const converted = convertAmount(
-          Number(row.amount),
-          row.currency as Currency,
-          displayCurrency,
-          rates.rates,
-        );
+      let totalCount = 0;
+
+      // Acumula un grupo (o una fila) en los totales del resumen.
+      const addGroup = (currency: string, kind: string | undefined, sum: number, cnt: number) => {
+        counts.set(currency, (counts.get(currency) ?? 0) + cnt);
+        totalCount += cnt;
+        const isIncome = kind === 'income';
+        if (isIncome && cnt > 0) hasIncome = true;
+        const converted = convertAmount(sum, currency as Currency, displayCurrency, rates.rates);
         if (converted === null) someRateMissing = true;
         else if (isIncome) incomeInDisplay += converted;
         else totalInDisplay += converted;
-      }
+      };
 
-      const totalCount = summaryRows?.length ?? 0;
+      // Resumen por agregados (SUM + COUNT agrupados por moneda y tipo): no
+      // escanea fila por fila, así escala a cualquier volumen. Reusa los MISMOS
+      // filtros que la lista (cero divergencia). Si la instancia no soporta
+      // agregados de PostgREST, cae automáticamente al escaneo de filas.
+      const aggRes = await applyExpenseFilters(
+        supabase
+          .from('expenses')
+          .select('currency, kind, total:amount.sum(), cnt:id.count()')
+          .eq('workspace_id', ctx.workspaceId),
+        view,
+        monthStr,
+        params,
+        qCatIds,
+      );
+
+      if (!aggRes.error && Array.isArray(aggRes.data)) {
+        for (const g of aggRes.data as Array<{ currency: string; kind?: string; total: number | null; cnt: number | null }>) {
+          addGroup(g.currency, g.kind, Number(g.total ?? 0), Number(g.cnt ?? 0));
+        }
+      } else {
+        // Fallback: escaneo de filas (mismo resultado, menos eficiente).
+        const scan = applyExpenseFilters(
+          supabase.from('expenses').select('amount, currency, kind').eq('workspace_id', ctx.workspaceId),
+          view,
+          monthStr,
+          params,
+          qCatIds,
+        );
+        const { data: rows } = await scan;
+        for (const r of (rows ?? []) as Array<{ amount: number; currency: string; kind?: string }>) {
+          addGroup(r.currency, r.kind, Number(r.amount), 1);
+        }
+      }
       expensePage = clampPage(Number(params.page) || 1, totalCount, EXPENSES_PAGE_SIZE);
       const { from, to } = pageRange(expensePage, EXPENSES_PAGE_SIZE);
 
