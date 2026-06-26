@@ -213,6 +213,39 @@ export const ExpensesClient = ({
 
   const { totalInDisplay, incomeInDisplay, netInDisplay, hasIncome, someRateMissing, currencyBreakdown, totalCount } = expenseSummary;
 
+  // Modo del encabezado según el chip de tipo: gastos / ingresos / neto.
+  // "Todos" muestra el neto cuando hay ingresos; si no, el total de gastos.
+  const headlineMode: 'expense' | 'income' | 'net' =
+    filters.kind === 'income' ? 'income'
+    : filters.kind === 'expense' ? 'expense'
+    : hasIncome ? 'net' : 'expense';
+
+  const headlineValue =
+    headlineMode === 'income' ? incomeInDisplay
+    : headlineMode === 'expense' ? totalInDisplay
+    : netInDisplay;
+  const headlineLabel =
+    headlineMode === 'income' ? t.expenses.income_month_label
+    : headlineMode === 'expense' ? t.expenses.expenses_month_label
+    : t.expenses.net_month_label;
+  const headlinePrefix =
+    headlineMode === 'income' ? '+'
+    : headlineMode === 'expense' ? ''
+    : netInDisplay >= 0 ? '+' : '−';
+  const headlineColorClass =
+    headlineMode === 'expense'
+      ? 'kumo-gradient-text'
+      : headlineMode === 'income' || netInDisplay >= 0
+        ? 'text-mint-600 dark:text-mint-400'
+        : 'text-rose-500';
+  const headlineAbs = headlineMode === 'net' ? Math.abs(netInDisplay) : headlineValue;
+  const headlineCount =
+    headlineMode === 'income' ? t.expenses.n_income.replace('{n}', String(totalCount))
+    : headlineMode === 'expense' ? t.expenses.n_expenses.replace('{n}', String(totalCount))
+    : t.expenses.n_movements.replace('{n}', String(totalCount));
+  // El desglose Ingresos/Gastos solo tiene sentido en modo neto.
+  const showBreakdown = headlineMode === 'net';
+
   const [year, month] = monthStr.split('-').map(Number) as [number, number];
   const prevMonth = monthShift(year, month, -1);
   const nextMonth = monthShift(year, month, 1);
@@ -428,6 +461,30 @@ export const ExpensesClient = ({
       ) : (
       <>
 
+      {/* Filtro por tipo: Todos / Gastos / Ingresos */}
+      {view !== 'archive' && (
+        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          {([
+            ['', t.expenses.filter_kind_all],
+            ['expense', t.expenses.filter_kind_expense],
+            ['income', t.expenses.filter_kind_income],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value || 'all'}
+              type="button"
+              onClick={() => setUrlParam('kind', value || null)}
+              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filters.kind === value
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {view === 'archive' ? (
         <ArchiveView
           years={archiveYears}
@@ -477,17 +534,28 @@ export const ExpensesClient = ({
           </div>
 
           <div className="text-center">
-            <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">{t.expenses.total_month}</p>
-            <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
-              {formatMoney(totalInDisplay, displayCurrency, locale)}
+            <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">{headlineLabel}</p>
+            <p className={`text-3xl sm:text-4xl font-bold break-all ${headlineColorClass}`}>
+              {headlinePrefix}{formatMoney(headlineAbs, displayCurrency, locale)}
             </p>
             <div className="text-xs text-slate-400 dark:text-slate-500 mt-2 inline-flex items-center gap-1 flex-wrap justify-center">
-              <span>{t.expenses.n_expenses.replace('{n}', String(totalCount))} · {t.expenses.in_currency}</span>
+              <span>{headlineCount} · {t.expenses.in_currency}</span>
               <CurrencyInlineSelect
                 value={displayCurrency}
                 onChange={(v) => setUrlParam('asCurrency', v)}
               />
             </div>
+            {showBreakdown && (
+              <div className="mt-3 flex items-center justify-center gap-3 text-xs sm:text-sm flex-wrap">
+                <span className="text-mint-600 dark:text-mint-400 font-medium">
+                  {t.expenses.total_income}: +{formatMoney(incomeInDisplay, displayCurrency, locale)}
+                </span>
+                <span className="text-slate-300 dark:text-slate-600">·</span>
+                <span className="text-slate-500 dark:text-slate-400 font-medium">
+                  {t.expenses.expenses_label}: −{formatMoney(totalInDisplay, displayCurrency, locale)}
+                </span>
+              </div>
+            )}
             {currencyBreakdown.length > 1 && (
               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
                 {currencyBreakdown.map((b, i) => (
@@ -502,20 +570,6 @@ export const ExpensesClient = ({
               <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5">
                 {t.expenses.rate_unavailable}
               </p>
-            )}
-            {hasIncome && (
-              <div className="mt-3 flex items-center justify-center gap-3 text-xs sm:text-sm flex-wrap">
-                <span className="text-mint-600 dark:text-mint-400 font-medium">
-                  {t.expenses.total_income}: +{formatMoney(incomeInDisplay, displayCurrency, locale)}
-                </span>
-                <span className="text-slate-300 dark:text-slate-600">·</span>
-                <span className="text-slate-500 dark:text-slate-400">
-                  {t.expenses.net_balance}:{' '}
-                  <span className={`font-semibold ${netInDisplay >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}`}>
-                    {netInDisplay >= 0 ? '+' : '−'}{formatMoney(Math.abs(netInDisplay), displayCurrency, locale)}
-                  </span>
-                </span>
-              </div>
             )}
           </div>
         </div>
@@ -610,14 +664,14 @@ export const ExpensesClient = ({
             <div className="kumo-card p-4 flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
-                  <span>{t.expenses.n_expenses.replace('{n}', String(totalCount))} · {t.expenses.in_currency}</span>
+                  <span>{headlineLabel} · {headlineCount} · {t.expenses.in_currency}</span>
                   <CurrencyInlineSelect
                     value={displayCurrency}
                     onChange={(v) => setUrlParam('asCurrency', v)}
                   />
                 </div>
-                <p className="text-xl font-bold kumo-gradient-text">
-                  {formatMoney(totalInDisplay, displayCurrency, locale)}
+                <p className={`text-xl font-bold ${headlineColorClass}`}>
+                  {headlinePrefix}{formatMoney(headlineAbs, displayCurrency, locale)}
                 </p>
                 {currencyBreakdown.length > 1 && (
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
@@ -634,16 +688,13 @@ export const ExpensesClient = ({
                     {t.expenses.rate_unavailable}
                   </p>
                 )}
-                {hasIncome && (
+                {showBreakdown && (
                   <p className="text-[11px] sm:text-xs mt-1 flex items-center gap-2 flex-wrap">
                     <span className="text-mint-600 dark:text-mint-400 font-medium">
                       {t.expenses.total_income}: +{formatMoney(incomeInDisplay, displayCurrency, locale)}
                     </span>
-                    <span className="text-slate-500 dark:text-slate-400">
-                      {t.expenses.net_balance}:{' '}
-                      <span className={`font-semibold ${netInDisplay >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}`}>
-                        {netInDisplay >= 0 ? '+' : '−'}{formatMoney(Math.abs(netInDisplay), displayCurrency, locale)}
-                      </span>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">
+                      {t.expenses.expenses_label}: −{formatMoney(totalInDisplay, displayCurrency, locale)}
                     </span>
                   </p>
                 )}
@@ -664,30 +715,6 @@ export const ExpensesClient = ({
             </div>
           )}
         </>
-      )}
-
-      {/* Filtro por tipo: Todos / Gastos / Ingresos */}
-      {view !== 'archive' && (
-        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-          {([
-            ['', t.expenses.filter_kind_all],
-            ['expense', t.expenses.filter_kind_expense],
-            ['income', t.expenses.filter_kind_income],
-          ] as const).map(([value, label]) => (
-            <button
-              key={value || 'all'}
-              type="button"
-              onClick={() => setUrlParam('kind', value || null)}
-              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filters.kind === value
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       )}
 
       {/* --- Lista (no aplica a archive) --- */}

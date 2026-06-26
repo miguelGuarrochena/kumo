@@ -214,7 +214,7 @@ const DashboardPage = async () => {
               className="block hover:opacity-90 transition-opacity group"
             >
               <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold mb-1">
-                {t.expenses.total_month}
+                {t.expenses.expenses_month_label}
               </p>
               <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
                 {formatMoney(monthTotal, displayCurrency, locale)}
