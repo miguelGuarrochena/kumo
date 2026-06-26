@@ -214,14 +214,15 @@ export const ExpensesClient = ({
   const convertToDisplay = (amount: number, currency: string): number | null =>
     convertAmount(amount, currency as Currency, displayCurrency, rates);
 
-  const { totalInDisplay, incomeInDisplay, netInDisplay, hasIncome, someRateMissing, currencyBreakdown, totalCount } = expenseSummary;
+  const { totalInDisplay, incomeInDisplay, netInDisplay, someRateMissing, currencyBreakdown, totalCount } = expenseSummary;
 
   // Modo del encabezado según el chip de tipo: gastos / ingresos / neto.
-  // "Todos" muestra el neto cuando hay ingresos; si no, el total de gastos.
+  // "Todos" siempre muestra el neto (color y etiqueta consistentes en todos
+  // los meses, tengan o no ingresos).
   const headlineMode: 'expense' | 'income' | 'net' =
     filters.kind === 'income' ? 'income'
     : filters.kind === 'expense' ? 'expense'
-    : hasIncome ? 'net' : 'expense';
+    : 'net';
 
   const headlineValue =
     headlineMode === 'income' ? incomeInDisplay
@@ -769,12 +770,22 @@ export const ExpensesClient = ({
         <div className="kumo-card p-10 text-center">
           <Wallet className="w-12 h-12 mx-auto mb-3 text-slate-300" />
           <h3 className="font-semibold mb-1">
-            {view === 'month' ? t.expenses.no_expenses_month_title : t.expenses.no_expenses_filters_title}
+            {view !== 'month'
+              ? t.expenses.no_expenses_filters_title
+              : filters.kind === 'income'
+                ? t.expenses.no_income_month_title
+                : filters.kind === 'expense'
+                  ? t.expenses.no_expenses_month_title
+                  : t.expenses.no_movements_month_title}
           </h3>
           <p className="text-sm text-slate-500">
-            {view === 'month'
-              ? t.expenses.no_expenses_desc
-              : t.expenses.no_expenses_filters_desc}
+            {view !== 'month'
+              ? t.expenses.no_expenses_filters_desc
+              : filters.kind === 'income'
+                ? t.expenses.no_income_desc
+                : filters.kind === 'expense'
+                  ? t.expenses.no_expenses_desc
+                  : t.expenses.no_movements_desc}
           </p>
         </div>
       ) : (

@@ -264,7 +264,11 @@
     "create_category": "Crear categoría nueva",
     "new_category_placeholder": "Nombre de la categoría",
     "category_created_toast": "Categoría creada",
-    "create": "Crear"
+    "create": "Crear",
+    "no_income_month_title": "Sin ingresos este mes",
+    "no_income_desc": "Cargá tu primer ingreso con el botón de arriba.",
+    "no_movements_month_title": "Sin movimientos este mes",
+    "no_movements_desc": "Cargá tu primer movimiento con el botón de arriba."
   },
   "calendar": {
     "title": "Calendario",

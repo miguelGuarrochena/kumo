@@ -264,7 +264,11 @@
     "create_category": "Create new category",
     "new_category_placeholder": "Category name",
     "category_created_toast": "Category created",
-    "create": "Create"
+    "create": "Create",
+    "no_income_month_title": "No income this month",
+    "no_income_desc": "Add your first income with the button above.",
+    "no_movements_month_title": "No transactions this month",
+    "no_movements_desc": "Add your first transaction with the button above."
   },
   "calendar": {
     "title": "Calendar",
