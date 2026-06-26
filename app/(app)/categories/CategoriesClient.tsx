@@ -10,13 +10,13 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Database } from '@/lib/supabase/database.types';
 import { track } from '@/lib/analytics';
 import { useT } from '@/lib/i18n/client';
-import { categoryDisplayName } from '@/lib/categoryLabels';
+import { categoryDisplayName, getCategoryPresetKey } from '@/lib/categoryLabels';
 import { ICON_MAP, ICON_KEYS as ICONS, CATEGORY_COLORS as COLORS, COLOR_STYLES } from '@/lib/categoryVisuals';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 
 export const CategoriesClient = ({ initialCategories }: { initialCategories: Category[] }) => {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [editing, setEditing] = useState<Category | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeKind, setActiveKind] = useState<'expense' | 'income'>('expense');
@@ -34,9 +34,15 @@ export const CategoriesClient = ({ initialCategories }: { initialCategories: Cat
     }
   };
 
-  const visible = initialCategories.filter(
-    (c) => ((c.kind as 'expense' | 'income' | undefined) ?? 'expense') === activeKind,
-  );
+  const visible = initialCategories
+    .filter((c) => ((c.kind as 'expense' | 'income' | undefined) ?? 'expense') === activeKind)
+    .sort((a, b) => {
+      // "Otros" siempre al final; el resto, alfabético en el idioma actual.
+      const ao = getCategoryPresetKey(a.name) === 'other';
+      const bo = getCategoryPresetKey(b.name) === 'other';
+      if (ao !== bo) return ao ? 1 : -1;
+      return categoryDisplayName(a.name, t).localeCompare(categoryDisplayName(b.name, t), locale);
+    });
 
   return (
     <>

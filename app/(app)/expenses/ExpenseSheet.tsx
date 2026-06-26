@@ -8,7 +8,7 @@ import { upsertExpense } from './actions';
 import { Sheet } from '@/components/Sheet';
 import { Select, type SelectOption } from '@/components/Select';
 import { useT } from '@/lib/i18n/client';
-import { categoryDisplayName, categoryNamesMatch } from '@/lib/categoryLabels';
+import { categoryDisplayName, categoryNamesMatch, getCategoryPresetKey } from '@/lib/categoryLabels';
 import type { ExtractedExpense } from '@/lib/ocr/types';
 import { CURRENCIES, formatMoney, type Currency } from '@/lib/currency';
 import { track } from '@/lib/analytics';
@@ -386,8 +386,17 @@ export const ExpenseSheet = ({
 
   // Las categorías se filtran por tipo: un ingreso solo ve categorías de ingreso.
   const visibleCategories = useMemo(
-    () => categories.filter((c) => (c.kind ?? 'expense') === kind),
-    [categories, kind],
+    () =>
+      categories
+        .filter((c) => (c.kind ?? 'expense') === kind)
+        .sort((a, b) => {
+          // "Otros" siempre al final; el resto, alfabético en el idioma actual.
+          const ao = getCategoryPresetKey(a.name) === 'other';
+          const bo = getCategoryPresetKey(b.name) === 'other';
+          if (ao !== bo) return ao ? 1 : -1;
+          return categoryDisplayName(a.name, t).localeCompare(categoryDisplayName(b.name, t), locale);
+        }),
+    [categories, kind, t, locale],
   );
   const isIncome = kind === 'income';
 
