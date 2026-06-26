@@ -97,6 +97,9 @@ export const ExpensesClient = ({
   const [toDelete, setToDelete] = useState<Expense | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(filters.q);
+  // Resalta el chip de tipo al instante (antes de que responda el server).
+  const [optimisticKind, setOptimisticKind] = useState(filters.kind);
+  useEffect(() => { setOptimisticKind(filters.kind); }, [filters.kind]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
@@ -230,12 +233,14 @@ export const ExpensesClient = ({
     : t.expenses.net_month_label;
   // Sin "+": solo mostramos "−" cuando el neto es negativo (pérdida).
   const headlinePrefix = headlineMode === 'net' && netInDisplay < 0 ? '−' : '';
+  // Ingresos en verde; neto en pérdida en rojo; gastos y neto positivo con el
+  // violeta de la marca (para diferenciarlos del verde de ingresos).
   const headlineColorClass =
-    headlineMode === 'expense'
-      ? 'kumo-gradient-text'
-      : headlineMode === 'income' || netInDisplay >= 0
-        ? 'text-mint-600 dark:text-mint-400'
-        : 'text-rose-500';
+    headlineMode === 'income'
+      ? 'text-mint-600 dark:text-mint-400'
+      : headlineMode === 'net' && netInDisplay < 0
+        ? 'text-rose-600 dark:text-rose-400'
+        : 'kumo-gradient-text';
   const headlineAbs = headlineMode === 'net' ? Math.abs(netInDisplay) : headlineValue;
   const headlineCount =
     headlineMode === 'income' ? t.expenses.n_income.replace('{n}', String(totalCount))
@@ -477,9 +482,13 @@ export const ExpensesClient = ({
             <button
               key={value || 'all'}
               type="button"
-              onClick={() => setUrlParam('kind', value || null)}
+              onClick={() => {
+                if (optimisticKind === value) return;
+                setOptimisticKind(value);
+                setUrlParam('kind', value || null);
+              }}
               className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filters.kind === value
+                optimisticKind === value
                   ? value === 'income'
                     ? 'bg-white dark:bg-slate-700 text-mint-600 dark:text-mint-400 shadow-sm'
                     : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'

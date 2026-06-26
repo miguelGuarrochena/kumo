@@ -140,12 +140,18 @@ const ExpensesPage = async ({
       .order('created_at'),
     getRates(),
     getSubscription(),
-    supabase.rpc('workspace_balances', { ws_id: ctx.workspaceId }),
-    supabase
-      .from('payments')
-      .select('id, from_contact_id, to_contact_id, amount, currency, note, paid_at')
-      .eq('workspace_id', ctx.workspaceId)
-      .order('paid_at', { ascending: false }),
+    // Balances y pagos solo se usan en la pestaña "Saldos": los pedimos
+    // únicamente ahí para que cambiar de tipo (gastos/ingresos) sea más rápido.
+    section === 'saldos'
+      ? supabase.rpc('workspace_balances', { ws_id: ctx.workspaceId })
+      : Promise.resolve({ data: [] as BalanceRow[] }),
+    section === 'saldos'
+      ? supabase
+          .from('payments')
+          .select('id, from_contact_id, to_contact_id, amount, currency, note, paid_at')
+          .eq('workspace_id', ctx.workspaceId)
+          .order('paid_at', { ascending: false })
+      : Promise.resolve({ data: [] as PaymentRow[] }),
   ]);
 
   const balances = (balancesRes?.data ?? []) as BalanceRow[];

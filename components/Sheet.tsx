@@ -49,6 +49,7 @@ export const Sheet = ({ open, onClose, title, children, footer }: Props) => {
           bg-white dark:bg-slate-800 dark:border dark:border-slate-700
           text-slate-900 dark:text-slate-100
           rounded-t-3xl sm:rounded-2xl
+          overflow-hidden
           shadow-2xl
           max-h-[92dvh] sm:max-h-[85vh]
           min-h-0
