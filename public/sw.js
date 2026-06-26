@@ -3,7 +3,7 @@
 // 2) Cache mínimo de la app shell para que cargue rápido y funcione en cortes de red.
 //    No cacheamos data de Supabase ni endpoints — siempre van a la red.
 
-const CACHE = 'kumo-shell-v2';
+const CACHE = 'kumo-shell-v3';
 const SHELL = ['/', '/manifest.webmanifest', '/icon.png', '/favicon.ico'];
 
 self.addEventListener('install', (event) => {
@@ -36,7 +36,7 @@ self.addEventListener('fetch', (event) => {
   // Navigation requests: network-first con fallback al cache.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(() => caches.match('/') as Promise<Response>),
+      fetch(req).catch(() => caches.match('/')),
     );
     return;
   }
