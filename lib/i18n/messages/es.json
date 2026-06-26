@@ -105,7 +105,8 @@
     "recent_expenses": "Últimos gastos",
     "empty_hint": "Cuando cargues gastos o recordatorios, te los mostramos acá.",
     "forecast": "A este ritmo cerrarías en {amount}",
-    "forecast_over_budget": "Superarías el presupuesto ({amount})"
+    "forecast_over_budget": "Superarías el presupuesto ({amount})",
+    "recent_movements": "Movimientos recientes"
   },
   "expenses": {
     "title": "Movimientos",

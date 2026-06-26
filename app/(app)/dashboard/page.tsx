@@ -36,6 +36,7 @@ type RecentExpenseRow = {
   amount: number;
   currency: string;
   expense_date: string;
+  kind: 'expense' | 'income';
   categories: CategoryEmbed;
 };
 
@@ -117,9 +118,8 @@ const DashboardPage = async () => {
       .limit(5),
     supabase
       .from('expenses')
-      .select('id, description, amount, currency, expense_date, categories(name, color)')
+      .select('id, description, amount, currency, expense_date, kind, categories(name, color)')
       .eq('workspace_id', ctx.workspaceId)
-      .eq('kind', 'expense')
       .order('expense_date', { ascending: false })
       .limit(5),
     supabase
@@ -230,7 +230,7 @@ const DashboardPage = async () => {
                 </span>
                 <span className="text-slate-400 dark:text-slate-500">
                   · {t.expenses.net_balance}{' '}
-                  <span className={`font-semibold ${monthNet >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}`}>
+                  <span className={`font-semibold ${monthNet >= 0 ? 'text-teal-600 dark:text-teal-400' : 'text-rose-600 dark:text-rose-400'}`}>
                     {monthNet >= 0 ? '+' : '−'}{formatMoney(Math.abs(monthNet), displayCurrency, locale)}
                   </span>
                 </span>
@@ -378,7 +378,7 @@ const DashboardPage = async () => {
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold flex items-center gap-2">
               <Wallet className="w-4 h-4 text-sky-500" />
-              {t.dashboard.recent_expenses}
+              {t.dashboard.recent_movements}
             </h3>
             <Link
               href="/expenses?view=all"
@@ -389,24 +389,29 @@ const DashboardPage = async () => {
             </Link>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-            {recentArr.map((e) => (
+            {recentArr.map((e) => {
+              const isIncome = e.kind === 'income';
+              return (
               <div key={e.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 grid place-items-center shrink-0">
-                  <Wallet className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <div className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 ${
+                  isIncome ? 'bg-mint-100 dark:bg-mint-500/20' : 'bg-slate-100 dark:bg-slate-700'
+                }`}>
+                  <Wallet className={`w-4 h-4 ${isIncome ? 'text-mint-600 dark:text-mint-400' : 'text-slate-500 dark:text-slate-400'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {e.description || (e.categories?.name ? categoryDisplayName(e.categories.name, t) : null) || t.expenses.default_name}
+                    {e.description || (e.categories?.name ? categoryDisplayName(e.categories.name, t) : null) || (isIncome ? t.expenses.income_default_name : t.expenses.default_name)}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                     {e.categories?.name ? categoryDisplayName(e.categories.name, t) : t.expenses.no_category} · {formatShortDate(e.expense_date, dateLocale)}
                   </p>
                 </div>
-                <p className="text-sm font-semibold tabular-nums whitespace-nowrap">
-                  {formatMoney(Number(e.amount), e.currency as Currency, locale)}
+                <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : ''}`}>
+                  {isIncome ? '+' : ''}{formatMoney(Number(e.amount), e.currency as Currency, locale)}
                 </p>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
