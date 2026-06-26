@@ -102,6 +102,8 @@ export const ExpensesClient = ({
   // Resalta el chip de tipo al instante (antes de que responda el server).
   const [optimisticKind, setOptimisticKind] = useState(filters.kind);
   useEffect(() => { setOptimisticKind(filters.kind); }, [filters.kind]);
+  // Paginación del lado del cliente (la lista se filtra/busca en memoria).
+  const [clientPage, setClientPage] = useState(1);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
@@ -238,12 +240,22 @@ export const ExpensesClient = ({
     });
   }, [clientFilter, expenses, activeKind, searchLower, t]);
 
-  // Agregados del mes completo (ambos tipos) para el encabezado, en cliente.
+  // Volvemos a página 1 cuando cambia el conjunto filtrado.
+  useEffect(() => { setClientPage(1); }, [activeKind, searchLower, monthStr, view]);
+
+  // Página visible (paginación client-side sobre lo filtrado).
+  const pagedRows = useMemo(() => {
+    if (!clientFilter) return expenses;
+    const start = (clientPage - 1) * expensePageSize;
+    return visibleRows.slice(start, start + expensePageSize);
+  }, [clientFilter, expenses, visibleRows, clientPage, expensePageSize]);
+
+  // Agregados sobre lo visible (ya filtrado por tipo + texto) para el encabezado.
   const clientAgg = useMemo(() => {
     if (!clientFilter) return null;
     let inc = 0, exp = 0, incCount = 0, expCount = 0, rateMissing = false;
     const curCounts = new Map<string, number>();
-    for (const e of expenses) {
+    for (const e of visibleRows) {
       const conv = convertAmount(Number(e.amount), e.currency as Currency, displayCurrency, rates);
       curCounts.set(e.currency, (curCounts.get(e.currency) ?? 0) + 1);
       const isInc = e.kind === 'income';
@@ -257,7 +269,7 @@ export const ExpensesClient = ({
         .map(([currency, count]) => ({ currency, count }))
         .sort((a, b) => b.count - a.count),
     };
-  }, [clientFilter, expenses, displayCurrency, rates]);
+  }, [clientFilter, visibleRows, displayCurrency, rates]);
 
   // Valores efectivos del encabezado (cliente en "Por mes", server en "Todos").
   const totalInDisplay = clientAgg ? clientAgg.exp : expenseSummary.totalInDisplay;
@@ -329,10 +341,8 @@ export const ExpensesClient = ({
     startNav(() => router.push(`/expenses?${params.toString()}`, { scroll: false }));
   };
 
-  // Prefetch agresivo: precargamos en segundo plano las navegaciones más
-  // probables (tipos, vistas y meses vecinos). Al clickear, Next sirve desde
-  // caché → instantáneo. El server sigue calculando los números, así que no se
-  // sacrifica correctitud.
+  // Prefetch de las navegaciones reales que quedan (cambiar de vista y de mes).
+  // Tipos y búsqueda ya no navegan (son client-side), así que no los precargamos.
   useEffect(() => {
     if (activeSection !== 'gastos') return;
     const targets = new Set<string>();
@@ -342,10 +352,6 @@ export const ExpensesClient = ({
       mut(p);
       targets.add(`/expenses?${p.toString()}`);
     };
-    // Variantes por tipo (Todos / Gastos / Ingresos)
-    for (const k of ['', 'expense', 'income']) {
-      add((p) => (k ? p.set('kind', k) : p.delete('kind')));
-    }
     // Pestañas de vista (Por mes / Todos)
     add((p) => p.delete('view'));
     add((p) => p.set('view', 'all'));
@@ -897,7 +903,7 @@ export const ExpensesClient = ({
       ) : (
         <div className="kumo-card overflow-hidden">
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-            {visibleRows.map((exp) => (
+            {pagedRows.map((exp) => (
               <ExpenseRow
                 key={exp.id}
                 expense={exp}
@@ -938,7 +944,14 @@ export const ExpensesClient = ({
               />
             ))}
           </div>
-          {!clientFilter && (
+          {clientFilter ? (
+            <Pagination
+              page={clientPage}
+              pageSize={expensePageSize}
+              totalCount={visibleRows.length}
+              onPageChange={setClientPage}
+            />
+          ) : (
             <Pagination
               page={expensePage}
               pageSize={expensePageSize}

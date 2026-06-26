@@ -5,9 +5,7 @@ import { getSubscription } from '@/lib/subscription';
 import { getPricing } from '@/lib/pricing';
 import { findRecurringCandidates, type ExpenseRecurringRow } from '@/lib/recurringSuggest';
 import { getCurrentWorkspace } from '@/lib/workspace';
-import { getMessages } from '@/lib/i18n/server';
-import { categoryDisplayName } from '@/lib/categoryLabels';
-import { EXPENSES_PAGE_SIZE, clampPage, pageRange } from '@/lib/pagination';
+import { EXPENSES_PAGE_SIZE } from '@/lib/pagination';
 import type { BalanceRow, PaymentRow } from '../split/types';
 
 export type ExpensesView = 'month' | 'all' | 'archive';
@@ -226,118 +224,21 @@ const ExpensesPage = async ({
       .sort((a, b) => b.year - a.year);
   } else if (section !== 'saldos') {
     const sort = params.sort ?? 'date-desc';
-    // En "Por mes" cargamos todo el mes (ambos tipos) y el cliente filtra y
-    // calcula el resumen en memoria → no consultamos resumen acá (1 query menos).
-    // En "Todos" filtra, resume y pagina el servidor.
-    const clientFilter = view === 'month';
-
-    if (clientFilter) {
-      let listQuery = applyExpenseFilters(
-        supabase.from('expenses').select('*, categories(id, name, icon, color)').eq('workspace_id', ctx.workspaceId),
-        view,
-        monthStr,
-        // Ignoramos kind/q a nivel SQL: los aplica el cliente al instante.
-        { ...params, kind: undefined, q: undefined },
-      );
-      listQuery = applyExpenseSort(listQuery, sort);
-      const { data } = await listQuery;
-      expenses = data ?? [];
-      expensePage = 1;
-      // expenseSummary queda en su default; el cliente lo recalcula desde las filas.
-    } else {
-      // Para que la búsqueda también encuentre por categoría (no solo por
-      // descripción), resolvemos qué categorías matchean el texto.
-      let qCatIds: string[] = [];
-      const qLower = (params.q ?? '').trim().toLowerCase();
-      if (qLower.length >= 1) {
-        const t = await getMessages();
-        qCatIds = ((categories ?? []) as Array<{ id: string; name: string }>)
-          .filter(
-            (c) =>
-              c.name.toLowerCase().includes(qLower) ||
-              categoryDisplayName(c.name, t).toLowerCase().includes(qLower),
-          )
-          .map((c) => c.id);
-      }
-
-      const counts = new Map<string, number>();
-      let totalInDisplay = 0;
-      let incomeInDisplay = 0;
-      let hasIncome = false;
-      let someRateMissing = false;
-      let totalCount = 0;
-
-      // Acumula un grupo (o una fila) en los totales del resumen.
-      const addGroup = (currency: string, kind: string | undefined, sum: number, cnt: number) => {
-        counts.set(currency, (counts.get(currency) ?? 0) + cnt);
-        totalCount += cnt;
-        const isIncome = kind === 'income';
-        if (isIncome && cnt > 0) hasIncome = true;
-        const converted = convertAmount(sum, currency as Currency, displayCurrency, rates.rates);
-        if (converted === null) someRateMissing = true;
-        else if (isIncome) incomeInDisplay += converted;
-        else totalInDisplay += converted;
-      };
-
-      // Resumen por agregados (SUM + COUNT agrupados por moneda y tipo): no
-      // escanea fila por fila, así escala a cualquier volumen. Reusa los MISMOS
-      // filtros que la lista (cero divergencia). Si la instancia no soporta
-      // agregados de PostgREST, cae automáticamente al escaneo de filas.
-      const aggRes = await applyExpenseFilters(
-        supabase
-          .from('expenses')
-          .select('currency, kind, total:amount.sum(), cnt:id.count()')
-          .eq('workspace_id', ctx.workspaceId),
-        view,
-        monthStr,
-        params,
-        qCatIds,
-      );
-
-      if (!aggRes.error && Array.isArray(aggRes.data)) {
-        for (const g of aggRes.data as Array<{ currency: string; kind?: string; total: number | null; cnt: number | null }>) {
-          addGroup(g.currency, g.kind, Number(g.total ?? 0), Number(g.cnt ?? 0));
-        }
-      } else {
-        // Fallback: escaneo de filas (mismo resultado, menos eficiente).
-        const scan = applyExpenseFilters(
-          supabase.from('expenses').select('amount, currency, kind').eq('workspace_id', ctx.workspaceId),
-          view,
-          monthStr,
-          params,
-          qCatIds,
-        );
-        const { data: rows } = await scan;
-        for (const r of (rows ?? []) as Array<{ amount: number; currency: string; kind?: string }>) {
-          addGroup(r.currency, r.kind, Number(r.amount), 1);
-        }
-      }
-      expensePage = clampPage(Number(params.page) || 1, totalCount, EXPENSES_PAGE_SIZE);
-      const { from, to } = pageRange(expensePage, EXPENSES_PAGE_SIZE);
-
-      let listQuery = applyExpenseFilters(
-        supabase.from('expenses').select('*, categories(id, name, icon, color)').eq('workspace_id', ctx.workspaceId),
-        view,
-        monthStr,
-        params,
-        qCatIds,
-      );
-      listQuery = applyExpenseSort(listQuery, sort);
-      const { data } = await listQuery.range(from, to);
-      expenses = data ?? [];
-
-      expenseSummary = {
-        totalCount,
-        totalInDisplay,
-        incomeInDisplay,
-        netInDisplay: incomeInDisplay - totalInDisplay,
-        hasIncome,
-        someRateMissing,
-        currencyBreakdown: Array.from(counts.entries())
-          .map(([currency, count]) => ({ currency, count }))
-          .sort((a, b) => b.count - a.count),
-      };
-    }
+    // Movimientos (mes o todos): cargamos las filas que matchean los filtros del
+    // panel (fecha, categoría, estado, recurrencia, moneda, monto), ambos tipos,
+    // sin filtrar por tipo/texto ni paginar. El cliente filtra por tipo (chips),
+    // busca por texto y pagina en memoria → todo instantáneo, sin viajes extra.
+    let listQuery = applyExpenseFilters(
+      supabase.from('expenses').select('*, categories(id, name, icon, color)').eq('workspace_id', ctx.workspaceId),
+      view,
+      monthStr,
+      { ...params, kind: undefined, q: undefined },
+    );
+    listQuery = applyExpenseSort(listQuery, sort);
+    const { data } = await listQuery;
+    expenses = data ?? [];
+    expensePage = 1;
+    // expenseSummary queda en su default; el cliente lo recalcula desde las filas.
 
     // Cargo splits + nombres de contactos para los expenses visibles.
     const expIds = (expenses as Array<{ id: string }>).map((e) => e.id);
@@ -399,7 +300,7 @@ const ExpensesPage = async ({
     <ExpensesClient
       section={section}
       expensesDataLoaded={section !== 'saldos'}
-      clientFilter={view === 'month'}
+      clientFilter={view !== 'archive'}
       view={view}
       monthStr={monthStr}
       expenses={expenses as never}
