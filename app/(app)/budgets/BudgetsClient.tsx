@@ -11,6 +11,7 @@ import { FeatureTip } from '@/components/FeatureTip';
 import { FEATURE_TIP_IDS } from '@/lib/featureTips';
 import { formatMoney, CURRENCIES, type Currency } from '@/lib/currency';
 import { budgetStatus, type BudgetStatus } from '@/lib/budgets';
+import { categoryDisplayName, getCategoryPresetKey } from '@/lib/categoryLabels';
 import type { Locale } from '@/lib/i18n/types';
 import { upsertBudget, deleteBudget } from './actions';
 
@@ -64,7 +65,15 @@ export const BudgetsClient = ({ overall, categories, defaultCurrency, locale }: 
           {t.budgets.by_category}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {categories.map((c) => (
+          {[...categories]
+            .sort((a, b) => {
+              // "Otros" siempre al final; el resto alfabético en el idioma actual.
+              const ao = getCategoryPresetKey(a.name) === 'other';
+              const bo = getCategoryPresetKey(b.name) === 'other';
+              if (ao !== bo) return ao ? 1 : -1;
+              return categoryDisplayName(a.name, t).localeCompare(categoryDisplayName(b.name, t), locale);
+            })
+            .map((c) => (
             <BudgetCard key={c.categoryId} data={c} locale={locale} onEdit={() => setEditing(c)} />
           ))}
         </div>
