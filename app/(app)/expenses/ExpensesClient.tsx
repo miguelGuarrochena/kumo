@@ -261,6 +261,35 @@ export const ExpensesClient = ({
     startNav(() => router.push(`/expenses?${params.toString()}`, { scroll: false }));
   };
 
+  // Prefetch agresivo: precargamos en segundo plano las navegaciones más
+  // probables (tipos, vistas y meses vecinos). Al clickear, Next sirve desde
+  // caché → instantáneo. El server sigue calculando los números, así que no se
+  // sacrifica correctitud.
+  useEffect(() => {
+    if (activeSection !== 'gastos') return;
+    const targets = new Set<string>();
+    const add = (mut: (p: URLSearchParams) => void) => {
+      const p = new URLSearchParams(searchParams.toString());
+      p.delete('page');
+      mut(p);
+      targets.add(`/expenses?${p.toString()}`);
+    };
+    // Variantes por tipo (Todos / Gastos / Ingresos)
+    for (const k of ['', 'expense', 'income']) {
+      add((p) => (k ? p.set('kind', k) : p.delete('kind')));
+    }
+    // Pestañas de vista (Por mes / Todos)
+    add((p) => p.delete('view'));
+    add((p) => p.set('view', 'all'));
+    // Meses vecinos (solo en vista por mes)
+    if (view === 'month') {
+      add((p) => p.set('month', prevMonth));
+      add((p) => p.set('month', nextMonth));
+    }
+    targets.forEach((url) => router.prefetch(url));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, activeSection, view, prevMonth, nextMonth]);
+
   const switchView = (next: ExpensesView) => {
     const params = new URLSearchParams(searchParams.toString());
     if (next !== 'month') params.set('view', next);

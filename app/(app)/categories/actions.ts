@@ -18,6 +18,7 @@ const categorySchema = z.object({
 export type CategoryFormState = {
   ok: boolean;
   error?: string;
+  id?: string;
 };
 
 export async function upsertCategory(
@@ -46,21 +47,31 @@ export async function upsertCategory(
   const supabase = await createClient();
   const payload = { ...parsed.data, user_id: ctx.userId, workspace_id: ctx.workspaceId };
 
-  const { error } = parsed.data.id
-    ? await supabase.from('categories').update(payload).eq('id', parsed.data.id)
-    : await supabase.from('categories').insert(payload);
-
-  if (error) {
-    const code = error.code;
-    const msg = error.message ?? 'Error';
-    if (code === '23505' || /duplicate|unique/i.test(msg)) {
-      return { ok: false, error: 'Ya tenés una categoría con ese nombre.' };
-    }
-    return { ok: false, error: msg };
+  let newId = parsed.data.id;
+  if (parsed.data.id) {
+    const { error } = await supabase.from('categories').update(payload).eq('id', parsed.data.id);
+    if (error) return categoryError(error);
+  } else {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert(payload)
+      .select('id')
+      .single();
+    if (error) return categoryError(error);
+    newId = data?.id;
   }
 
   revalidatePath('/categories');
-  return { ok: true };
+  revalidatePath('/expenses');
+  return { ok: true, id: newId };
+}
+
+function categoryError(error: { code?: string; message?: string }): CategoryFormState {
+  const msg = error.message ?? 'Error';
+  if (error.code === '23505' || /duplicate|unique/i.test(msg)) {
+    return { ok: false, error: 'Ya tenés una categoría con ese nombre.' };
+  }
+  return { ok: false, error: msg };
 }
 
 export async function deleteCategory(id: string): Promise<{ ok: boolean; error?: string }> {

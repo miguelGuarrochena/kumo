@@ -259,7 +259,11 @@
     "income_month_label": "Ingresos del mes",
     "n_movements": "{n} movimientos",
     "n_income": "{n} ingresos",
-    "expenses_label": "Gastos"
+    "expenses_label": "Gastos",
+    "create_category": "Crear categoría nueva",
+    "new_category_placeholder": "Nombre de la categoría",
+    "category_created_toast": "Categoría creada",
+    "create": "Crear"
   },
   "calendar": {
     "title": "Calendario",

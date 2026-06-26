@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Check, Sparkles, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { upsertExpense } from './actions';
+import { upsertCategory } from '../categories/actions';
 import { Sheet } from '@/components/Sheet';
 import { Select, type SelectOption } from '@/components/Select';
 import { useT } from '@/lib/i18n/client';
@@ -70,6 +71,12 @@ export const ExpenseSheet = ({
   const [recurrenceType, setRecurrenceType] = useState<string>('monthly');
   const [notifyContactIds, setNotifyContactIds] = useState<string[]>([]);
 
+  // Categorías creadas al vuelo desde este modal (se persisten igual).
+  const [extraCategories, setExtraCategories] = useState<CategoryLite[]>([]);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryCreating, setCategoryCreating] = useState(false);
+
   const [splitOn, setSplitOn] = useState(false);
   const [splitState, setSplitState] = useState<SplitState>(emptySplitState);
   const [extraSplitContacts, setExtraSplitContacts] = useState<SplitContactLite[]>([]);
@@ -82,7 +89,12 @@ export const ExpenseSheet = ({
   const [recurringDismissed, setRecurringDismissed] = useState(false);
 
   useEffect(() => {
-    if (!open) setExtraSplitContacts([]);
+    if (!open) {
+      setExtraSplitContacts([]);
+      setExtraCategories([]);
+      setCreatingCategory(false);
+      setNewCategoryName('');
+    }
   }, [open]);
 
   useEffect(() => {
@@ -383,11 +395,40 @@ export const ExpenseSheet = ({
   }, [contacts, extraSplitContacts]);
 
   const notifyContacts = contacts.filter((c) => !c.is_split_only);
+  const isIncome = kind === 'income';
 
   // Las categorías se filtran por tipo: un ingreso solo ve categorías de ingreso.
+  const handleCreateCategory = () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    const fd = new FormData();
+    fd.set('name', name);
+    fd.set('icon', 'wallet');
+    fd.set('color', isIncome ? 'mint' : 'sky');
+    fd.set('kind', kind);
+    setCategoryCreating(true);
+    startTransition(async () => {
+      const res = await upsertCategory({ ok: false }, fd);
+      setCategoryCreating(false);
+      if (res.ok && res.id) {
+        setExtraCategories((prev) => [
+          ...prev,
+          { id: res.id!, name, icon: 'wallet', color: isIncome ? 'mint' : 'sky', kind },
+        ]);
+        setCategoryId(res.id);
+        setCategoryManual(true);
+        setCreatingCategory(false);
+        setNewCategoryName('');
+        toast.success(t.expenses.category_created_toast);
+      } else {
+        toast.error(res.error ?? 'Error');
+      }
+    });
+  };
+
   const visibleCategories = useMemo(
     () =>
-      categories
+      [...categories, ...extraCategories]
         .filter((c) => (c.kind ?? 'expense') === kind)
         .sort((a, b) => {
           // "Otros" siempre al final; el resto, alfabético en el idioma actual.
@@ -396,9 +437,8 @@ export const ExpenseSheet = ({
           if (ao !== bo) return ao ? 1 : -1;
           return categoryDisplayName(a.name, t).localeCompare(categoryDisplayName(b.name, t), locale);
         }),
-    [categories, kind, t, locale],
+    [categories, extraCategories, kind, t, locale],
   );
-  const isIncome = kind === 'income';
 
   return (
     <Sheet
@@ -530,16 +570,59 @@ export const ExpenseSheet = ({
           <Select
             value={categoryId}
             onChange={(v) => {
+              if (v === '__create__') {
+                setCreatingCategory(true);
+                setNewCategoryName('');
+                return;
+              }
               setCategoryId(v);
               setCategoryManual(true);
             }}
             options={[
               { value: '', label: t.expenses.no_category } as SelectOption,
               ...visibleCategories.map((c) => ({ value: c.id, label: categoryDisplayName(c.name, t) })),
+              { value: '__create__', label: `＋ ${t.expenses.create_category}` } as SelectOption,
             ]}
             ariaLabel={t.expenses.category}
             buttonClassName="py-3 rounded-xl"
           />
+          {creatingCategory && (
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateCategory();
+                  }
+                }}
+                placeholder={t.expenses.new_category_placeholder}
+                autoFocus
+                maxLength={40}
+                className="flex-1 px-3 py-2.5 rounded-xl border border-sky-300 dark:border-sky-600 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+              />
+              <button
+                type="button"
+                onClick={handleCreateCategory}
+                disabled={categoryCreating || !newCategoryName.trim()}
+                className="px-3 py-2.5 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50 shrink-0"
+              >
+                {categoryCreating ? t.common.saving : t.expenses.create}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreatingCategory(false);
+                  setNewCategoryName('');
+                }}
+                className="px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 shrink-0"
+              >
+                {t.common.cancel}
+              </button>
+            </div>
+          )}
           {!categoryManual && suggestedCategoryId && categoryId === suggestedCategoryId && (
             <p className="mt-1.5 text-xs text-mint-600 dark:text-mint-400">{t.expenses.category_suggested}</p>
           )}
