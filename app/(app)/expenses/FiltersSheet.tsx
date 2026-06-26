@@ -6,12 +6,13 @@ import { Sheet } from '@/components/Sheet';
 import { Select } from '@/components/Select';
 import { CURRENCIES, type Currency } from '@/lib/currency';
 import { useT } from '@/lib/i18n/client';
-import { categoryDisplayName } from '@/lib/categoryLabels';
+import { categoryDisplayName, getCategoryPresetKey } from '@/lib/categoryLabels';
 
 type CategoryLite = {
   id: string;
   name: string;
   color: string;
+  kind?: 'expense' | 'income';
 };
 
 export type Filters = {
@@ -77,6 +78,36 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
     setCats((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   };
 
+  // "Otros" siempre al final; el resto alfabético.
+  const sortCats = (list: CategoryLite[]) =>
+    [...list].sort((a, b) => {
+      const ao = getCategoryPresetKey(a.name) === 'other';
+      const bo = getCategoryPresetKey(b.name) === 'other';
+      if (ao !== bo) return ao ? 1 : -1;
+      return categoryDisplayName(a.name, t).localeCompare(categoryDisplayName(b.name, t));
+    });
+  const expenseCats = sortCats(categories.filter((c) => (c.kind ?? 'expense') === 'expense'));
+  const incomeCats = sortCats(categories.filter((c) => c.kind === 'income'));
+
+  const catButton = (c: CategoryLite) => {
+    const active = cats.includes(c.id);
+    return (
+      <button
+        key={c.id}
+        type="button"
+        onClick={() => toggleCat(c.id)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+          active
+            ? 'kumo-gradient text-white'
+            : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300'
+        }`}
+      >
+        <span className={`w-2 h-2 rounded-full ${COLOR_DOT[c.color] ?? 'bg-slate-300'}`} />
+        {categoryDisplayName(c.name, t)}
+      </button>
+    );
+  };
+
   const apply = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'all');
@@ -106,31 +137,40 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
   return (
     <Sheet open={open} onClose={onClose} title={t.common.filters}>
       <div className="space-y-5">
-        {/* Categorías */}
+        {/* Categorías — en "Todos" se separan Gastos e Ingresos */}
         <Section title={t.expenses.filter_section_categories}>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((c) => {
-              const active = cats.includes(c.id);
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => toggleCat(c.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    active
-                      ? 'kumo-gradient text-white'
-                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${COLOR_DOT[c.color] ?? 'bg-slate-300'}`} />
-                  {categoryDisplayName(c.name, t)}
-                </button>
-              );
-            })}
-            {categories.length === 0 && (
-              <p className="text-sm text-slate-400">—</p>
-            )}
-          </div>
+          {filters.kind === 'income' ? (
+            <div className="flex flex-wrap gap-2">
+              {incomeCats.map(catButton)}
+              {incomeCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
+            </div>
+          ) : filters.kind === 'expense' ? (
+            <div className="flex flex-wrap gap-2">
+              {expenseCats.map(catButton)}
+              {expenseCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 mb-1.5">
+                  {t.expenses.filter_kind_expense}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {expenseCats.map(catButton)}
+                  {expenseCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-mint-600 dark:text-mint-400 mb-1.5">
+                  {t.expenses.filter_kind_income}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {incomeCats.map(catButton)}
+                  {incomeCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
+                </div>
+              </div>
+            </div>
+          )}
         </Section>
 
         {/* Rango de fechas */}
