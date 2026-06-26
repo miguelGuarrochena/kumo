@@ -240,7 +240,15 @@
     "split_mark_paid": "Mark their share as paid",
     "split_pay_chip": "Pay with Mercado Pago",
     "split_mark_pending": "Mark as pending",
-    "due_short": "due"
+    "due_short": "due",
+    "kind_expense": "Expense",
+    "kind_income": "Income",
+    "new_income": "New income",
+    "edit_income_title": "Edit income",
+    "income_badge": "Income",
+    "income_default_name": "Income",
+    "total_income": "Income",
+    "net_balance": "Net"
   },
   "calendar": {
     "title": "Calendar",
@@ -368,7 +376,12 @@
     "scope_current": "This workspace",
     "scope_all": "All",
     "prev": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "net_balance": "Net balance",
+    "income_label": "Income",
+    "expense_label": "Expenses",
+    "net_label": "Net",
+    "net_previous": "Previous {period} net"
   },
   "reminders": {
     "title": "Reminders",
@@ -426,7 +439,10 @@
       "transport": "Transport",
       "health": "Health",
       "other": "Other"
-    }
+    },
+    "kind_expense": "Expenses",
+    "kind_income": "Income",
+    "new_income": "New income category"
   },
   "workspace": {
     "title": "Share space",

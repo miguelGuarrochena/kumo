@@ -211,7 +211,7 @@ export const ExpensesClient = ({
   const convertToDisplay = (amount: number, currency: string): number | null =>
     convertAmount(amount, currency as Currency, displayCurrency, rates);
 
-  const { totalInDisplay, someRateMissing, currencyBreakdown, totalCount } = expenseSummary;
+  const { totalInDisplay, incomeInDisplay, netInDisplay, hasIncome, someRateMissing, currencyBreakdown, totalCount } = expenseSummary;
 
   const [year, month] = monthStr.split('-').map(Number) as [number, number];
   const prevMonth = monthShift(year, month, -1);
@@ -503,6 +503,20 @@ export const ExpensesClient = ({
                 {t.expenses.rate_unavailable}
               </p>
             )}
+            {hasIncome && (
+              <div className="mt-3 flex items-center justify-center gap-3 text-xs sm:text-sm flex-wrap">
+                <span className="text-mint-600 dark:text-mint-400 font-medium">
+                  {t.expenses.total_income}: +{formatMoney(incomeInDisplay, displayCurrency, locale)}
+                </span>
+                <span className="text-slate-300 dark:text-slate-600">·</span>
+                <span className="text-slate-500 dark:text-slate-400">
+                  {t.expenses.net_balance}:{' '}
+                  <span className={`font-semibold ${netInDisplay >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}`}>
+                    {netInDisplay >= 0 ? '+' : '−'}{formatMoney(Math.abs(netInDisplay), displayCurrency, locale)}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -618,6 +632,19 @@ export const ExpensesClient = ({
                 {someRateMissing && (
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
                     {t.expenses.rate_unavailable}
+                  </p>
+                )}
+                {hasIncome && (
+                  <p className="text-[11px] sm:text-xs mt-1 flex items-center gap-2 flex-wrap">
+                    <span className="text-mint-600 dark:text-mint-400 font-medium">
+                      {t.expenses.total_income}: +{formatMoney(incomeInDisplay, displayCurrency, locale)}
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                      {t.expenses.net_balance}:{' '}
+                      <span className={`font-semibold ${netInDisplay >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}`}>
+                        {netInDisplay >= 0 ? '+' : '−'}{formatMoney(Math.abs(netInDisplay), displayCurrency, locale)}
+                      </span>
+                    </span>
                   </p>
                 )}
               </div>

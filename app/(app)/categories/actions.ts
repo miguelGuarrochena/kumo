@@ -12,6 +12,7 @@ const categorySchema = z.object({
   name: z.string().min(1, 'Nombre requerido').max(40),
   icon: z.string().min(1).max(40),
   color: z.enum(COLORS),
+  kind: z.enum(['expense', 'income']).default('expense'),
 });
 
 export type CategoryFormState = {
@@ -28,6 +29,7 @@ export async function upsertCategory(
     name: formData.get('name'),
     icon: formData.get('icon'),
     color: formData.get('color'),
+    kind: formData.get('kind') === 'income' ? 'income' : 'expense',
   });
 
   if (!parsed.success) {

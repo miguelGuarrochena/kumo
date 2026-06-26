@@ -44,12 +44,14 @@ export const reminderSchema = z.object({
 
 export const EXPENSE_CURRENCIES = ['ARS', 'USD', 'EUR', 'MXN', 'CLP', 'COP', 'BRL', 'GBP'] as const;
 export const RECURRENCE = ['weekly', 'monthly', 'yearly'] as const;
+export const EXPENSE_KIND = ['expense', 'income'] as const;
 
 export const expenseSchema = z.object({
   id: z.string().uuid().optional(),
   category_id: z.string().uuid().nullable().optional(),
   amount: z.coerce.number().positive('El monto debe ser positivo'),
   currency: z.enum(EXPENSE_CURRENCIES),
+  kind: z.enum(EXPENSE_KIND).default('expense'),
   description: z.string().max(200).optional().nullable(),
   expense_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),

@@ -31,9 +31,10 @@ export const ExpenseRow = ({
   showFullDate = false,
 }: ExpenseRowProps) => {
   const { t, locale } = useT();
+  const isIncome = expense.kind === 'income';
   const cat = expense.categories;
   const catLabel = cat ? categoryDisplayName(cat.name, t) : null;
-  const dotColor = cat ? COLOR_DOT[cat.color] ?? 'bg-slate-300' : 'bg-slate-300';
+  const dotColor = isIncome ? 'bg-mint-400' : cat ? COLOR_DOT[cat.color] ?? 'bg-slate-300' : 'bg-slate-300';
   const isPending = expense.due_date && !expense.paid;
   const isDifferentCurrency = expense.currency !== displayCurrency;
   const splits = (expense as ExpenseWithSplits)._splits ?? [];
@@ -45,8 +46,13 @@ export const ExpenseRow = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           <p className="font-medium text-sm truncate">
-            {expense.description || catLabel || t.expenses.default_name}
+            {expense.description || catLabel || (isIncome ? t.expenses.income_default_name : t.expenses.default_name)}
           </p>
+          {isIncome && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-mint-100 text-mint-600 dark:bg-mint-500/20 dark:text-mint-300 font-medium">
+              {t.expenses.income_badge}
+            </span>
+          )}
           {isPending && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-peach-100 text-peach-400 font-medium">
               {t.expenses.pending}
@@ -132,13 +138,13 @@ export const ExpenseRow = ({
       </div>
       <div className="text-right shrink-0 pt-0.5">
         {isDifferentCurrency && convertedAmount === null ? (
-          <p className="font-semibold text-sm whitespace-nowrap">
-            {formatMoney(Number(expense.amount), expense.currency as Currency, locale)}
+          <p className={`font-semibold text-sm whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : ''}`}>
+            {isIncome ? '+' : ''}{formatMoney(Number(expense.amount), expense.currency as Currency, locale)}
           </p>
         ) : (
           <>
-            <p className="font-semibold text-sm whitespace-nowrap">
-              {formatMoney(
+            <p className={`font-semibold text-sm whitespace-nowrap ${isIncome ? 'text-mint-600 dark:text-mint-400' : ''}`}>
+              {isIncome ? '+' : ''}{formatMoney(
                 isDifferentCurrency ? (convertedAmount ?? 0) : Number(expense.amount),
                 displayCurrency,
                 locale,

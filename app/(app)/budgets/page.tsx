@@ -34,6 +34,7 @@ const BudgetsPage = async () => {
       .from('expenses')
       .select('amount, currency, category_id')
       .eq('workspace_id', ctx.workspaceId)
+      .eq('kind', 'expense')
       .gte('expense_date', monthStart),
     supabase.from('user_settings').select('default_currency').eq('user_id', ctx.userId).maybeSingle(),
     getRates(),

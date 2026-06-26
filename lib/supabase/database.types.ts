@@ -8,6 +8,7 @@ type CategoriesRow = {
   name: string;
   icon: string;
   color: string;
+  kind: 'expense' | 'income';
   created_at: string;
 };
 type CategoriesInsert = {
@@ -17,6 +18,7 @@ type CategoriesInsert = {
   name: string;
   icon?: string;
   color?: string;
+  kind?: 'expense' | 'income';
   created_at?: string;
 };
 type CategoriesUpdate = {
@@ -26,6 +28,7 @@ type CategoriesUpdate = {
   name?: string;
   icon?: string;
   color?: string;
+  kind?: 'expense' | 'income';
   created_at?: string;
 };
 
@@ -43,6 +46,7 @@ type ExpensesRow = {
   is_recurring: boolean;
   recurrence_type: 'weekly' | 'monthly' | 'yearly' | null;
   paid: boolean;
+  kind: 'expense' | 'income';
   notify_contact_ids: string[];
   next_occurrence: string | null;
   parent_id: string | null;
@@ -98,6 +102,7 @@ type ExpensesInsert = {
   is_recurring?: boolean;
   recurrence_type?: 'weekly' | 'monthly' | 'yearly' | null;
   paid?: boolean;
+  kind?: 'expense' | 'income';
   notify_contact_ids?: string[];
   next_occurrence?: string | null;
   parent_id?: string | null;
@@ -119,6 +124,7 @@ type ExpensesUpdate = {
   is_recurring?: boolean;
   recurrence_type?: 'weekly' | 'monthly' | 'yearly' | null;
   paid?: boolean;
+  kind?: 'expense' | 'income';
   notify_contact_ids?: string[];
   next_occurrence?: string | null;
   parent_id?: string | null;

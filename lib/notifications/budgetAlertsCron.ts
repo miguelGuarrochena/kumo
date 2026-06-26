@@ -85,6 +85,7 @@ export async function runBudgetAlerts(
       .from('expenses')
       .select('workspace_id, amount, currency, category_id')
       .in('workspace_id', workspaceIds)
+      .eq('kind', 'expense')
       .gte('expense_date', monthStart),
     supabase
       .from('budget_alerts_sent')

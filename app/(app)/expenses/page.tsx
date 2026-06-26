@@ -18,7 +18,10 @@ export type ArchiveYear = {
 
 export type ExpenseListSummary = {
   totalCount: number;
-  totalInDisplay: number;
+  totalInDisplay: number; // total de gastos (kind = 'expense')
+  incomeInDisplay: number; // total de ingresos (kind = 'income')
+  netInDisplay: number; // ingresos − gastos
+  hasIncome: boolean;
   someRateMissing: boolean;
   currencyBreakdown: { currency: string; count: number }[];
 };
@@ -105,6 +108,9 @@ const ExpensesPage = async ({
   let expenseSummary: ExpenseListSummary = {
     totalCount: 0,
     totalInDisplay: 0,
+    incomeInDisplay: 0,
+    netInDisplay: 0,
+    hasIncome: false,
     someRateMissing: false,
     currencyBreakdown: [],
   };
@@ -174,6 +180,7 @@ const ExpensesPage = async ({
       .from('expenses')
       .select('id, amount, currency, expense_date')
       .eq('workspace_id', ctx.workspaceId)
+      .eq('kind', 'expense')
       .order('expense_date', { ascending: false });
 
     type Mini = { id: string; amount: number; currency: string; expense_date: string };
@@ -196,19 +203,23 @@ const ExpensesPage = async ({
   } else if (section !== 'saldos') {
     const sort = params.sort ?? 'date-desc';
     const base = applyExpenseFilters(
-      supabase.from('expenses').select('amount, currency').eq('workspace_id', ctx.workspaceId),
+      supabase.from('expenses').select('amount, currency, kind').eq('workspace_id', ctx.workspaceId),
       view,
       monthStr,
       params,
     );
     const { data: summaryRows } = await applyExpenseSort(base, sort);
 
-    type Mini = { amount: number; currency: string };
+    type Mini = { amount: number; currency: string; kind?: 'expense' | 'income' };
     const counts = new Map<string, number>();
     let totalInDisplay = 0;
+    let incomeInDisplay = 0;
+    let hasIncome = false;
     let someRateMissing = false;
     for (const row of (summaryRows ?? []) as Mini[]) {
       counts.set(row.currency, (counts.get(row.currency) ?? 0) + 1);
+      const isIncome = row.kind === 'income';
+      if (isIncome) hasIncome = true;
       const converted = convertAmount(
         Number(row.amount),
         row.currency as Currency,
@@ -216,6 +227,7 @@ const ExpensesPage = async ({
         rates.rates,
       );
       if (converted === null) someRateMissing = true;
+      else if (isIncome) incomeInDisplay += converted;
       else totalInDisplay += converted;
     }
 
@@ -236,6 +248,9 @@ const ExpensesPage = async ({
     expenseSummary = {
       totalCount,
       totalInDisplay,
+      incomeInDisplay,
+      netInDisplay: incomeInDisplay - totalInDisplay,
+      hasIncome,
       someRateMissing,
       currencyBreakdown: Array.from(counts.entries())
         .map(([currency, count]) => ({ currency, count }))
@@ -285,6 +300,7 @@ const ExpensesPage = async ({
       .from('expenses')
       .select('id, description, amount, expense_date, is_recurring')
       .eq('workspace_id', ctx.workspaceId)
+      .eq('kind', 'expense')
       .gte('expense_date', since.toISOString().slice(0, 10))
       .not('description', 'is', null)
       .order('expense_date', { ascending: false })

@@ -21,6 +21,7 @@ export async function upsertExpense(
     category_id: (formData.get('category_id') as string) || null,
     amount: formData.get('amount'),
     currency: formData.get('currency'),
+    kind: formData.get('kind') === 'income' ? 'income' : 'expense',
     description: (formData.get('description') as string) || null,
     expense_date: formData.get('expense_date'),
     due_date: (formData.get('due_date') as string) || null,
@@ -66,6 +67,7 @@ export async function upsertExpense(
   revalidatePath('/dashboard');
   revalidatePath('/budgets');
   revalidatePath('/split');
+  revalidatePath('/metrics');
   return { ok: true, expenseId: expenseId ?? undefined };
 }
 

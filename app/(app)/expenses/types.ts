@@ -5,6 +5,7 @@ export type CategoryLite = {
   name: string;
   icon: string;
   color: string;
+  kind?: 'expense' | 'income';
 };
 
 export type ContactLite = {
@@ -23,6 +24,7 @@ export type Expense = {
   category_id: string | null;
   amount: number;
   currency: string;
+  kind: 'expense' | 'income';
   description: string | null;
   expense_date: string;
   due_date: string | null;

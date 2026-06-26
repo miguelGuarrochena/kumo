@@ -29,6 +29,7 @@ export async function suggestRecurring(description: string) {
     .from('expenses')
     .select('id, description, amount, expense_date, is_recurring')
     .eq('workspace_id', ctx.workspaceId)
+    .eq('kind', 'expense')
     .gte('expense_date', sinceKey)
     .not('description', 'is', null)
     .order('expense_date', { ascending: false })

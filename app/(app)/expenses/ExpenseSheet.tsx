@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { upsertExpense } from './actions';
 import { Sheet } from '@/components/Sheet';
 import { Select, type SelectOption } from '@/components/Select';
@@ -58,6 +58,7 @@ export const ExpenseSheet = ({
   const [pending, startTransition] = useTransition();
 
   const [amount, setAmount] = useState('');
+  const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [currency, setCurrency] = useState<Currency>(defaultCurrency);
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
@@ -89,6 +90,7 @@ export const ExpenseSheet = ({
 
     if (expense) {
       setAmount(expense.amount?.toString() ?? '');
+      setKind(expense.kind === 'income' ? 'income' : 'expense');
       setCurrency((expense.currency as Currency) ?? defaultCurrency);
       setCategoryId(expense.category_id ?? '');
       setDescription(expense.description ?? '');
@@ -102,6 +104,7 @@ export const ExpenseSheet = ({
       setCategoryManual(true);
     } else if (aiSuggestion) {
       setAmount(aiSuggestion.total ? aiSuggestion.total.toString() : '');
+      setKind('expense');
       const cur = (aiSuggestion.currency?.toUpperCase() ?? defaultCurrency) as Currency;
       setCurrency(CURRENCIES.some((c) => c.code === cur) ? cur : defaultCurrency);
       setDescription(aiSuggestion.description ?? aiSuggestion.merchant ?? '');
@@ -126,6 +129,7 @@ export const ExpenseSheet = ({
       setNotifyContactIds(selfId ? [selfId] : []);
     } else {
       setAmount('');
+      setKind('expense');
       setCurrency(defaultCurrency);
       setCategoryId('');
       setDescription('');
@@ -151,7 +155,7 @@ export const ExpenseSheet = ({
 
   // Auto-categorización por historial al tipear la descripción (solo gastos nuevos).
   useEffect(() => {
-    if (!open || expense || aiSuggestion) return;
+    if (!open || expense || aiSuggestion || kind !== 'expense') return;
     const desc = description.trim();
     if (desc.length < 2) {
       setSuggestedCategoryId(null);
@@ -170,10 +174,19 @@ export const ExpenseSheet = ({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [description, open, expense, aiSuggestion, categoryManual]);
+  }, [description, open, expense, aiSuggestion, categoryManual, kind]);
+
+  // Cambiar entre Gasto/Ingreso: limpia la categoría si no corresponde al nuevo tipo.
+  const selectKind = (next: 'expense' | 'income') => {
+    setKind(next);
+    if (categoryId && !categories.some((c) => c.id === categoryId && (c.kind ?? 'expense') === next)) {
+      setCategoryId('');
+      setCategoryManual(false);
+    }
+  };
 
   useEffect(() => {
-    if (!open || expense || isRecurring || recurringDismissed) {
+    if (!open || expense || isRecurring || recurringDismissed || kind !== 'expense') {
       setRecurringSuggest(null);
       return;
     }
@@ -199,7 +212,7 @@ export const ExpenseSheet = ({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [description, open, expense, isRecurring, recurringDismissed]);
+  }, [description, open, expense, isRecurring, recurringDismissed, kind]);
 
   useEffect(() => {
     if (!open || !expense?.id) return;
@@ -288,6 +301,7 @@ export const ExpenseSheet = ({
     if (expense?.id) fd.set('id', expense.id);
     if (categoryId) fd.set('category_id', categoryId);
     fd.set('amount', amount);
+    fd.set('kind', kind);
     fd.set('currency', currency);
     fd.set('description', description);
     fd.set('expense_date', expenseDate);
@@ -366,11 +380,22 @@ export const ExpenseSheet = ({
 
   const notifyContacts = contacts.filter((c) => !c.is_split_only);
 
+  // Las categorías se filtran por tipo: un ingreso solo ve categorías de ingreso.
+  const visibleCategories = useMemo(
+    () => categories.filter((c) => (c.kind ?? 'expense') === kind),
+    [categories, kind],
+  );
+  const isIncome = kind === 'income';
+
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title={expense ? t.expenses.edit_title : t.expenses.new}
+      title={
+        expense
+          ? isIncome ? t.expenses.edit_income_title : t.expenses.edit_title
+          : isIncome ? t.expenses.new_income : t.expenses.new
+      }
       footer={
         <div className="flex gap-2">
           <button
@@ -409,6 +434,34 @@ export const ExpenseSheet = ({
             </div>
           </div>
         )}
+
+        {/* Toggle Gasto / Ingreso */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => selectKind('expense')}
+            className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 transition-colors text-sm font-medium ${
+              !isIncome
+                ? 'border-sky-400 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300'
+                : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
+            }`}
+          >
+            <ArrowDownLeft className="w-4 h-4" />
+            {t.expenses.kind_expense}
+          </button>
+          <button
+            type="button"
+            onClick={() => selectKind('income')}
+            className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 transition-colors text-sm font-medium ${
+              isIncome
+                ? 'border-mint-400 bg-mint-50 dark:bg-mint-500/10 text-mint-600 dark:text-mint-400'
+                : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
+            }`}
+          >
+            <ArrowUpRight className="w-4 h-4" />
+            {t.expenses.kind_income}
+          </button>
+        </div>
 
         <div className="flex gap-2">
           <div className="flex-1">
@@ -469,7 +522,7 @@ export const ExpenseSheet = ({
             }}
             options={[
               { value: '', label: t.expenses.no_category } as SelectOption,
-              ...categories.map((c) => ({ value: c.id, label: categoryDisplayName(c.name, t) })),
+              ...visibleCategories.map((c) => ({ value: c.id, label: categoryDisplayName(c.name, t) })),
             ]}
             ariaLabel={t.expenses.category}
             buttonClassName="py-3 rounded-xl"
@@ -508,6 +561,7 @@ export const ExpenseSheet = ({
           />
         </div>
 
+        {!isIncome && (
         <div>
           <label className="block text-sm font-medium mb-1.5">{t.expenses.state}</label>
           <div className="grid grid-cols-2 gap-2">
@@ -537,7 +591,9 @@ export const ExpenseSheet = ({
             </button>
           </div>
         </div>
+        )}
 
+        {!isIncome && (
         <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2">
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -561,6 +617,7 @@ export const ExpenseSheet = ({
             />
           )}
         </div>
+        )}
 
         <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2">
           {!isRecurring && recurringSuggest && !expense && (
@@ -673,7 +730,8 @@ export const ExpenseSheet = ({
           </div>
         )}
 
-        {/* Split inline: checkbox + editor desplegable */}
+        {/* Split inline: checkbox + editor desplegable (solo gastos) */}
+        {!isIncome && (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -712,6 +770,7 @@ export const ExpenseSheet = ({
             />
           )}
         </div>
+        )}
       </form>
     </Sheet>
   );

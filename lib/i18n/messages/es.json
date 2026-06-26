@@ -240,7 +240,15 @@
     "split_mark_paid": "Marcar que pagó su parte",
     "split_pay_chip": "Pagar con Mercado Pago",
     "split_mark_pending": "Marcar pendiente",
-    "due_short": "vence"
+    "due_short": "vence",
+    "kind_expense": "Gasto",
+    "kind_income": "Ingreso",
+    "new_income": "Nuevo ingreso",
+    "edit_income_title": "Editar ingreso",
+    "income_badge": "Ingreso",
+    "income_default_name": "Ingreso",
+    "total_income": "Ingresos",
+    "net_balance": "Neto"
   },
   "calendar": {
     "title": "Calendario",
@@ -368,7 +376,12 @@
     "scope_current": "Este espacio",
     "scope_all": "Todos",
     "prev": "Anterior",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "net_balance": "Balance neto",
+    "income_label": "Ingresos",
+    "expense_label": "Gastos",
+    "net_label": "Neto",
+    "net_previous": "Neto {period} anterior"
   },
   "reminders": {
     "title": "Recordatorios",
@@ -426,7 +439,10 @@
       "transport": "Transporte",
       "health": "Salud",
       "other": "Otros"
-    }
+    },
+    "kind_expense": "Gastos",
+    "kind_income": "Ingresos",
+    "new_income": "Nueva categoría de ingreso"
   },
   "workspace": {
     "title": "Compartir espacio",

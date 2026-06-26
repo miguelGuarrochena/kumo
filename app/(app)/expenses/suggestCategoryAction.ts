@@ -22,6 +22,7 @@ export async function suggestCategory(description: string): Promise<{ categoryId
     .from('expenses')
     .select('description, category_id')
     .eq('workspace_id', ctx.workspaceId)
+    .eq('kind', 'expense')
     .not('category_id', 'is', null)
     .not('description', 'is', null)
     .order('expense_date', { ascending: false })

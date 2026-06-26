@@ -45,6 +45,8 @@ const MetricsPage = async ({
     { data: currentExpenses },
     { data: previousExpenses },
     { data: trailExpenses },
+    { data: currentIncome },
+    { data: previousIncome },
     { data: settings },
     rates,
   ] = await Promise.all([
@@ -52,6 +54,7 @@ const MetricsPage = async ({
       let q = supabase
         .from('expenses')
         .select('id, amount, currency, expense_date, description, category_id, categories(name, color)')
+        .eq('kind', 'expense')
         .gte('expense_date', start)
         .lte('expense_date', end);
       if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
@@ -61,6 +64,7 @@ const MetricsPage = async ({
       let q = supabase
         .from('expenses')
         .select('id, amount, currency, expense_date')
+        .eq('kind', 'expense')
         .gte('expense_date', prevStart)
         .lte('expense_date', prevEnd);
       if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
@@ -70,8 +74,29 @@ const MetricsPage = async ({
       let q = supabase
         .from('expenses')
         .select('id, amount, currency, expense_date')
+        .eq('kind', 'expense')
         .gte('expense_date', trailStart)
         .lte('expense_date', end);
+      if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
+      return q;
+    })(),
+    (() => {
+      let q = supabase
+        .from('expenses')
+        .select('id, amount, currency, expense_date')
+        .eq('kind', 'income')
+        .gte('expense_date', start)
+        .lte('expense_date', end);
+      if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
+      return q;
+    })(),
+    (() => {
+      let q = supabase
+        .from('expenses')
+        .select('id, amount, currency, expense_date')
+        .eq('kind', 'income')
+        .gte('expense_date', prevStart)
+        .lte('expense_date', prevEnd);
       if (scope === 'current') q = q.eq('workspace_id', ctx.workspaceId);
       return q;
     })(),
@@ -90,6 +115,8 @@ const MetricsPage = async ({
       currentExpenses={(currentExpenses ?? []) as never}
       previousExpenses={(previousExpenses ?? []) as never}
       trailExpenses={(trailExpenses ?? []) as never}
+      currentIncome={(currentIncome ?? []) as never}
+      previousIncome={(previousIncome ?? []) as never}
       defaultCurrency={userCurrency}
       displayCurrency={displayCurrency}
       rates={rates.rates}

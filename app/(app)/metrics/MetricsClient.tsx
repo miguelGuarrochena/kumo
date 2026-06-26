@@ -39,6 +39,8 @@ type Props = {
   currentExpenses: ExpenseFull[];
   previousExpenses: ExpenseLite[];
   trailExpenses: ExpenseLite[];
+  currentIncome: ExpenseLite[];
+  previousIncome: ExpenseLite[];
   defaultCurrency: Currency;
   displayCurrency: Currency;
   rates: Partial<Record<Currency, number>>;
@@ -63,6 +65,8 @@ export const MetricsClient = ({
   currentExpenses,
   previousExpenses,
   trailExpenses,
+  currentIncome,
+  previousIncome,
   defaultCurrency,
   displayCurrency,
   rates,
@@ -92,6 +96,19 @@ export const MetricsClient = ({
 
   const diff = total - previousTotal;
   const diffPct = previousTotal > 0 ? (diff / previousTotal) * 100 : null;
+
+  // Ingresos del período (kind = 'income') y neto.
+  const incomeTotal = currentIncome.reduce((s, e) => {
+    const c = convert(Number(e.amount), e.currency);
+    return c === null ? s : s + c;
+  }, 0);
+  const previousIncomeTotal = previousIncome.reduce((s, e) => {
+    const c = convert(Number(e.amount), e.currency);
+    return c === null ? s : s + c;
+  }, 0);
+  const net = incomeTotal - total;
+  const previousNet = previousIncomeTotal - previousTotal;
+  const hasIncomeData = currentIncome.length > 0 || previousIncome.length > 0;
 
   // Agregación por categoría
   const byCategory = useMemo(() => {
@@ -265,6 +282,41 @@ export const MetricsClient = ({
           )}
         </div>
       </div>
+
+      {/* Balance neto: ingresos vs gastos (solo si hay ingresos cargados) */}
+      {hasIncomeData && (
+        <div className="kumo-card p-5">
+          <p className="text-xs uppercase tracking-wider text-slate-400 mb-3">{t.metrics.net_balance}</p>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-0.5">{t.metrics.income_label}</p>
+              <p className="text-base sm:text-lg font-bold text-mint-600 dark:text-mint-400 break-all">
+                +{formatMoney(incomeTotal, displayCurrency, locale)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-0.5">{t.metrics.expense_label}</p>
+              <p className="text-base sm:text-lg font-bold text-slate-700 dark:text-slate-200 break-all">
+                −{formatMoney(total, displayCurrency, locale)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-0.5">{t.metrics.net_label}</p>
+              <p className={`text-base sm:text-lg font-bold break-all ${net >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}`}>
+                {net >= 0 ? '+' : '−'}{formatMoney(Math.abs(net), displayCurrency, locale)}
+              </p>
+            </div>
+          </div>
+          {previousNet !== 0 && (
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-3 text-center">
+              {t.metrics.net_previous.replace('{period}', t.metrics[period])}:{' '}
+              <span className={previousNet >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}>
+                {previousNet >= 0 ? '+' : '−'}{formatMoney(Math.abs(previousNet), displayCurrency, locale)}
+              </span>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Gráficos solo si hay data */}
       {currentExpenses.length === 0 ? (

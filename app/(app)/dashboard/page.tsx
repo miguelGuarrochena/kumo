@@ -71,13 +71,14 @@ const DashboardPage = async () => {
     { data: settings },
     { data: selfContact },
     { data: monthExpenses },
+    { data: monthIncome },
     { data: dueExpenses },
     { data: upcomingReminders },
     { data: recentExpenses },
     { data: overallBudget },
     rates,
   ] = await Promise.all([
-    supabase.from('expenses').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
+    supabase.from('expenses').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId).eq('kind', 'expense'),
     supabase.from('reminders').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
     supabase.from('shopping_items').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId).eq('bought', false),
     supabase.from('user_settings').select('onboarded, whatsapp_number, default_currency, google_calendar_refresh_token').eq('user_id', user?.id ?? '').maybeSingle(),
@@ -87,11 +88,19 @@ const DashboardPage = async () => {
       .from('expenses')
       .select('amount, currency')
       .eq('workspace_id', ctx.workspaceId)
+      .eq('kind', 'expense')
+      .gte('expense_date', monthStart),
+    supabase
+      .from('expenses')
+      .select('amount, currency')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('kind', 'income')
       .gte('expense_date', monthStart),
     supabase
       .from('expenses')
       .select('id, description, amount, currency, due_date, categories(name, color)')
       .eq('workspace_id', ctx.workspaceId)
+      .eq('kind', 'expense')
       .not('due_date', 'is', null)
       .eq('paid', false)
       .gte('due_date', today)
@@ -110,6 +119,7 @@ const DashboardPage = async () => {
       .from('expenses')
       .select('id, description, amount, currency, expense_date, categories(name, color)')
       .eq('workspace_id', ctx.workspaceId)
+      .eq('kind', 'expense')
       .order('expense_date', { ascending: false })
       .limit(5),
     supabase
@@ -145,6 +155,15 @@ const DashboardPage = async () => {
     return c === null ? sum : sum + c;
   }, 0);
   const monthCount = monthExpensesArr.length;
+
+  // Ingresos del mes y balance neto (ingresos − gastos).
+  const monthIncomeArr = (monthIncome ?? []) as Array<{ amount: number; currency: string }>;
+  const monthIncomeTotal = monthIncomeArr.reduce((sum, e) => {
+    const c = convert(Number(e.amount), e.currency);
+    return c === null ? sum : sum + c;
+  }, 0);
+  const monthNet = monthIncomeTotal - monthTotal;
+  const hasMonthIncome = monthIncomeArr.length > 0;
 
   // Progreso del presupuesto total del mes (si está configurado).
   const overallBudgetRow = overallBudget as { amount: number; currency: string } | null;
@@ -204,6 +223,19 @@ const DashboardPage = async () => {
                 {t.expenses.n_expenses.replace('{n}', String(monthCount))} {t.expenses.in_currency} {displayCurrency}
               </p>
             </Link>
+            {hasMonthIncome && (
+              <p className="text-xs mt-2 flex items-center gap-2 flex-wrap">
+                <span className="text-mint-600 dark:text-mint-400 font-medium">
+                  {t.expenses.total_income} +{formatMoney(monthIncomeTotal, displayCurrency, locale)}
+                </span>
+                <span className="text-slate-400 dark:text-slate-500">
+                  · {t.expenses.net_balance}{' '}
+                  <span className={`font-semibold ${monthNet >= 0 ? 'text-mint-600 dark:text-mint-400' : 'text-rose-500'}`}>
+                    {monthNet >= 0 ? '+' : '−'}{formatMoney(Math.abs(monthNet), displayCurrency, locale)}
+                  </span>
+                </span>
+              </p>
+            )}
             {showForecast && forecastProjected !== null && (
               <p
                 className={`text-xs mt-2 ${

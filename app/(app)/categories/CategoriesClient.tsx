@@ -19,6 +19,7 @@ export const CategoriesClient = ({ initialCategories }: { initialCategories: Cat
   const { t } = useT();
   const [editing, setEditing] = useState<Category | null>(null);
   const [creating, setCreating] = useState(false);
+  const [activeKind, setActiveKind] = useState<'expense' | 'income'>('expense');
   const [toDelete, setToDelete] = useState<Category | null>(null);
   const router = useRouter();
 
@@ -33,10 +34,32 @@ export const CategoriesClient = ({ initialCategories }: { initialCategories: Cat
     }
   };
 
+  const visible = initialCategories.filter(
+    (c) => ((c.kind as 'expense' | 'income' | undefined) ?? 'expense') === activeKind,
+  );
+
   return (
     <>
+      {/* Tabs Gastos / Ingresos */}
+      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4">
+        {(['expense', 'income'] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setActiveKind(k)}
+            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeKind === k
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            {k === 'expense' ? t.categories.kind_expense : t.categories.kind_income}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {initialCategories.map((cat) => (
+        {visible.map((cat) => (
           <CategoryCard
             key={cat.id}
             category={cat}
@@ -50,13 +73,14 @@ export const CategoriesClient = ({ initialCategories }: { initialCategories: Cat
           className="kumo-card p-4 flex items-center justify-center gap-2 text-slate-400 hover:text-sky-600 active:scale-[0.98] border-dashed transition-all min-h-[68px]"
         >
           <Plus className="w-5 h-5" />
-          {t.categories.new}
+          {activeKind === 'income' ? t.categories.new_income : t.categories.new}
         </button>
       </div>
 
       <CategorySheet
         open={!!editing || creating}
         category={editing}
+        defaultKind={activeKind}
         onClose={() => {
           setEditing(null);
           setCreating(false);
@@ -118,10 +142,12 @@ const CategoryCard = ({
 const CategorySheet = ({
   open,
   category,
+  defaultKind,
   onClose,
 }: {
   open: boolean;
   category: Category | null;
+  defaultKind: 'expense' | 'income';
   onClose: () => void;
 }) => {
   const router = useRouter();
@@ -151,6 +177,7 @@ const CategorySheet = ({
     fd.set('name', name);
     fd.set('icon', icon);
     fd.set('color', color);
+    fd.set('kind', (category?.kind as 'expense' | 'income' | undefined) ?? defaultKind);
 
     startTransition(async () => {
       const result = await upsertCategory({ ok: false }, fd);
