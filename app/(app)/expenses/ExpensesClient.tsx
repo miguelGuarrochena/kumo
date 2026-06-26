@@ -233,13 +233,15 @@ export const ExpensesClient = ({
     : t.expenses.net_month_label;
   // Sin "+": solo mostramos "−" cuando el neto es negativo (pérdida).
   const headlinePrefix = headlineMode === 'net' && netInDisplay < 0 ? '−' : '';
-  // Ingresos en verde; neto en pérdida en rojo; gastos y neto positivo con el
-  // violeta de la marca (para diferenciarlos del verde de ingresos).
+  // Cada modo, su color: ingresos verde, gastos violeta (marca), neto neutro
+  // (oscuro) y, si el neto es negativo, rojo. Así "Todos" se distingue de "Gastos".
   const headlineColorClass =
     headlineMode === 'income'
       ? 'text-mint-600 dark:text-mint-400'
-      : headlineMode === 'net' && netInDisplay < 0
-        ? 'text-rose-600 dark:text-rose-400'
+      : headlineMode === 'net'
+        ? netInDisplay < 0
+          ? 'text-rose-600 dark:text-rose-400'
+          : 'text-teal-600 dark:text-teal-400'
         : 'kumo-gradient-text';
   const headlineAbs = headlineMode === 'net' ? Math.abs(netInDisplay) : headlineValue;
   const headlineCount =
