@@ -440,7 +440,10 @@
     "remaining": "Quedan {amount}",
     "over_by": "Te pasaste {amount}",
     "of": "de",
-    "rate_missing": "Faltan cotizaciones; el total puede estar incompleto."
+    "rate_missing": "Faltan cotizaciones; el total puede estar incompleto.",
+    "assigned": "Asignado en categorías",
+    "assigned_of": "de {total}",
+    "assigned_exceeds": "Las categorías superan el tope total"
   },
   "categories": {
     "title": "Categorías",

@@ -440,7 +440,10 @@
     "remaining": "{amount} left",
     "over_by": "Over by {amount}",
     "of": "of",
-    "rate_missing": "Missing exchange rates; total may be incomplete."
+    "rate_missing": "Missing exchange rates; total may be incomplete.",
+    "assigned": "Allocated to categories",
+    "assigned_of": "of {total}",
+    "assigned_exceeds": "Categories exceed the total cap"
   },
   "categories": {
     "title": "Categories",

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getMessages } from '@/lib/i18n/server';
 import { getCurrentWorkspace } from '@/lib/workspace';
-import { getRates, type Currency } from '@/lib/currency';
+import { getRates, convertAmount, type Currency } from '@/lib/currency';
 import { categoryDisplayName } from '@/lib/categoryLabels';
 import { computeSpend, type ExpenseLite } from '@/lib/budgets';
 import { BudgetsClient, type BudgetCardData } from './BudgetsClient';
@@ -86,6 +86,22 @@ const BudgetsPage = async () => {
     return a.name.localeCompare(b.name);
   });
 
+  // Suma de los topes por categoría (convertida a la moneda del total) para
+  // mostrar cuánto del techo global ya está asignado.
+  let assignedToCategories = 0;
+  let assignedRateMissing = false;
+  for (const b of budgetRows) {
+    if (b.category_id === null || b.amount == null) continue;
+    const conv = convertAmount(
+      Number(b.amount),
+      ((b.currency as string | undefined) ?? defaultCurrency) as Currency,
+      overallCurrency,
+      rates.rates,
+    );
+    if (conv === null) assignedRateMissing = true;
+    else assignedToCategories += conv;
+  }
+
   return (
     <div className="space-y-6">
       <header>
@@ -98,6 +114,8 @@ const BudgetsPage = async () => {
         categories={categoryRows}
         defaultCurrency={defaultCurrency}
         locale={locale}
+        assignedToCategories={assignedToCategories}
+        assignedRateMissing={assignedRateMissing}
       />
     </div>
   );

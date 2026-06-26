@@ -11,7 +11,7 @@ import { FeatureTip } from '@/components/FeatureTip';
 import { FEATURE_TIP_IDS } from '@/lib/featureTips';
 import { formatMoney, CURRENCIES, type Currency } from '@/lib/currency';
 import { budgetStatus, type BudgetStatus } from '@/lib/budgets';
-import { categoryDisplayName, getCategoryPresetKey } from '@/lib/categoryLabels';
+import { getCategoryPresetKey } from '@/lib/categoryLabels';
 import type { Locale } from '@/lib/i18n/types';
 import { upsertBudget, deleteBudget } from './actions';
 
@@ -44,9 +44,11 @@ type Props = {
   categories: BudgetCardData[];
   defaultCurrency: Currency;
   locale: Locale;
+  assignedToCategories: number;
+  assignedRateMissing: boolean;
 };
 
-export const BudgetsClient = ({ overall, categories, defaultCurrency, locale }: Props) => {
+export const BudgetsClient = ({ overall, categories, defaultCurrency, locale, assignedToCategories, assignedRateMissing }: Props) => {
   const { t } = useT();
   const [editing, setEditing] = useState<BudgetCardData | null>(null);
 
@@ -58,7 +60,14 @@ export const BudgetsClient = ({ overall, categories, defaultCurrency, locale }: 
         description={t.tips.budgets_desc}
       />
 
-      <BudgetCard data={overall} locale={locale} featured onEdit={() => setEditing(overall)} />
+      <BudgetCard
+        data={overall}
+        locale={locale}
+        featured
+        assigned={assignedToCategories}
+        assignedRateMissing={assignedRateMissing}
+        onEdit={() => setEditing(overall)}
+      />
 
       <div>
         <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
@@ -67,11 +76,14 @@ export const BudgetsClient = ({ overall, categories, defaultCurrency, locale }: 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[...categories]
             .sort((a, b) => {
-              // "Otros" siempre al final; el resto alfabético en el idioma actual.
+              // 1) Con presupuesto primero. 2) "Otros" al final. 3) Alfabético.
+              const aHas = a.amount != null ? 0 : 1;
+              const bHas = b.amount != null ? 0 : 1;
+              if (aHas !== bHas) return aHas - bHas;
               const ao = getCategoryPresetKey(a.name) === 'other';
               const bo = getCategoryPresetKey(b.name) === 'other';
               if (ao !== bo) return ao ? 1 : -1;
-              return categoryDisplayName(a.name, t).localeCompare(categoryDisplayName(b.name, t), locale);
+              return a.name.localeCompare(b.name, locale);
             })
             .map((c) => (
             <BudgetCard key={c.categoryId} data={c} locale={locale} onEdit={() => setEditing(c)} />
@@ -92,17 +104,24 @@ const BudgetCard = ({
   data,
   locale,
   featured,
+  assigned,
+  assignedRateMissing,
   onEdit,
 }: {
   data: BudgetCardData;
   locale: Locale;
   featured?: boolean;
+  assigned?: number;
+  assignedRateMissing?: boolean;
   onEdit: () => void;
 }) => {
   const { t } = useT();
   const Icon = iconFor(data.icon);
   const colorClass = colorStyleFor(data.color);
   const hasBudget = data.amount != null && data.amount > 0;
+  // Solo en la tarjeta del total: cuánto de los topes por categoría ya asignaste.
+  const showAssigned = featured && (assigned ?? 0) > 0;
+  const overAssigned = showAssigned && hasBudget && (assigned as number) > (data.amount as number);
 
   const pct = hasBudget ? data.spent / (data.amount as number) : 0;
   const status = budgetStatus(pct);
@@ -153,6 +172,30 @@ const BudgetCard = ({
           </div>
           {data.rateMissing && (
             <p className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="w-3 h-3" />
+              {t.budgets.rate_missing}
+            </p>
+          )}
+        </div>
+      )}
+
+      {showAssigned && (
+        <div className={`${hasBudget ? 'mt-2' : 'mt-3'} pt-2 border-t border-slate-100 dark:border-slate-700/50 text-xs`}>
+          <p className="text-slate-500 dark:text-slate-400">
+            {t.budgets.assigned}:{' '}
+            <span className={`font-medium ${overAssigned ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'}`}>
+              {formatMoney(assigned as number, data.currency, locale)}
+            </span>
+            {hasBudget && ` ${t.budgets.assigned_of.replace('{total}', formatMoney(data.amount as number, data.currency, locale))}`}
+          </p>
+          {overAssigned && (
+            <p className="flex items-center gap-1 mt-1 text-[11px] text-rose-600 dark:text-rose-400">
+              <AlertTriangle className="w-3 h-3" />
+              {t.budgets.assigned_exceeds}
+            </p>
+          )}
+          {assignedRateMissing && !overAssigned && (
+            <p className="flex items-center gap-1 mt-1 text-[11px] text-amber-600 dark:text-amber-400">
               <AlertTriangle className="w-3 h-3" />
               {t.budgets.rate_missing}
             </p>
