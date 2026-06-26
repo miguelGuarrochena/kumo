@@ -226,78 +226,97 @@ const ExpensesPage = async ({
       .sort((a, b) => b.year - a.year);
   } else if (section !== 'saldos') {
     const sort = params.sort ?? 'date-desc';
+    // En "Por mes" cargamos todo el mes (ambos tipos) y el cliente filtra y
+    // calcula el resumen en memoria → no consultamos resumen acá (1 query menos).
+    // En "Todos" filtra, resume y pagina el servidor.
+    const clientFilter = view === 'month';
 
-    // Para que la búsqueda también encuentre por categoría (no solo por
-    // descripción), resolvemos qué categorías matchean el texto.
-    const qLower = (params.q ?? '').trim().toLowerCase();
-    let qCatIds: string[] = [];
-    if (qLower.length >= 1) {
-      const t = await getMessages();
-      qCatIds = ((categories ?? []) as Array<{ id: string; name: string }>)
-        .filter(
-          (c) =>
-            c.name.toLowerCase().includes(qLower) ||
-            categoryDisplayName(c.name, t).toLowerCase().includes(qLower),
-        )
-        .map((c) => c.id);
-    }
-
-    const base = applyExpenseFilters(
-      supabase.from('expenses').select('amount, currency, kind').eq('workspace_id', ctx.workspaceId),
-      view,
-      monthStr,
-      params,
-      qCatIds,
-    );
-    const { data: summaryRows } = await applyExpenseSort(base, sort);
-
-    type Mini = { amount: number; currency: string; kind?: 'expense' | 'income' };
-    const counts = new Map<string, number>();
-    let totalInDisplay = 0;
-    let incomeInDisplay = 0;
-    let hasIncome = false;
-    let someRateMissing = false;
-    for (const row of (summaryRows ?? []) as Mini[]) {
-      counts.set(row.currency, (counts.get(row.currency) ?? 0) + 1);
-      const isIncome = row.kind === 'income';
-      if (isIncome) hasIncome = true;
-      const converted = convertAmount(
-        Number(row.amount),
-        row.currency as Currency,
-        displayCurrency,
-        rates.rates,
+    if (clientFilter) {
+      let listQuery = applyExpenseFilters(
+        supabase.from('expenses').select('*, categories(id, name, icon, color)').eq('workspace_id', ctx.workspaceId),
+        view,
+        monthStr,
+        // Ignoramos kind/q a nivel SQL: los aplica el cliente al instante.
+        { ...params, kind: undefined, q: undefined },
       );
-      if (converted === null) someRateMissing = true;
-      else if (isIncome) incomeInDisplay += converted;
-      else totalInDisplay += converted;
+      listQuery = applyExpenseSort(listQuery, sort);
+      const { data } = await listQuery;
+      expenses = data ?? [];
+      expensePage = 1;
+      // expenseSummary queda en su default; el cliente lo recalcula desde las filas.
+    } else {
+      // Para que la búsqueda también encuentre por categoría (no solo por
+      // descripción), resolvemos qué categorías matchean el texto.
+      let qCatIds: string[] = [];
+      const qLower = (params.q ?? '').trim().toLowerCase();
+      if (qLower.length >= 1) {
+        const t = await getMessages();
+        qCatIds = ((categories ?? []) as Array<{ id: string; name: string }>)
+          .filter(
+            (c) =>
+              c.name.toLowerCase().includes(qLower) ||
+              categoryDisplayName(c.name, t).toLowerCase().includes(qLower),
+          )
+          .map((c) => c.id);
+      }
+
+      const base = applyExpenseFilters(
+        supabase.from('expenses').select('amount, currency, kind').eq('workspace_id', ctx.workspaceId),
+        view,
+        monthStr,
+        params,
+        qCatIds,
+      );
+      const { data: summaryRows } = await base;
+
+      type Mini = { amount: number; currency: string; kind?: 'expense' | 'income' };
+      const counts = new Map<string, number>();
+      let totalInDisplay = 0;
+      let incomeInDisplay = 0;
+      let hasIncome = false;
+      let someRateMissing = false;
+      for (const row of (summaryRows ?? []) as Mini[]) {
+        counts.set(row.currency, (counts.get(row.currency) ?? 0) + 1);
+        const isIncome = row.kind === 'income';
+        if (isIncome) hasIncome = true;
+        const converted = convertAmount(
+          Number(row.amount),
+          row.currency as Currency,
+          displayCurrency,
+          rates.rates,
+        );
+        if (converted === null) someRateMissing = true;
+        else if (isIncome) incomeInDisplay += converted;
+        else totalInDisplay += converted;
+      }
+
+      const totalCount = summaryRows?.length ?? 0;
+      expensePage = clampPage(Number(params.page) || 1, totalCount, EXPENSES_PAGE_SIZE);
+      const { from, to } = pageRange(expensePage, EXPENSES_PAGE_SIZE);
+
+      let listQuery = applyExpenseFilters(
+        supabase.from('expenses').select('*, categories(id, name, icon, color)').eq('workspace_id', ctx.workspaceId),
+        view,
+        monthStr,
+        params,
+        qCatIds,
+      );
+      listQuery = applyExpenseSort(listQuery, sort);
+      const { data } = await listQuery.range(from, to);
+      expenses = data ?? [];
+
+      expenseSummary = {
+        totalCount,
+        totalInDisplay,
+        incomeInDisplay,
+        netInDisplay: incomeInDisplay - totalInDisplay,
+        hasIncome,
+        someRateMissing,
+        currencyBreakdown: Array.from(counts.entries())
+          .map(([currency, count]) => ({ currency, count }))
+          .sort((a, b) => b.count - a.count),
+      };
     }
-
-    const totalCount = summaryRows?.length ?? 0;
-    expensePage = clampPage(Number(params.page) || 1, totalCount, EXPENSES_PAGE_SIZE);
-    const { from, to } = pageRange(expensePage, EXPENSES_PAGE_SIZE);
-
-    let listQuery = applyExpenseFilters(
-      supabase.from('expenses').select('*, categories(id, name, icon, color)').eq('workspace_id', ctx.workspaceId),
-      view,
-      monthStr,
-      params,
-      qCatIds,
-    );
-    listQuery = applyExpenseSort(listQuery, sort);
-    const { data } = await listQuery.range(from, to);
-    expenses = data ?? [];
-
-    expenseSummary = {
-      totalCount,
-      totalInDisplay,
-      incomeInDisplay,
-      netInDisplay: incomeInDisplay - totalInDisplay,
-      hasIncome,
-      someRateMissing,
-      currencyBreakdown: Array.from(counts.entries())
-        .map(([currency, count]) => ({ currency, count }))
-        .sort((a, b) => b.count - a.count),
-    };
 
     // Cargo splits + nombres de contactos para los expenses visibles.
     const expIds = (expenses as Array<{ id: string }>).map((e) => e.id);
@@ -334,8 +353,11 @@ const ExpensesPage = async ({
 
   const pricing = getPricing();
 
+  // Las sugerencias de recurrentes son un "nudge" para la vista principal.
+  // Las calculamos solo en "Por mes" sin búsqueda/categoría activa, así no
+  // re-corremos esta query en cada navegación de "Todos"/filtros/paginado.
   let recurringSuggestions: ReturnType<typeof findRecurringCandidates> = [];
-  if (section !== 'saldos') {
+  if (section !== 'saldos' && view === 'month' && !params.q && !params.cat) {
     const since = new Date();
     since.setDate(since.getDate() - 180);
     const { data: recurringHistory } = await supabase
@@ -356,6 +378,7 @@ const ExpensesPage = async ({
     <ExpensesClient
       section={section}
       expensesDataLoaded={section !== 'saldos'}
+      clientFilter={view === 'month'}
       view={view}
       monthStr={monthStr}
       expenses={expenses as never}

@@ -42,6 +42,7 @@ type ExpensesSection = 'gastos' | 'saldos';
 type Props = {
   section: ExpensesSection;
   expensesDataLoaded: boolean;
+  clientFilter: boolean;
   view: ExpensesView;
   monthStr: string;
   expenses: Expense[];
@@ -67,6 +68,7 @@ type Props = {
 export const ExpensesClient = ({
   section,
   expensesDataLoaded,
+  clientFilter,
   view,
   monthStr,
   expenses,
@@ -214,14 +216,67 @@ export const ExpensesClient = ({
   const convertToDisplay = (amount: number, currency: string): number | null =>
     convertAmount(amount, currency as Currency, displayCurrency, rates);
 
-  const { totalInDisplay, incomeInDisplay, netInDisplay, someRateMissing, currencyBreakdown, totalCount } = expenseSummary;
+  // En "Por mes" (clientFilter) el tipo activo es el chip local (sin navegar).
+  const activeKind = clientFilter ? optimisticKind : filters.kind;
 
-  // Modo del encabezado según el chip de tipo: gastos / ingresos / neto.
-  // "Todos" siempre muestra el neto (color y etiqueta consistentes en todos
-  // los meses, tengan o no ingresos).
+  // Lista visible: en cliente filtramos por tipo + texto en memoria (instantáneo).
+  const searchLower = searchInput.trim().toLowerCase();
+  const visibleRows = useMemo(() => {
+    if (!clientFilter) return expenses;
+    return expenses.filter((e) => {
+      if (activeKind && e.kind !== activeKind) return false;
+      if (searchLower) {
+        const desc = (e.description ?? '').toLowerCase();
+        const cat = e.categories?.name ?? '';
+        if (
+          !desc.includes(searchLower) &&
+          !cat.toLowerCase().includes(searchLower) &&
+          !categoryDisplayName(cat, t).toLowerCase().includes(searchLower)
+        ) return false;
+      }
+      return true;
+    });
+  }, [clientFilter, expenses, activeKind, searchLower, t]);
+
+  // Agregados del mes completo (ambos tipos) para el encabezado, en cliente.
+  const clientAgg = useMemo(() => {
+    if (!clientFilter) return null;
+    let inc = 0, exp = 0, incCount = 0, expCount = 0, rateMissing = false;
+    const curCounts = new Map<string, number>();
+    for (const e of expenses) {
+      const conv = convertAmount(Number(e.amount), e.currency as Currency, displayCurrency, rates);
+      curCounts.set(e.currency, (curCounts.get(e.currency) ?? 0) + 1);
+      const isInc = e.kind === 'income';
+      if (isInc) incCount++; else expCount++;
+      if (conv === null) rateMissing = true;
+      else if (isInc) inc += conv; else exp += conv;
+    }
+    return {
+      inc, exp, net: inc - exp, incCount, expCount, rateMissing,
+      currencyBreakdown: Array.from(curCounts.entries())
+        .map(([currency, count]) => ({ currency, count }))
+        .sort((a, b) => b.count - a.count),
+    };
+  }, [clientFilter, expenses, displayCurrency, rates]);
+
+  // Valores efectivos del encabezado (cliente en "Por mes", server en "Todos").
+  const totalInDisplay = clientAgg ? clientAgg.exp : expenseSummary.totalInDisplay;
+  const incomeInDisplay = clientAgg ? clientAgg.inc : expenseSummary.incomeInDisplay;
+  const netInDisplay = clientAgg ? clientAgg.net : expenseSummary.netInDisplay;
+  const someRateMissing = clientAgg ? clientAgg.rateMissing : expenseSummary.someRateMissing;
+  const currencyBreakdown = clientAgg ? clientAgg.currencyBreakdown : expenseSummary.currencyBreakdown;
+  const totalCount = clientAgg ? clientAgg.incCount + clientAgg.expCount : expenseSummary.totalCount;
+  const headlineCountNum = clientAgg
+    ? activeKind === 'income' ? clientAgg.incCount
+      : activeKind === 'expense' ? clientAgg.expCount
+      : clientAgg.incCount + clientAgg.expCount
+    : totalCount;
+
+  // Modo del encabezado según el tipo activo: gastos / ingresos / neto.
+  // "Todos" siempre muestra el neto (color y etiqueta consistentes).
   const headlineMode: 'expense' | 'income' | 'net' =
-    filters.kind === 'income' ? 'income'
-    : filters.kind === 'expense' ? 'expense'
+    activeKind === 'income' ? 'income'
+    : activeKind === 'expense' ? 'expense'
     : 'net';
 
   const headlineValue =
@@ -246,9 +301,9 @@ export const ExpensesClient = ({
         : 'kumo-gradient-text';
   const headlineAbs = headlineMode === 'net' ? Math.abs(netInDisplay) : headlineValue;
   const headlineCount =
-    headlineMode === 'income' ? t.expenses.n_income.replace('{n}', String(totalCount))
-    : headlineMode === 'expense' ? t.expenses.n_expenses.replace('{n}', String(totalCount))
-    : t.expenses.n_movements.replace('{n}', String(totalCount));
+    headlineMode === 'income' ? t.expenses.n_income.replace('{n}', String(headlineCountNum))
+    : headlineMode === 'expense' ? t.expenses.n_expenses.replace('{n}', String(headlineCountNum))
+    : t.expenses.n_movements.replace('{n}', String(headlineCountNum));
   // El desglose Ingresos/Gastos solo tiene sentido en modo neto.
   const showBreakdown = headlineMode === 'net';
 
@@ -258,7 +313,7 @@ export const ExpensesClient = ({
     ? (() => {
         const [y, m] = monthStr.split('-').map(Number) as [number, number];
         const lastDay = new Date(y, m, 0).getDate();
-        return { ...filters, from: `${monthStr}-01`, to: `${monthStr}-${String(lastDay).padStart(2, '0')}` };
+        return { ...filters, kind: activeKind, from: `${monthStr}-01`, to: `${monthStr}-${String(lastDay).padStart(2, '0')}` };
       })()
     : filters;
 
@@ -355,19 +410,21 @@ export const ExpensesClient = ({
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // En "Por mes" la búsqueda ya filtra en memoria; no navegamos.
+    if (clientFilter) return;
     runSearch(searchInput);
   };
 
-  // Búsqueda en vivo: filtra mientras escribís (con un pequeño retardo).
+  // Búsqueda en vivo: en "Por mes" filtra en memoria (sin navegar). En "Todos"
+  // navega con un pequeño retardo para que el server busque y pagine.
   useEffect(() => {
+    if (clientFilter) return; // el filtrado por texto es client-side
     const v = searchInput.trim();
     if (v === (filters.q ?? '')) return;
-    // En "Por mes" sin texto y sin búsqueda previa no navegamos.
-    if (!v && view === 'month' && !filters.q) return;
     const handler = setTimeout(() => runSearch(searchInput), 350);
     return () => clearTimeout(handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput, view, filters.q]);
+  }, [searchInput, clientFilter, filters.q]);
 
   // Cantidad de filtros activos
   const activeFilterCount =
@@ -549,7 +606,9 @@ export const ExpensesClient = ({
                 onClick={() => {
                   if (optimisticKind === value) return;
                   setOptimisticKind(value);
-                  setUrlParam('kind', value || null);
+                  // En "Por mes" el filtrado es client-side (instantáneo); en
+                  // "Todos" navegamos para que el server filtre/pagine.
+                  if (!clientFilter) setUrlParam('kind', value || null);
                 }}
                 className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   optimisticKind === value
@@ -813,24 +872,24 @@ export const ExpensesClient = ({
       )}
 
       {/* --- Lista (no aplica a archive) --- */}
-      {view === 'archive' ? null : totalCount === 0 ? (
+      {view === 'archive' ? null : (clientFilter ? visibleRows.length === 0 : totalCount === 0) ? (
         <div className="kumo-card p-10 text-center">
           <Wallet className="w-12 h-12 mx-auto mb-3 text-slate-300" />
           <h3 className="font-semibold mb-1">
             {view !== 'month'
               ? t.expenses.no_expenses_filters_title
-              : filters.kind === 'income'
+              : activeKind === 'income'
                 ? t.expenses.no_income_month_title
-                : filters.kind === 'expense'
+                : activeKind === 'expense'
                   ? t.expenses.no_expenses_month_title
                   : t.expenses.no_movements_month_title}
           </h3>
           <p className="text-sm text-slate-500">
             {view !== 'month'
               ? t.expenses.no_expenses_filters_desc
-              : filters.kind === 'income'
+              : activeKind === 'income'
                 ? t.expenses.no_income_desc
-                : filters.kind === 'expense'
+                : activeKind === 'expense'
                   ? t.expenses.no_expenses_desc
                   : t.expenses.no_movements_desc}
           </p>
@@ -838,7 +897,7 @@ export const ExpensesClient = ({
       ) : (
         <div className="kumo-card overflow-hidden">
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-            {expenses.map((exp) => (
+            {visibleRows.map((exp) => (
               <ExpenseRow
                 key={exp.id}
                 expense={exp}
@@ -879,12 +938,14 @@ export const ExpensesClient = ({
               />
             ))}
           </div>
-          <Pagination
-            page={expensePage}
-            pageSize={expensePageSize}
-            totalCount={totalCount}
-            onPageChange={onExpensePageChange}
-          />
+          {!clientFilter && (
+            <Pagination
+              page={expensePage}
+              pageSize={expensePageSize}
+              totalCount={totalCount}
+              onPageChange={onExpensePageChange}
+            />
+          )}
         </div>
       )}
 
