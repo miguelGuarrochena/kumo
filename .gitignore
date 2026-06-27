@@ -20,3 +20,7 @@ e2e/.auth/
 playwright-report/
 test-results/
 .playwright/
+
+# Backups y env (nunca commitear claves)
+*.bak
+.env*
