@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 const feedSecret = () =>
   process.env.CALENDAR_FEED_SECRET
   ?? process.env.CRON_SECRET
-  ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  ?? process.env.SUPABASE_SECRET_KEY
   ?? '';
 
 const signPayload = (userId: string, version: number): string =>

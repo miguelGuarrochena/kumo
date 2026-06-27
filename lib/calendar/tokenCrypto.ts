@@ -4,7 +4,7 @@ const getKey = (): Buffer => {
   const raw =
     process.env.GOOGLE_CALENDAR_TOKEN_KEY
     ?? process.env.CRON_SECRET
-    ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+    ?? process.env.SUPABASE_SECRET_KEY
     ?? 'kumo-dev-calendar-token-key';
   return createHash('sha256').update(raw).digest();
 };

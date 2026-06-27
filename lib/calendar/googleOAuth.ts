@@ -4,7 +4,7 @@ import { googleCalendarRedirectUri } from './googleConfigured';
 const oauthSecret = () =>
   process.env.GOOGLE_CALENDAR_TOKEN_KEY
   ?? process.env.CRON_SECRET
-  ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  ?? process.env.SUPABASE_SECRET_KEY
   ?? '';
 
 const signStatePayload = (userId: string): string =>

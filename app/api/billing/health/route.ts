@@ -36,7 +36,7 @@ export const GET = async () => {
       MP_PLAN_OCR_YEARLY_AUTO:  present(process.env.MP_PLAN_OCR_YEARLY_AUTO),
       MP_PLAN_WA_YEARLY_AUTO:   present(process.env.MP_PLAN_WA_YEARLY_AUTO),
       MP_PLAN_BUNDLE_YEARLY_AUTO: present(process.env.MP_PLAN_BUNDLE_YEARLY_AUTO),
-      SUPABASE_SERVICE_ROLE:    present(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      SUPABASE_SERVICE_ROLE:    present(process.env.SUPABASE_SECRET_KEY),
       VAPID_PUBLIC:             present(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
       VAPID_PRIVATE:            present(process.env.VAPID_PRIVATE_KEY),
       PRICE_OCR_MONTHLY:        process.env.NEXT_PUBLIC_PRICE_OCR_MONTHLY ?? process.env.NEXT_PUBLIC_PRICE_MONTHLY ?? null,
