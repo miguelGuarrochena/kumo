@@ -307,6 +307,13 @@ export const ExpenseSheet = ({
   const splitSum = Object.values(splitComputed).reduce((s, v) => s + v, 0);
   const splitSumOk = !splitOn || isSumOk(splitState, splitSum, splitTotalNum);
 
+  // Validaciones del form: monto > 0 y, si hay vencimiento, que sea válido y
+  // no anterior a la fecha del movimiento.
+  const amountValid = !!amount && parseFloat(amount) > 0;
+  const dueDateError = hasDueDate && !!dueDate && !!expenseDate && dueDate < expenseDate;
+  const dueDateMissing = hasDueDate && !dueDate;
+  const formInvalid = !amountValid || dueDateError || dueDateMissing || (splitOn && !splitSumOk);
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData();
@@ -461,7 +468,7 @@ export const ExpenseSheet = ({
           <button
             type="submit"
             form="expense-form"
-            disabled={pending || !amount || (splitOn && !splitSumOk)}
+            disabled={pending || formInvalid}
             title={splitOn && !splitSumOk ? t.split.save_disabled_sum_no_match : undefined}
             className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -705,12 +712,20 @@ export const ExpenseSheet = ({
             <span className="ml-auto text-[11px] text-slate-400">{t.expenses.due_date_for_alerts}</span>
           </label>
           {hasDueDate && (
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
-            />
+            <>
+              <input
+                type="date"
+                value={dueDate}
+                min={expenseDate || undefined}
+                onChange={(e) => setDueDate(e.target.value)}
+                className={`w-full px-3 py-2.5 rounded-lg border bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base ${
+                  dueDateError ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                }`}
+              />
+              {dueDateError && (
+                <p className="text-xs text-rose-600 dark:text-rose-400">{t.expenses.due_date_before_error}</p>
+              )}
+            </>
           )}
         </div>
         )}

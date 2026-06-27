@@ -281,7 +281,7 @@ const BudgetSheet = ({
           <input
             type="number"
             inputMode="decimal"
-            min="0"
+            min="0.01"
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -330,7 +330,7 @@ const BudgetSheet = ({
           </button>
           <button
             type="submit"
-            disabled={pending || !amount.trim()}
+            disabled={pending || !(parseFloat(amount) > 0)}
             className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50"
           >
             {pending ? t.common.saving : t.common.save}

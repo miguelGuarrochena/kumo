@@ -268,7 +268,10 @@
     "no_income_month_title": "Sin ingresos este mes",
     "no_income_desc": "Cargá tu primer ingreso con el botón de arriba.",
     "no_movements_month_title": "Sin movimientos este mes",
-    "no_movements_desc": "Cargá tu primer movimiento con el botón de arriba."
+    "no_movements_desc": "Cargá tu primer movimiento con el botón de arriba.",
+    "filter_date_range_error": "La fecha \"Hasta\" no puede ser anterior a \"Desde\".",
+    "filter_amount_range_error": "El monto máximo no puede ser menor que el mínimo.",
+    "due_date_before_error": "El vencimiento no puede ser anterior a la fecha del movimiento."
   },
   "calendar": {
     "title": "Calendario",

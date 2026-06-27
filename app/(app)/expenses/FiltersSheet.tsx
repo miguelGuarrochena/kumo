@@ -108,7 +108,14 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
     );
   };
 
+  // Validaciones de rango: "Hasta" ≥ "Desde" y monto máx ≥ mín.
+  const dateError = !!from && !!to && to < from;
+  const amountError =
+    !!min && !!max && Number.isFinite(Number(min)) && Number.isFinite(Number(max)) && Number(max) < Number(min);
+  const hasError = dateError || amountError;
+
   const apply = () => {
+    if (hasError) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'all');
     setOrDelete(params, 'cat', cats.join(','));
@@ -181,6 +188,7 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
               <input
                 type="date"
                 value={from}
+                max={to || undefined}
                 onChange={(e) => setFrom(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               />
@@ -190,11 +198,17 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
               <input
                 type="date"
                 value={to}
+                min={from || undefined}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+                className={`w-full px-3 py-2.5 rounded-lg border bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base ${
+                  dateError ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                }`}
               />
             </div>
           </div>
+          {dateError && (
+            <p className="text-xs text-rose-600 dark:text-rose-400 mt-1.5">{t.expenses.filter_date_range_error}</p>
+          )}
         </Section>
 
         {/* Rango de montos */}
@@ -205,6 +219,7 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
               <input
                 type="number"
                 inputMode="decimal"
+                min={0}
                 value={min}
                 onChange={(e) => setMin(e.target.value)}
                 placeholder="0"
@@ -216,13 +231,19 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
               <input
                 type="number"
                 inputMode="decimal"
+                min={min || 0}
                 value={max}
                 onChange={(e) => setMax(e.target.value)}
                 placeholder="∞"
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+                className={`w-full px-3 py-2.5 rounded-lg border bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base ${
+                  amountError ? 'border-rose-400 dark:border-rose-500' : 'border-slate-200 dark:border-slate-700'
+                }`}
               />
             </div>
           </div>
+          {amountError && (
+            <p className="text-xs text-rose-600 dark:text-rose-400 mt-1.5">{t.expenses.filter_amount_range_error}</p>
+          )}
         </Section>
 
         {/* Estado de pago */}
@@ -275,7 +296,8 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
           <button
             type="button"
             onClick={apply}
-            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90"
+            disabled={hasError}
+            className="flex-1 px-4 py-3 rounded-xl text-sm font-medium kumo-gradient text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t.expenses.filter_apply}
           </button>

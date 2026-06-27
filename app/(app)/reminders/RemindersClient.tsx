@@ -453,6 +453,7 @@ const ReminderSheet = ({ open, reminder, contacts, onClose }: ReminderSheetProps
             <input
               type="date"
               value={date}
+              min={todayKey()}
               onChange={(e) => setDate(e.target.value)}
               className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
               required
