@@ -50,8 +50,9 @@ function toISODate(v: unknown): string {
   return '';
 }
 
-function toAmount(v: unknown): number {
-  if (typeof v === 'number') return Math.abs(v);
+// Devuelve el monto CON signo (para poder distinguir por signo si hace falta).
+function toAmountSigned(v: unknown): number {
+  if (typeof v === 'number') return v;
   let s = String(v ?? '').trim().replace(/[^\d.,-]/g, '');
   if (!s) return NaN;
   if (s.includes('.') && s.includes(',')) {
@@ -60,7 +61,7 @@ function toAmount(v: unknown): number {
   } else if (s.includes(',')) {
     s = s.replace(',', '.');
   }
-  return Math.abs(Number(s));
+  return Number(s);
 }
 
 function toKind(v: unknown, def: 'expense' | 'income'): 'expense' | 'income' {
@@ -76,7 +77,7 @@ function toCurrency(v: unknown, def: string): string {
 }
 
 export const ImportSheet = ({ open, onClose, defaultCurrency }: Props) => {
-  const { t, locale } = useT();
+  const { t } = useT();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
@@ -85,14 +86,20 @@ export const ImportSheet = ({ open, onClose, defaultCurrency }: Props) => {
   const [rows, setRows] = useState<unknown[][]>([]);
   const [fileName, setFileName] = useState('');
   const [mapping, setMapping] = useState<Mapping>({ date: -1, amount: -1, description: -1, category: -1, kind: -1, currency: -1 });
-  const [defKind, setDefKind] = useState<'expense' | 'income'>('expense');
+  // 'expense'/'income' = tipo fijo por defecto; 'sign' = según el signo del monto.
+  const [kindMode, setKindMode] = useState<'expense' | 'income' | 'sign'>('expense');
   const [defCur, setDefCur] = useState<Currency>(defaultCurrency);
+  // Ediciones manuales por fila (para completar/corregir lo que falte).
+  const [edits, setEdits] = useState<Record<number, Partial<ImportRow>>>({});
+  const [onlyProblems, setOnlyProblems] = useState(false);
 
   const reset = () => {
     setHeaders([]);
     setRows([]);
     setFileName('');
     setMapping({ date: -1, amount: -1, description: -1, category: -1, kind: -1, currency: -1 });
+    setEdits({});
+    setOnlyProblems(false);
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -126,6 +133,8 @@ export const ImportSheet = ({ open, onClose, defaultCurrency }: Props) => {
       setRows(data);
       setFileName(file.name);
       setMapping(auto);
+      setEdits({});
+      setOnlyProblems(false);
     } catch {
       toast.error(t.expenses.import_parse_error);
     }
@@ -135,20 +144,44 @@ export const ImportSheet = ({ open, onClose, defaultCurrency }: Props) => {
   const parsed = useMemo<ImportRow[]>(() => {
     if (!rows.length) return [];
     const at = (r: unknown[], i: number) => (i >= 0 ? r[i] : null);
-    return rows.map((r) => ({
-      date: toISODate(at(r, mapping.date)),
-      amount: toAmount(at(r, mapping.amount)),
-      description: mapping.description >= 0 ? String(at(r, mapping.description) ?? '') : null,
-      category: mapping.category >= 0 ? String(at(r, mapping.category) ?? '') : null,
-      kind: toKind(at(r, mapping.kind), defKind),
-      currency: toCurrency(at(r, mapping.currency), defCur),
-    }));
-  }, [rows, mapping, defKind, defCur]);
+    return rows.map((r) => {
+      const signed = toAmountSigned(at(r, mapping.amount));
+      let kind: 'expense' | 'income';
+      if (mapping.kind >= 0) kind = toKind(at(r, mapping.kind), kindMode === 'income' ? 'income' : 'expense');
+      else if (kindMode === 'sign') kind = signed < 0 ? 'expense' : 'income';
+      else kind = kindMode;
+      return {
+        date: toISODate(at(r, mapping.date)),
+        amount: Math.abs(signed),
+        description: mapping.description >= 0 ? String(at(r, mapping.description) ?? '') : null,
+        category: mapping.category >= 0 ? String(at(r, mapping.category) ?? '') : null,
+        kind,
+        currency: toCurrency(at(r, mapping.currency), defCur),
+      };
+    });
+  }, [rows, mapping, kindMode, defCur]);
+
+  // Filas efectivas = auto-parseadas + ediciones manuales.
+  const effectiveRows = useMemo<ImportRow[]>(
+    () => parsed.map((r, i) => ({ ...r, ...edits[i] })),
+    [parsed, edits],
+  );
+  const setEdit = (i: number, field: keyof ImportRow, value: ImportRow[keyof ImportRow]) =>
+    setEdits((e) => ({ ...e, [i]: { ...e[i], [field]: value } }));
 
   const rowValid = (r: ImportRow) => r.amount > 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.date);
-  const validCount = parsed.filter(rowValid).length;
-  const invalidCount = parsed.length - validCount;
+  const validCount = effectiveRows.filter(rowValid).length;
+  const invalidCount = effectiveRows.length - validCount;
   const ready = mapping.date >= 0 && mapping.amount >= 0;
+
+  // Índices a mostrar: problemas primero; con el toggle, solo los problemas.
+  const shownIndices = useMemo(() => {
+    const invalid: number[] = [];
+    const valid: number[] = [];
+    effectiveRows.forEach((r, i) => (rowValid(r) ? valid.push(i) : invalid.push(i)));
+    const ordered = onlyProblems ? invalid : [...invalid, ...valid];
+    return ordered.slice(0, onlyProblems ? 1000 : 60);
+  }, [effectiveRows, onlyProblems]);
 
   const colOptions = [
     { value: '-1', label: t.expenses.import_none },
@@ -177,7 +210,7 @@ export const ImportSheet = ({ open, onClose, defaultCurrency }: Props) => {
       return;
     }
     startTransition(async () => {
-      const res = await importExpenses(parsed);
+      const res = await importExpenses(effectiveRows.filter(rowValid));
       if (res.ok) {
         toast.success(
           res.createdCategories > 0
@@ -241,25 +274,30 @@ export const ImportSheet = ({ open, onClose, defaultCurrency }: Props) => {
             </div>
 
             {/* Defaults */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-3">
               <div>
                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{t.expenses.import_default_kind}</label>
-                <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                  {(['expense', 'income'] as const).map((k) => (
+                <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                  {(['expense', 'income', 'sign'] as const).map((k) => (
                     <button
                       key={k}
                       type="button"
-                      onClick={() => setDefKind(k)}
+                      onClick={() => setKindMode(k)}
                       className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                        defKind === k ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-500 dark:text-slate-400'
+                        kindMode === k ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-500 dark:text-slate-400'
                       }`}
                     >
-                      {k === 'expense' ? t.expenses.kind_expense : t.expenses.kind_income}
+                      {k === 'expense' ? t.expenses.kind_expense : k === 'income' ? t.expenses.kind_income : t.expenses.import_kind_by_sign}
                     </button>
                   ))}
                 </div>
+                {mapping.kind >= 0 ? (
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{t.expenses.import_kind_from_column}</p>
+                ) : kindMode === 'sign' ? (
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{t.expenses.import_sign_hint}</p>
+                ) : null}
               </div>
-              <div>
+              <div className="max-w-[10rem]">
                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{t.expenses.import_default_currency}</label>
                 <Select
                   value={defCur}
@@ -271,36 +309,89 @@ export const ImportSheet = ({ open, onClose, defaultCurrency }: Props) => {
               </div>
             </div>
 
-            {/* Vista previa */}
+            {/* Vista previa editable */}
             {ready && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
                   <span className="font-medium text-slate-700 dark:text-slate-200">{t.expenses.import_preview}</span>
-                  <span className="text-slate-500 dark:text-slate-400">
-                    {t.expenses.import_rows_valid.replace('{n}', String(validCount))}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {invalidCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setOnlyProblems((v) => !v)}
+                        className={`text-[11px] font-medium px-2 py-1 rounded-lg ${
+                          onlyProblems ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300' : 'text-rose-600 dark:text-rose-400 hover:underline'
+                        }`}
+                      >
+                        {t.expenses.import_only_problems.replace('{n}', String(invalidCount))}
+                      </button>
+                    )}
+                    <span className="text-slate-500 dark:text-slate-400">{t.expenses.import_rows_valid.replace('{n}', String(validCount))}</span>
+                  </div>
                 </div>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">{t.expenses.import_edit_hint}</p>
                 <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto">
-                  <table className="w-full text-xs">
+                  <table className="text-xs">
                     <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400">
                       <tr>
-                        <th className="text-left font-medium px-2 py-1.5">{t.expenses.date}</th>
-                        <th className="text-right font-medium px-2 py-1.5">{t.expenses.amount}</th>
+                        <th className="text-left font-medium px-2 py-1.5">{t.expenses.date} *</th>
+                        <th className="text-left font-medium px-2 py-1.5">{t.expenses.amount} *</th>
+                        <th className="text-left font-medium px-2 py-1.5">{t.expenses.description}</th>
                         <th className="text-left font-medium px-2 py-1.5">{t.expenses.category}</th>
                         <th className="text-left font-medium px-2 py-1.5">{t.expenses.import_default_kind}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                      {parsed.slice(0, 12).map((r, i) => {
-                        const ok = rowValid(r);
+                      {shownIndices.map((i) => {
+                        const r = effectiveRows[i]!;
+                        const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(r.date);
+                        const amtOk = r.amount > 0;
                         return (
-                          <tr key={i} className={ok ? '' : 'bg-rose-50 dark:bg-rose-900/15'}>
-                            <td className="px-2 py-1.5 whitespace-nowrap">{r.date || '—'}</td>
-                            <td className={`px-2 py-1.5 text-right tabular-nums ${r.kind === 'income' ? 'text-mint-600 dark:text-mint-400' : ''}`}>
-                              {r.amount > 0 ? r.amount.toLocaleString(locale) : '—'}
+                          <tr key={i} className={rowValid(r) ? '' : 'bg-rose-50/60 dark:bg-rose-900/10'}>
+                            <td className="px-1.5 py-1">
+                              <input
+                                type="date"
+                                value={dateOk ? r.date : ''}
+                                onChange={(e) => setEdit(i, 'date', e.target.value)}
+                                className={`w-[8.5rem] px-1.5 py-1 rounded-md border bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-sky-400 ${dateOk ? 'border-slate-200 dark:border-slate-700' : 'border-rose-400'}`}
+                              />
                             </td>
-                            <td className="px-2 py-1.5 truncate max-w-[8rem]">{r.category || '—'}</td>
-                            <td className="px-2 py-1.5">{r.kind === 'income' ? t.expenses.kind_income : t.expenses.kind_expense}</td>
+                            <td className="px-1.5 py-1">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                value={Number.isFinite(r.amount) && r.amount > 0 ? r.amount : ''}
+                                placeholder="0"
+                                onChange={(e) => setEdit(i, 'amount', e.target.value === '' ? NaN : Math.abs(Number(e.target.value)))}
+                                className={`w-24 px-1.5 py-1 rounded-md border bg-white dark:bg-slate-900 text-xs text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-sky-400 ${amtOk ? 'border-slate-200 dark:border-slate-700' : 'border-rose-400'}`}
+                              />
+                            </td>
+                            <td className="px-1.5 py-1">
+                              <input
+                                type="text"
+                                value={r.description ?? ''}
+                                onChange={(e) => setEdit(i, 'description', e.target.value)}
+                                className="w-32 px-1.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-sky-400"
+                              />
+                            </td>
+                            <td className="px-1.5 py-1">
+                              <input
+                                type="text"
+                                value={r.category ?? ''}
+                                onChange={(e) => setEdit(i, 'category', e.target.value)}
+                                className="w-28 px-1.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-sky-400"
+                              />
+                            </td>
+                            <td className="px-1.5 py-1">
+                              <select
+                                value={r.kind}
+                                onChange={(e) => setEdit(i, 'kind', e.target.value as 'expense' | 'income')}
+                                className="px-1.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-sky-400"
+                              >
+                                <option value="expense">{t.expenses.kind_expense}</option>
+                                <option value="income">{t.expenses.kind_income}</option>
+                              </select>
+                            </td>
                           </tr>
                         );
                       })}

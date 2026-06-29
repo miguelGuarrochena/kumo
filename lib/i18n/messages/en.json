@@ -296,7 +296,12 @@
     "import_empty": "The file has no rows.",
     "import_done": "Imported {n} transactions.",
     "import_done_cats": "Imported {n} transactions · {c} categories created.",
-    "import_importing": "Importing…"
+    "import_importing": "Importing…",
+    "import_only_problems": "Only problems ({n})",
+    "import_edit_hint": "You can fill in or fix any cell before importing.",
+    "import_kind_by_sign": "By sign",
+    "import_sign_hint": "− = expense · + = income",
+    "import_kind_from_column": "Taken from the mapped column."
   },
   "calendar": {
     "title": "Calendar",

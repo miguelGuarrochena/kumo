@@ -296,7 +296,12 @@
     "import_empty": "El archivo no tiene filas.",
     "import_done": "Importados {n} movimientos.",
     "import_done_cats": "Importados {n} movimientos · {c} categorías creadas.",
-    "import_importing": "Importando…"
+    "import_importing": "Importando…",
+    "import_only_problems": "Solo con problemas ({n})",
+    "import_edit_hint": "Podés completar o corregir cualquier celda antes de importar.",
+    "import_kind_by_sign": "Por signo",
+    "import_sign_hint": "− = gasto · + = ingreso",
+    "import_kind_from_column": "Se toma de la columna asignada."
   },
   "calendar": {
     "title": "Calendario",

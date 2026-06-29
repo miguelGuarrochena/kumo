@@ -544,6 +544,16 @@ export const ExpensesClient = ({
             className="hidden"
           />
           <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            title={t.expenses.import_title}
+            aria-label={t.expenses.import}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline text-sm">{t.expenses.import}</span>
+          </button>
+          <button
             onClick={onScanClick}
             disabled={ocrLoading}
             title={hasOcrAccess ? t.expenses.scan : t.expenses.scan_pro_only}
@@ -697,14 +707,6 @@ export const ExpensesClient = ({
             ))}
           </div>
           <ExportMenu filters={exportFilters} label={t.expenses.export} />
-          <button
-            type="button"
-            onClick={() => setImportOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm font-medium">{t.expenses.import}</span>
-          </button>
         </div>
       )}
 
