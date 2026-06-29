@@ -114,7 +114,7 @@
     "search_nlp_hint": "También podés cargar un gasto escribiendo en Buscar — ej. «5000 supermercado» (plan Pro).",
     "search_nlp_hint_short": "Buscar · también cargar gastos con texto",
     "new": "Nuevo",
-    "scan": "Escanear ticket",
+    "scan": "Escanear/Subir ticket",
     "scan_pro_only": "Escanear tickets es de pago (usa IA). Tocá para ver el precio.",
     "nlp_button": "Con IA",
     "nlp_button_title": "Escribir gasto con IA — también con ⌘K",

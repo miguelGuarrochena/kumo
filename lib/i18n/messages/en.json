@@ -114,7 +114,7 @@
     "search_nlp_hint": "You can also add an expense in Search — e.g. \"5000 groceries\" (Pro plan).",
     "search_nlp_hint_short": "Search · add expenses by typing too",
     "new": "New",
-    "scan": "Scan receipt",
+    "scan": "Scan/Upload receipt",
     "scan_pro_only": "Receipt scanning is paid (uses AI). Tap to see pricing.",
     "nlp_button": "With AI",
     "nlp_button_title": "Write an expense with AI — also via ⌘K",
