@@ -447,6 +447,7 @@
     "currency": "Moneda",
     "remaining": "Quedan {amount}",
     "over_by": "Te pasaste {amount}",
+    "target_met": "¡Objetivo cumplido!",
     "of": "de",
     "rate_missing": "Faltan cotizaciones; el total puede estar incompleto.",
     "assigned": "Asignado en categorías",

@@ -43,6 +43,7 @@ type RecentExpenseRow = {
 const BUDGET_BAR_COLOR: Record<BudgetStatus, string> = {
   ok: 'bg-mint-500',
   warn: 'bg-amber-500',
+  met: 'bg-teal-500',
   over: 'bg-rose-500',
 };
 

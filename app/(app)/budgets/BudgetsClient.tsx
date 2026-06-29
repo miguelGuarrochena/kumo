@@ -30,12 +30,17 @@ export type BudgetCardData = {
 const BAR_COLOR: Record<BudgetStatus, string> = {
   ok: 'bg-mint-500',
   warn: 'bg-amber-500',
+  // 'met' = objetivo cumplido: gastaste exactamente el budget, no te pasaste.
+  // Teal lo diferencia de 'ok' (verde claro con margen) y deja claro que es
+  // un estado positivo de "logro", no de "te pasaste".
+  met: 'bg-teal-500',
   over: 'bg-rose-500',
 };
 
 const TEXT_COLOR: Record<BudgetStatus, string> = {
   ok: 'text-mint-500',
   warn: 'text-amber-600 dark:text-amber-400',
+  met: 'text-teal-600 dark:text-teal-400',
   over: 'text-rose-600 dark:text-rose-400',
 };
 
@@ -164,10 +169,12 @@ const BudgetCard = ({
             <span className={`font-medium ${TEXT_COLOR[status]}`}>
               {Math.round(pct * 100)}%
             </span>
-            <span className="text-slate-500 dark:text-slate-400">
+            <span className={status === 'met' ? 'text-teal-600 dark:text-teal-400 font-medium' : 'text-slate-500 dark:text-slate-400'}>
               {status === 'over'
                 ? t.budgets.over_by.replace('{amount}', formatMoney(-remaining, data.currency, locale))
-                : t.budgets.remaining.replace('{amount}', formatMoney(remaining, data.currency, locale))}
+                : status === 'met'
+                  ? t.budgets.target_met
+                  : t.budgets.remaining.replace('{amount}', formatMoney(remaining, data.currency, locale))}
             </span>
           </div>
           {data.rateMissing && (

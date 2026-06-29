@@ -53,8 +53,12 @@ describe('budgetStatus', () => {
     expect(budgetStatus(0.99)).toBe('warn');
   });
 
-  it('over al 100% o más', () => {
-    expect(budgetStatus(1)).toBe('over');
+  it('met al 100% exacto (objetivo cumplido, no se pasó)', () => {
+    expect(budgetStatus(1)).toBe('met');
+  });
+
+  it('over al pasarse del 100%', () => {
+    expect(budgetStatus(1.01)).toBe('over');
     expect(budgetStatus(1.5)).toBe('over');
   });
 });

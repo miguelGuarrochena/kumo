@@ -447,6 +447,7 @@
     "currency": "Currency",
     "remaining": "{amount} left",
     "over_by": "Over by {amount}",
+    "target_met": "Target met!",
     "of": "of",
     "rate_missing": "Missing exchange rates; total may be incomplete.",
     "assigned": "Allocated to categories",

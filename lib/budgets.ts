@@ -36,7 +36,14 @@ export const computeSpend = (
   return { spent, rateMissing };
 };
 
-export type BudgetStatus = 'ok' | 'warn' | 'over';
+/**
+ * Estados de un presupuesto:
+ * - 'ok'   → tenés margen (< 80% gastado)
+ * - 'warn' → cerca del límite (80% ≤ x < 100%)
+ * - 'met'  → cumpliste el objetivo (100% exacto: gastaste todo, no te pasaste)
+ * - 'over' → te pasaste (> 100%)
+ */
+export type BudgetStatus = 'ok' | 'warn' | 'met' | 'over';
 
 export const WARN_THRESHOLD = 0.8;
 
@@ -63,7 +70,8 @@ export const pickBudgetAlertThreshold = (
 
 /** Estado del presupuesto según el % gastado (pct = spent / amount). */
 export const budgetStatus = (pct: number): BudgetStatus => {
-  if (pct >= 1) return 'over';
+  if (pct > 1) return 'over';
+  if (pct >= 1) return 'met';
   if (pct >= WARN_THRESHOLD) return 'warn';
   return 'ok';
 };
