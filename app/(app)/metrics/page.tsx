@@ -74,7 +74,7 @@ const MetricsPage = async ({
     (() => {
       let q = supabase
         .from('expenses')
-        .select('id, amount, currency, expense_date')
+        .select('id, amount, currency, expense_date, category_id, categories(name, color)')
         .eq('kind', 'expense')
         .gte('expense_date', trailStart)
         .lte('expense_date', end);
@@ -104,7 +104,7 @@ const MetricsPage = async ({
     (() => {
       let q = supabase
         .from('expenses')
-        .select('id, amount, currency, expense_date')
+        .select('id, amount, currency, expense_date, category_id, categories(name, color)')
         .eq('kind', 'income')
         .gte('expense_date', trailStart)
         .lte('expense_date', end);

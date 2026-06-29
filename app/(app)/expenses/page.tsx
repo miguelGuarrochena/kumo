@@ -224,15 +224,15 @@ const ExpensesPage = async ({
       .sort((a, b) => b.year - a.year);
   } else if (section !== 'saldos') {
     const sort = params.sort ?? 'date-desc';
-    // Movimientos (mes o todos): cargamos las filas que matchean los filtros del
-    // panel (fecha, categoría, estado, recurrencia, moneda, monto), ambos tipos,
-    // sin filtrar por tipo/texto ni paginar. El cliente filtra por tipo (chips),
-    // busca por texto y pagina en memoria → todo instantáneo, sin viajes extra.
+    // Movimientos (mes o todos): cargamos TODO el período (el mes en "Por mes";
+    // todo el historial en "Todos"), ambos tipos, sin aplicar filtros a nivel SQL.
+    // El cliente filtra por tipo, texto, categoría, fecha, monto, estado, etc. y
+    // pagina en memoria → todo instantáneo, sin viajes extra al cambiar filtros.
     let listQuery = applyExpenseFilters(
       supabase.from('expenses').select('*, categories(id, name, icon, color)').eq('workspace_id', ctx.workspaceId),
       view,
       monthStr,
-      { ...params, kind: undefined, q: undefined },
+      {}, // sin filtros server-side (los aplica el cliente)
     );
     listQuery = applyExpenseSort(listQuery, sort);
     const { data } = await listQuery;

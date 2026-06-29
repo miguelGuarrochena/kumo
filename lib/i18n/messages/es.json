@@ -412,7 +412,14 @@
     "net_previous": "Neto {period} anterior",
     "income_by_category": "Ingresos por categoría",
     "income_vs_expense": "Ingresos vs Gastos",
-    "savings_rate": "Tasa de ahorro"
+    "savings_rate": "Tasa de ahorro",
+    "tab_general": "General",
+    "tab_expenses": "Gastos",
+    "tab_income": "Ingresos",
+    "category_evolution": "Evolución por categoría",
+    "income_evolution": "Evolución de ingresos",
+    "total_income_label": "Total de ingresos",
+    "no_income_data": "Todavía no cargaste ingresos en este período."
   },
   "reminders": {
     "title": "Recordatorios",

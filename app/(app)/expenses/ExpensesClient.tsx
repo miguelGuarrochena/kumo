@@ -104,6 +104,19 @@ export const ExpensesClient = ({
   useEffect(() => { setOptimisticKind(filters.kind); }, [filters.kind]);
   // Paginación del lado del cliente (la lista se filtra/busca en memoria).
   const [clientPage, setClientPage] = useState(1);
+  // Filtros avanzados y orden — client-side (instantáneos en ambas vistas).
+  // Se inicializan desde la URL para respetar links compartidos.
+  const [adv, setAdv] = useState<Omit<Filters, 'q' | 'kind' | 'sort'>>({
+    cat: filters.cat,
+    from: filters.from,
+    to: filters.to,
+    min: filters.min,
+    max: filters.max,
+    paid: filters.paid,
+    rec: filters.rec,
+    cur: filters.cur,
+  });
+  const [sortBy, setSortBy] = useState<string>(filters.sort || 'date-desc');
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
@@ -221,11 +234,14 @@ export const ExpensesClient = ({
   // En "Por mes" (clientFilter) el tipo activo es el chip local (sin navegar).
   const activeKind = clientFilter ? optimisticKind : filters.kind;
 
-  // Lista visible: en cliente filtramos por tipo + texto en memoria (instantáneo).
+  // Lista visible: filtramos por tipo + texto + filtros avanzados y ordenamos,
+  // todo en memoria (instantáneo).
   const searchLower = searchInput.trim().toLowerCase();
+  const minNum = adv.min ? Number(adv.min) : null;
+  const maxNum = adv.max ? Number(adv.max) : null;
   const visibleRows = useMemo(() => {
     if (!clientFilter) return expenses;
-    return expenses.filter((e) => {
+    const filtered = expenses.filter((e) => {
       if (activeKind && e.kind !== activeKind) return false;
       if (searchLower) {
         const desc = (e.description ?? '').toLowerCase();
@@ -236,12 +252,30 @@ export const ExpensesClient = ({
           !categoryDisplayName(cat, t).toLowerCase().includes(searchLower)
         ) return false;
       }
+      if (adv.cat.length > 0 && !(e.category_id && adv.cat.includes(e.category_id))) return false;
+      if (adv.from && e.expense_date < adv.from) return false;
+      if (adv.to && e.expense_date > adv.to) return false;
+      const amt = Number(e.amount);
+      if (minNum !== null && amt < minNum) return false;
+      if (maxNum !== null && amt > maxNum) return false;
+      if (adv.paid === 'paid' && !e.paid) return false;
+      if (adv.paid === 'pending' && e.paid) return false;
+      if (adv.rec === 'recurring' && !e.is_recurring) return false;
+      if (adv.rec === 'one-time' && e.is_recurring) return false;
+      if (adv.cur && e.currency !== adv.cur) return false;
       return true;
     });
-  }, [clientFilter, expenses, activeKind, searchLower, t]);
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'amount-desc') return Number(b.amount) - Number(a.amount);
+      if (sortBy === 'amount-asc') return Number(a.amount) - Number(b.amount);
+      if (sortBy === 'date-asc') return a.expense_date.localeCompare(b.expense_date);
+      return b.expense_date.localeCompare(a.expense_date); // date-desc (default)
+    });
+    return sorted;
+  }, [clientFilter, expenses, activeKind, searchLower, adv, minNum, maxNum, sortBy, t]);
 
   // Volvemos a página 1 cuando cambia el conjunto filtrado.
-  useEffect(() => { setClientPage(1); }, [activeKind, searchLower, monthStr, view]);
+  useEffect(() => { setClientPage(1); }, [activeKind, searchLower, monthStr, view, adv, sortBy]);
 
   // Página visible (paginación client-side sobre lo filtrado).
   const pagedRows = useMemo(() => {
@@ -464,16 +498,16 @@ export const ExpensesClient = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput, clientFilter, filters.q]);
 
-  // Cantidad de filtros activos
+  // Cantidad de filtros avanzados activos (client-side).
   const activeFilterCount =
-    filters.cat.length +
-    (filters.from ? 1 : 0) +
-    (filters.to ? 1 : 0) +
-    (filters.min ? 1 : 0) +
-    (filters.max ? 1 : 0) +
-    (filters.paid ? 1 : 0) +
-    (filters.rec ? 1 : 0) +
-    (filters.cur ? 1 : 0);
+    adv.cat.length +
+    (adv.from ? 1 : 0) +
+    (adv.to ? 1 : 0) +
+    (adv.min ? 1 : 0) +
+    (adv.max ? 1 : 0) +
+    (adv.paid ? 1 : 0) +
+    (adv.rec ? 1 : 0) +
+    (adv.cur ? 1 : 0);
 
   const onDelete = async () => {
     if (!toDelete) return;
@@ -664,6 +698,85 @@ export const ExpensesClient = ({
         </div>
       )}
 
+      {/* Toolbar: buscar + filtros avanzados + orden (en ambas vistas) */}
+      {view !== 'archive' && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <form onSubmit={onSearchSubmit} className="flex-1 min-w-[12rem] relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t.expenses.search_placeholder}
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+            />
+          </form>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline text-sm font-medium">{t.common.filters}</span>
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full kumo-gradient text-white text-[10px] font-bold grid place-items-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          <Select
+            value={sortBy}
+            onChange={setSortBy}
+            options={[
+              { value: 'date-desc',   label: t.expenses.sort_newest },
+              { value: 'date-asc',    label: t.expenses.sort_oldest },
+              { value: 'amount-desc', label: t.expenses.sort_amount_desc },
+              { value: 'amount-asc',  label: t.expenses.sort_amount_asc },
+            ]}
+            ariaLabel="Sort"
+            className="w-44"
+            buttonClassName="py-2.5 rounded-xl"
+          />
+        </div>
+      )}
+
+      {/* Chips de filtros activos (client-side) */}
+      {view !== 'archive' && activeFilterCount > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {adv.cat.map((catId) => {
+            const cat = categories.find((c) => c.id === catId);
+            if (!cat) return null;
+            return (
+              <FilterChip key={catId} onRemove={() => setAdv((a) => ({ ...a, cat: a.cat.filter((c) => c !== catId) }))}>
+                {categoryDisplayName(cat.name, t)}
+              </FilterChip>
+            );
+          })}
+          {adv.from && <FilterChip onRemove={() => setAdv((a) => ({ ...a, from: '' }))}>{t.expenses.filter_from.replace('{date}', adv.from)}</FilterChip>}
+          {adv.to && <FilterChip onRemove={() => setAdv((a) => ({ ...a, to: '' }))}>{t.expenses.filter_to.replace('{date}', adv.to)}</FilterChip>}
+          {adv.min && <FilterChip onRemove={() => setAdv((a) => ({ ...a, min: '' }))}>{t.expenses.filter_min.replace('{amount}', adv.min)}</FilterChip>}
+          {adv.max && <FilterChip onRemove={() => setAdv((a) => ({ ...a, max: '' }))}>{t.expenses.filter_max.replace('{amount}', adv.max)}</FilterChip>}
+          {adv.paid && (
+            <FilterChip onRemove={() => setAdv((a) => ({ ...a, paid: '' }))}>
+              {adv.paid === 'paid' ? t.expenses.filter_paid : t.expenses.filter_pending}
+            </FilterChip>
+          )}
+          {adv.rec && (
+            <FilterChip onRemove={() => setAdv((a) => ({ ...a, rec: '' }))}>
+              {adv.rec === 'recurring' ? t.expenses.filter_recurring : t.expenses.filter_one_time}
+            </FilterChip>
+          )}
+          {adv.cur && <FilterChip onRemove={() => setAdv((a) => ({ ...a, cur: '' }))}>{adv.cur}</FilterChip>}
+          <button
+            type="button"
+            onClick={() => setAdv({ cat: [], from: '', to: '', min: '', max: '', paid: '', rec: '', cur: '' })}
+            className="text-xs text-slate-500 hover:text-rose-500 font-medium ml-1"
+          >
+            {t.expenses.filter_clear_all}
+          </button>
+        </div>
+      )}
+
       {view === 'archive' ? (
         <ArchiveView
           years={archiveYears}
@@ -683,19 +796,6 @@ export const ExpensesClient = ({
           }}
         />
       ) : view === 'month' ? (
-        <>
-        <form onSubmit={onSearchSubmit}>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t.expenses.search_placeholder}
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
-            />
-          </div>
-        </form>
         <div className="kumo-card p-5 sm:p-7">
           {/* Topbar del card: navegador de mes a la izquierda, pill de moneda a la derecha */}
           <div className="flex items-center justify-between gap-3 mb-5">
@@ -800,94 +900,7 @@ export const ExpensesClient = ({
             </div>
           )}
         </div>
-        </>
-      ) : (
-        <>
-          <form onSubmit={onSearchSubmit} className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder={t.expenses.search_placeholder}
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm font-medium">{t.common.filters}</span>
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full kumo-gradient text-white text-[10px] font-bold grid place-items-center">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          </form>
-
-          {/* Chips de filtros activos */}
-          {(filters.q || activeFilterCount > 0) && (
-            <div className="flex flex-wrap gap-1.5">
-              {filters.q && (
-                <FilterChip onRemove={() => { setSearchInput(''); setUrlParam('q', null); }}>
-                  &ldquo;{filters.q}&rdquo;
-                </FilterChip>
-              )}
-              {filters.cat.map((catId) => {
-                const cat = categories.find((c) => c.id === catId);
-                if (!cat) return null;
-                return (
-                  <FilterChip
-                    key={catId}
-                    onRemove={() => {
-                      const next = filters.cat.filter((c) => c !== catId);
-                      setUrlParam('cat', next.length > 0 ? next.join(',') : null);
-                    }}
-                  >
-                    {categoryDisplayName(cat.name, t)}
-                  </FilterChip>
-                );
-              })}
-              {filters.from && (
-                <FilterChip onRemove={() => setUrlParam('from', null)}>{t.expenses.filter_from.replace('{date}', filters.from)}</FilterChip>
-              )}
-              {filters.to && (
-                <FilterChip onRemove={() => setUrlParam('to', null)}>{t.expenses.filter_to.replace('{date}', filters.to)}</FilterChip>
-              )}
-              {filters.min && (
-                <FilterChip onRemove={() => setUrlParam('min', null)}>{t.expenses.filter_min.replace('{amount}', filters.min)}</FilterChip>
-              )}
-              {filters.max && (
-                <FilterChip onRemove={() => setUrlParam('max', null)}>{t.expenses.filter_max.replace('{amount}', filters.max)}</FilterChip>
-              )}
-              {filters.paid && (
-                <FilterChip onRemove={() => setUrlParam('paid', null)}>
-                  {filters.paid === 'paid' ? t.expenses.filter_paid : t.expenses.filter_pending}
-                </FilterChip>
-              )}
-              {filters.rec && (
-                <FilterChip onRemove={() => setUrlParam('rec', null)}>
-                  {filters.rec === 'recurring' ? t.expenses.filter_recurring : t.expenses.filter_one_time}
-                </FilterChip>
-              )}
-              {filters.cur && (
-                <FilterChip onRemove={() => setUrlParam('cur', null)}>{filters.cur}</FilterChip>
-              )}
-              <button
-                onClick={() => router.push('/expenses?view=all')}
-                className="text-xs text-slate-500 hover:text-rose-500 font-medium ml-1"
-              >
-                {t.expenses.filter_clear_all}
-              </button>
-            </div>
-          )}
-
-          {/* Resumen agregado */}
-          {totalCount > 0 && (
+      ) : totalCount > 0 ? (
             <div className="kumo-card p-4 flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
@@ -928,7 +941,7 @@ export const ExpensesClient = ({
                 {showPendingHint && (
                   <button
                     type="button"
-                    onClick={() => setUrlParam('paid', 'pending')}
+                    onClick={() => setAdv((a) => ({ ...a, paid: 'pending' }))}
                     className="mt-1 inline-flex items-center gap-1 text-[11px] text-peach-600 dark:text-peach-300 hover:underline"
                     title={t.expenses.pending_excluded_hint}
                   >
@@ -937,23 +950,8 @@ export const ExpensesClient = ({
                   </button>
                 )}
               </div>
-              <Select
-                value={filters.sort}
-                onChange={(v) => setUrlParam('sort', v)}
-                options={[
-                  { value: 'date-desc',   label: t.expenses.sort_newest },
-                  { value: 'date-asc',    label: t.expenses.sort_oldest },
-                  { value: 'amount-desc', label: t.expenses.sort_amount_desc },
-                  { value: 'amount-asc',  label: t.expenses.sort_amount_asc },
-                ]}
-                ariaLabel="Sort"
-                className="w-48"
-                buttonClassName="py-2"
-              />
             </div>
-          )}
-        </>
-      )}
+          ) : null}
 
       {/* --- Lista (no aplica a archive) --- */}
       {view === 'archive' ? null : (clientFilter ? visibleRows.length === 0 : totalCount === 0) ? (
@@ -1043,7 +1041,8 @@ export const ExpensesClient = ({
       <FiltersSheet
         open={filtersOpen}
         onClose={() => setFiltersOpen(false)}
-        filters={filters}
+        value={adv}
+        onApply={(next) => setAdv(next)}
         categories={categories}
       />
 

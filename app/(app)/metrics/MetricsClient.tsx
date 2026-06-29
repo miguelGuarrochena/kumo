@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -31,6 +31,8 @@ type ExpenseLite = {
   amount: number;
   currency: string;
   expense_date: string;
+  category_id?: string | null;
+  categories?: { name: string; color: string } | null;
 };
 
 type Props = {
@@ -185,6 +187,41 @@ export const MetricsClient = ({
     [trailData, incomeTrail],
   );
 
+  // ---- Tabs (General / Gastos / Ingresos) ----
+  // Si todavía no hay ingresos, arrancamos en "Gastos" (la General quedaría vacía).
+  const [tab, setTab] = useState<'general' | 'expense' | 'income'>(hasIncomeData ? 'general' : 'expense');
+
+  // ---- Evolución por categoría ----
+  // Opciones de categoría presentes en el trail (12 períodos), por tipo.
+  const catOptions = useCallback((rows: ExpenseLite[]) => {
+    const map = new Map<string, string>();
+    for (const e of rows) {
+      const id = e.category_id ?? '__none__';
+      const name = e.categories?.name ? categoryDisplayName(e.categories.name, t) : t.expenses.no_category;
+      if (!map.has(id)) map.set(id, name);
+    }
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [t]);
+  const expenseCatOptions = useMemo(() => catOptions(trailExpenses), [trailExpenses, catOptions]);
+  const incomeCatOptions = useMemo(() => catOptions(trailIncome), [trailIncome, catOptions]);
+
+  const [evoExpenseCat, setEvoExpenseCat] = useState<string>('');
+  const [evoIncomeCat, setEvoIncomeCat] = useState<string>('');
+  const effExpenseCat = evoExpenseCat || expenseCatOptions[0]?.value || '';
+  const effIncomeCat = evoIncomeCat || incomeCatOptions[0]?.value || '';
+
+  // Trail de UNA categoría (filtrando el trail por category_id) según el período.
+  const catTrail = useCallback(
+    (rows: ExpenseLite[], catId: string) =>
+      buildTrail(period, refDate, rows.filter((e) => (e.category_id ?? '__none__') === catId), convert, tag),
+    [period, refDate, convert, tag],
+  );
+  const expenseCatTrail = useMemo(() => catTrail(trailExpenses, effExpenseCat), [trailExpenses, effExpenseCat, catTrail]);
+  const incomeCatTrail = useMemo(() => catTrail(trailIncome, effIncomeCat), [trailIncome, effIncomeCat, catTrail]);
+
+  // Evolución total de ingresos (espejo del trail de gastos).
+  const incomeEvoData = incomeTrail;
+
   // ---- Navegación de período ----
   const navigate = (delta: number) => {
     const newDate = shiftRefDate(period, refDate, delta);
@@ -257,9 +294,9 @@ export const MetricsClient = ({
         ))}
       </div>
 
-      {/* Total + navegación + currency */}
-      <div className="kumo-card p-5 sm:p-6">
-        <div className="flex items-center justify-between mb-3">
+      {/* Navegación de período + moneda (compartido) */}
+      <div className="kumo-card p-4">
+        <div className="flex items-center justify-between gap-2">
           <button
             onClick={() => navigate(-1)}
             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
@@ -278,34 +315,55 @@ export const MetricsClient = ({
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
+        <div className="mt-2 flex items-center justify-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+          <span>{t.expenses.in_currency}</span>
+          <Select
+            value={displayCurrency}
+            onChange={setCurrencyParam}
+            options={CURRENCIES.map((c) => ({ value: c.code, label: c.code, hint: c.symbol }))}
+            ariaLabel={t.expenses.currency}
+            className="inline-block"
+            renderTrigger={(_current, open) => (
+              <span
+                className={`font-medium cursor-pointer underline decoration-dotted underline-offset-2 transition-colors ${
+                  open
+                    ? 'text-sky-600 decoration-sky-400'
+                    : 'text-slate-500 dark:text-slate-300 decoration-slate-300 dark:decoration-slate-600 hover:text-sky-600 hover:decoration-sky-400'
+                }`}
+              >
+                {displayCurrency}
+              </span>
+            )}
+          />
+        </div>
+      </div>
 
-        <div className="text-center">
+      {/* Tabs: General / Gastos / Ingresos */}
+      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        {([['general', t.metrics.tab_general], ['expense', t.metrics.tab_expenses], ['income', t.metrics.tab_income]] as const).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setTab(k)}
+            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tab === k ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Total de gastos (tab Gastos) */}
+      {tab === 'expense' && currentExpenses.length > 0 && (
+        <div className="kumo-card p-5 sm:p-6 text-center">
           <p className="text-xs uppercase tracking-wider text-slate-400 mb-1">{t.metrics.total}</p>
           <p className="text-3xl sm:text-4xl font-bold kumo-gradient-text break-all">
             {formatMoney(total, displayCurrency, locale)}
           </p>
-          <div className="mt-2 inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 flex-wrap justify-center">
-            <span>{t.expenses.n_expenses.replace('{n}', String(currentExpenses.length))} · {t.expenses.in_currency}</span>
-            <Select
-              value={displayCurrency}
-              onChange={setCurrencyParam}
-              options={CURRENCIES.map((c) => ({ value: c.code, label: c.code, hint: c.symbol }))}
-              ariaLabel={t.expenses.currency}
-              className="inline-block"
-              renderTrigger={(_current, open) => (
-                <span
-                  className={`font-medium cursor-pointer underline decoration-dotted underline-offset-2 transition-colors ${
-                    open
-                      ? 'text-sky-600 decoration-sky-400'
-                      : 'text-slate-500 dark:text-slate-300 decoration-slate-300 dark:decoration-slate-600 hover:text-sky-600 hover:decoration-sky-400'
-                  }`}
-                >
-                  {displayCurrency}
-                </span>
-              )}
-            />
-          </div>
-
+          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+            {t.expenses.n_expenses.replace('{n}', String(currentExpenses.length))}
+          </p>
           {diffPct !== null && (
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700">
               {diff > 0 ? (
@@ -322,10 +380,30 @@ export const MetricsClient = ({
             </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Balance neto: ingresos vs gastos (solo si hay ingresos cargados) */}
-      {hasIncomeData && (
+      {/* Total de ingresos (tab Ingresos) */}
+      {tab === 'income' && (
+        <div className="kumo-card p-5 sm:p-6 text-center">
+          <p className="text-xs uppercase tracking-wider text-slate-400 mb-1">{t.metrics.total_income_label}</p>
+          <p className="text-3xl sm:text-4xl font-bold text-mint-600 dark:text-mint-400 break-all">
+            +{formatMoney(incomeTotal, displayCurrency, locale)}
+          </p>
+          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+            {t.expenses.n_income.replace('{n}', String(currentIncome.length))}
+          </p>
+        </div>
+      )}
+
+      {/* General sin ingresos cargados: mensaje */}
+      {tab === 'general' && !hasIncomeData && (
+        <div className="kumo-card p-10 text-center">
+          <p className="text-slate-500 dark:text-slate-400">{t.metrics.no_income_data}</p>
+        </div>
+      )}
+
+      {/* Balance neto: ingresos vs gastos (tab General) */}
+      {tab === 'general' && hasIncomeData && (
         <div className="kumo-card p-5">
           <p className="text-xs uppercase tracking-wider text-slate-400 mb-3">{t.metrics.net_balance}</p>
           <div className="grid grid-cols-3 gap-3 text-center">
@@ -369,9 +447,8 @@ export const MetricsClient = ({
         </div>
       )}
 
-      {/* Ingresos vs Gastos (cruce) + Ingresos por categoría — solo si hay ingresos */}
-      {hasIncomeData && (
-        <>
+      {/* Ingresos vs Gastos (cruce) — tab General */}
+      {tab === 'general' && hasIncomeData && (
           <div className="kumo-card p-5">
             <h3 className="font-semibold mb-3">
               {t.metrics.income_vs_expense} · {t.metrics.evolution_suffix} {t.metrics[`period_${period}_plural` as 'period_day_plural']}
@@ -394,8 +471,10 @@ export const MetricsClient = ({
               </ResponsiveContainer>
             </div>
           </div>
+      )}
 
-          {incomeByCategory.length > 0 && (
+      {/* Ingresos por categoría — tab Ingresos */}
+      {tab === 'income' && incomeByCategory.length > 0 && (
             <div className="kumo-card p-5">
               <h3 className="font-semibold mb-3">{t.metrics.income_by_category}</h3>
               <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -431,12 +510,49 @@ export const MetricsClient = ({
                 </div>
               </div>
             </div>
-          )}
-        </>
       )}
 
-      {/* Gráficos solo si hay data */}
-      {currentExpenses.length === 0 ? (
+      {/* Evolución de ingresos — tab Ingresos */}
+      {tab === 'income' && (currentIncome.length > 0 || trailIncome.length > 0) && (
+        <div className="kumo-card p-5">
+          <h3 className="font-semibold mb-3">{t.metrics.income_evolution} · {t.metrics.evolution_suffix} {t.metrics[`period_${period}_plural` as 'period_day_plural']}</h3>
+          <div className="h-56">
+            <ResponsiveContainer>
+              <BarChart data={incomeEvoData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'rgb(148 163 184)' }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 11, fill: 'rgb(148 163 184)' }} tickFormatter={(v) => abbreviateNumber(v)} width={50} />
+                <Tooltip formatter={(value: number) => formatMoney(value, displayCurrency, locale)} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Bar dataKey="total" radius={[8, 8, 0, 0]} fill="#34d399" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Evolución por categoría (ingresos) — tab Ingresos */}
+      {tab === 'income' && incomeCatOptions.length > 0 && (
+        <div className="kumo-card p-5">
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <h3 className="font-semibold">{t.metrics.category_evolution}</h3>
+            <Select value={effIncomeCat} onChange={setEvoIncomeCat} options={incomeCatOptions} ariaLabel={t.metrics.category_evolution} className="w-44" buttonClassName="py-2" />
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer>
+              <BarChart data={incomeCatTrail} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'rgb(148 163 184)' }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 11, fill: 'rgb(148 163 184)' }} tickFormatter={(v) => abbreviateNumber(v)} width={50} />
+                <Tooltip formatter={(value: number) => formatMoney(value, displayCurrency, locale)} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Bar dataKey="total" radius={[8, 8, 0, 0]} fill="#34d399" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Gráficos de gastos — tab Gastos */}
+      {tab === 'expense' && (currentExpenses.length === 0 ? (
         <div className="kumo-card p-10 text-center">
           <p className="text-slate-500 dark:text-slate-400">{t.metrics.no_data}</p>
         </div>
@@ -557,8 +673,29 @@ export const MetricsClient = ({
               </ResponsiveContainer>
             </div>
           </div>
+
+          {/* Evolución por categoría (gastos) */}
+          {expenseCatOptions.length > 0 && (
+            <div className="kumo-card p-5">
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                <h3 className="font-semibold">{t.metrics.category_evolution}</h3>
+                <Select value={effExpenseCat} onChange={setEvoExpenseCat} options={expenseCatOptions} ariaLabel={t.metrics.category_evolution} className="w-44" buttonClassName="py-2" />
+              </div>
+              <div className="h-56">
+                <ResponsiveContainer>
+                  <BarChart data={expenseCatTrail} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'rgb(148 163 184)' }} interval="preserveStartEnd" />
+                    <YAxis tick={{ fontSize: 11, fill: 'rgb(148 163 184)' }} tickFormatter={(v) => abbreviateNumber(v)} width={50} />
+                    <Tooltip formatter={(value: number) => formatMoney(value, displayCurrency, locale)} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                    <Bar dataKey="total" radius={[8, 8, 0, 0]} fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </>
-      )}
+      ))}
     </div>
   );
 };

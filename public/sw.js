@@ -3,7 +3,7 @@
 // 2) Cache mínimo de la app shell para que cargue rápido y funcione en cortes de red.
 //    No cacheamos data de Supabase ni endpoints — siempre van a la red.
 
-const CACHE = 'kumo-shell-v3';
+const CACHE = 'kumo-shell-v4';
 const SHELL = ['/', '/manifest.webmanifest', '/icon.png', '/favicon.ico'];
 
 self.addEventListener('install', (event) => {
@@ -33,7 +33,8 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;
   if (url.pathname.startsWith('/auth/')) return;
 
-  // Navigation requests: network-first con fallback al cache.
+  // Navegación: SIEMPRE a la red (con fallback al shell solo si no hay red).
+  // Así, tras un deploy, nunca se sirve HTML/código viejo cacheado.
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req).catch(() => caches.match('/')),
@@ -41,21 +42,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets: cache-first.
-  if (/\.(?:js|css|png|jpg|jpeg|svg|webp|woff2?|ico)$/.test(url.pathname)) {
-    event.respondWith(
-      caches.match(req).then((cached) => {
-        if (cached) return cached;
-        return fetch(req).then((res) => {
-          if (res.ok && res.type === 'basic') {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-          }
-          return res;
-        });
-      }),
-    );
-  }
+  // Solo cacheamos assets INMUTABLES: los chunks de Next (/_next/static, llevan
+  // hash en el nombre → un deploy genera URLs nuevas, jamás se sirve código
+  // viejo) y los íconos/manifest del shell. Todo lo demás (incluido JS no
+  // versionado) va directo a la red.
+  const isImmutable = url.pathname.startsWith('/_next/static/');
+  const isShellAsset = /\.(?:png|jpg|jpeg|svg|webp|woff2?|ico|webmanifest)$/.test(url.pathname);
+  if (!isImmutable && !isShellAsset) return;
+
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        if (res.ok && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        }
+        return res;
+      });
+    }),
+  );
 });
 
 self.addEventListener('push', (event) => {

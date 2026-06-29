@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Sheet } from '@/components/Sheet';
 import { Select } from '@/components/Select';
 import { CURRENCIES, type Currency } from '@/lib/currency';
@@ -29,6 +28,9 @@ export type Filters = {
   sort: string;
 };
 
+// Subconjunto de filtros avanzados que maneja este panel (sin q/kind/sort).
+export type AdvFilters = Omit<Filters, 'q' | 'kind' | 'sort'>;
+
 const COLOR_DOT: Record<string, string> = {
   sky: 'bg-sky-400',
   lavender: 'bg-lavender-400',
@@ -40,39 +42,36 @@ const COLOR_DOT: Record<string, string> = {
 type FiltersSheetProps = {
   open: boolean;
   onClose: () => void;
-  filters: Filters;
+  value: AdvFilters;
+  onApply: (next: AdvFilters) => void;
   categories: CategoryLite[];
 };
 
-export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersSheetProps) => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export const FiltersSheet = ({ open, onClose, value, onApply, categories }: FiltersSheetProps) => {
   const { t } = useT();
 
-  const [cats, setCats] = useState<string[]>(filters.cat);
-  const [from, setFrom] = useState(filters.from);
-  const [to, setTo] = useState(filters.to);
-  const [min, setMin] = useState(filters.min);
-  const [max, setMax] = useState(filters.max);
-  const [paid, setPaid] = useState(filters.paid);
-  const [rec, setRec] = useState(filters.rec);
-  const [cur, setCur] = useState(filters.cur);
+  const [cats, setCats] = useState<string[]>(value.cat);
+  const [from, setFrom] = useState(value.from);
+  const [to, setTo] = useState(value.to);
+  const [min, setMin] = useState(value.min);
+  const [max, setMax] = useState(value.max);
+  const [paid, setPaid] = useState(value.paid);
+  const [rec, setRec] = useState(value.rec);
+  const [cur, setCur] = useState(value.cur);
 
-  // Re-sincronizamos el estado local con los filtros de la URL cada vez que se
-  // abre el sheet. Sin esto, borrar chips en la lista y reabrir mostraba valores
-  // viejos (el useState solo corre en el mount inicial).
+  // Sincronizamos el borrador con el valor actual cada vez que se abre el panel.
   useEffect(() => {
     if (!open) return;
-    setCats(filters.cat);
-    setFrom(filters.from);
-    setTo(filters.to);
-    setMin(filters.min);
-    setMax(filters.max);
-    setPaid(filters.paid);
-    setRec(filters.rec);
-    setCur(filters.cur);
-     
-  }, [open, filters]);
+    setCats(value.cat);
+    setFrom(value.from);
+    setTo(value.to);
+    setMin(value.min);
+    setMax(value.max);
+    setPaid(value.paid);
+    setRec(value.rec);
+    setCur(value.cur);
+
+  }, [open, value]);
 
   const toggleCat = (id: string) => {
     setCats((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
@@ -116,17 +115,7 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
 
   const apply = () => {
     if (hasError) return;
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('view', 'all');
-    setOrDelete(params, 'cat', cats.join(','));
-    setOrDelete(params, 'from', from);
-    setOrDelete(params, 'to', to);
-    setOrDelete(params, 'min', min);
-    setOrDelete(params, 'max', max);
-    setOrDelete(params, 'paid', paid);
-    setOrDelete(params, 'rec', rec);
-    setOrDelete(params, 'cur', cur);
-    router.push(`/expenses?${params.toString()}`);
+    onApply({ cat: cats, from, to, min, max, paid, rec, cur });
     onClose();
   };
 
@@ -144,40 +133,28 @@ export const FiltersSheet = ({ open, onClose, filters, categories }: FiltersShee
   return (
     <Sheet open={open} onClose={onClose} title={t.common.filters}>
       <div className="space-y-5">
-        {/* Categorías — en "Todos" se separan Gastos e Ingresos */}
+        {/* Categorías — separadas en Gastos e Ingresos */}
         <Section title={t.expenses.filter_section_categories}>
-          {filters.kind === 'income' ? (
-            <div className="flex flex-wrap gap-2">
-              {incomeCats.map(catButton)}
-              {incomeCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
-            </div>
-          ) : filters.kind === 'expense' ? (
-            <div className="flex flex-wrap gap-2">
-              {expenseCats.map(catButton)}
-              {expenseCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 mb-1.5">
-                  {t.expenses.filter_kind_expense}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {expenseCats.map(catButton)}
-                  {expenseCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
-                </div>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-wider font-semibold text-mint-600 dark:text-mint-400 mb-1.5">
-                  {t.expenses.filter_kind_income}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {incomeCats.map(catButton)}
-                  {incomeCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
-                </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 mb-1.5">
+                {t.expenses.filter_kind_expense}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {expenseCats.map(catButton)}
+                {expenseCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
               </div>
             </div>
-          )}
+            <div>
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-mint-600 dark:text-mint-400 mb-1.5">
+                {t.expenses.filter_kind_income}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {incomeCats.map(catButton)}
+                {incomeCats.length === 0 && <p className="text-sm text-slate-400">—</p>}
+              </div>
+            </div>
+          </div>
         </Section>
 
         {/* Rango de fechas */}
@@ -342,8 +319,3 @@ const Segments = <T extends string>({ value, onChange, options }: SegmentsProps<
     </div>
   );
 };
-
-function setOrDelete(params: URLSearchParams, key: string, value: string) {
-  if (value) params.set(key, value);
-  else params.delete(key);
-}

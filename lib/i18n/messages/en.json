@@ -412,7 +412,14 @@
     "net_previous": "Previous {period} net",
     "income_by_category": "Income by category",
     "income_vs_expense": "Income vs Expenses",
-    "savings_rate": "Savings rate"
+    "savings_rate": "Savings rate",
+    "tab_general": "Overview",
+    "tab_expenses": "Expenses",
+    "tab_income": "Income",
+    "category_evolution": "Category trend",
+    "income_evolution": "Income trend",
+    "total_income_label": "Total income",
+    "no_income_data": "No income recorded in this period yet."
   },
   "reminders": {
     "title": "Reminders",
