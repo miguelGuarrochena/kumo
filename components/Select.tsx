@@ -65,7 +65,14 @@ export const Select = ({
   // el useEffect podía no llegar a correr antes del próximo unmount y el
   // portal nunca se mostraba.
   const [mounted] = useState(typeof document !== 'undefined');
-  const [pos, setPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
+  // Cuando abrimos hacia arriba anclamos por `bottom` (no `top`) para que el
+  // panel quede pegado al trigger sin importar su altura real. Si calculáramos
+  // `top = trigger.top - panelH` con panelH=288 fijo, un panel con 4 opciones
+  // (~170px) quedaría flotando ~118px arriba del trigger con un gap visible.
+  type Pos =
+    | { mode: 'down'; top: number; left: number; width: number; openUp: false }
+    | { mode: 'up';   bottom: number; left: number; width: number; openUp: true };
+  const [pos, setPos] = useState<Pos | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -78,12 +85,23 @@ export const Select = ({
     const panelH = Math.min(288, vh * 0.7);
     const spaceBelow = vh - r.bottom;
     const openUp = spaceBelow < panelH + 16 && r.top > spaceBelow;
-    setPos({
-      top: openUp ? Math.max(8, r.top - panelH - 4) : r.bottom + 4,
-      left: r.left,
-      width: r.width,
-      openUp,
-    });
+    if (openUp) {
+      setPos({
+        mode: 'up',
+        bottom: vh - r.top + 4,
+        left: r.left,
+        width: r.width,
+        openUp: true,
+      });
+    } else {
+      setPos({
+        mode: 'down',
+        top: r.bottom + 4,
+        left: r.left,
+        width: r.width,
+        openUp: false,
+      });
+    }
   };
 
   useLayoutEffect(() => {
@@ -214,7 +232,9 @@ export const Select = ({
           role="listbox"
           style={{
             position: 'fixed',
-            top: pos.top,
+            ...(pos.mode === 'up'
+              ? { bottom: pos.bottom }
+              : { top: pos.top }),
             left: pos.left,
             width: renderTrigger ? undefined : pos.width,
             minWidth: renderTrigger ? '12rem' : pos.width,
