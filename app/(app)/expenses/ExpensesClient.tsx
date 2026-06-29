@@ -696,85 +696,109 @@ export const ExpensesClient = ({
             />
           </div>
         </form>
-        <div className="kumo-card p-5 sm:p-6">
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={() => {
-                const p = new URLSearchParams(searchParams.toString());
-                p.set('month', prevMonth);
-                p.delete('page');
-                router.push(`/expenses?${p.toString()}`);
-              }}
-              className="p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500"
-              aria-label={t.expenses.prev_month}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <h2 className="font-semibold capitalize">{monthLabel}</h2>
-            <button
-              onClick={() => {
-                const p = new URLSearchParams(searchParams.toString());
-                p.set('month', nextMonth);
-                p.delete('page');
-                router.push(`/expenses?${p.toString()}`);
-              }}
-              className="p-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500"
-              aria-label={t.expenses.next_month}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+        <div className="kumo-card p-5 sm:p-7">
+          {/* Topbar del card: navegador de mes a la izquierda, pill de moneda a la derecha */}
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  const p = new URLSearchParams(searchParams.toString());
+                  p.set('month', prevMonth);
+                  p.delete('page');
+                  router.push(`/expenses?${p.toString()}`);
+                }}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 text-slate-500"
+                aria-label={t.expenses.prev_month}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <h2 className="font-semibold capitalize text-base sm:text-lg">{monthLabel}</h2>
+              <button
+                onClick={() => {
+                  const p = new URLSearchParams(searchParams.toString());
+                  p.set('month', nextMonth);
+                  p.delete('page');
+                  router.push(`/expenses?${p.toString()}`);
+                }}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 text-slate-500"
+                aria-label={t.expenses.next_month}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <CurrencyInlineSelect
+              value={displayCurrency}
+              onChange={(v) => setUrlParam('asCurrency', v)}
+              variant="pill"
+            />
           </div>
 
-          <div className="text-center">
-            <p className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">{headlineLabel}</p>
-            <p className={`text-3xl sm:text-4xl font-bold break-all ${headlineColorClass}`}>
+          {/* Hero: total grande + label + conteo */}
+          <div className="text-center py-1">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500 font-medium mb-2">
+              {headlineLabel}
+            </p>
+            <p className={`text-4xl sm:text-5xl font-bold break-all leading-tight ${headlineColorClass}`}>
               {headlinePrefix}{formatMoney(headlineAbs, displayCurrency, locale)}
             </p>
-            <div className="text-xs text-slate-400 dark:text-slate-500 mt-2 inline-flex items-center gap-1 flex-wrap justify-center">
-              <span>{headlineCount} · {t.expenses.in_currency}</span>
-              <CurrencyInlineSelect
-                value={displayCurrency}
-                onChange={(v) => setUrlParam('asCurrency', v)}
-              />
-            </div>
-            {showBreakdown && (
-              <div className="mt-3 flex items-center justify-center gap-3 text-xs sm:text-sm flex-wrap">
-                <span className="text-mint-600 dark:text-mint-400 font-medium">
-                  {t.expenses.total_income}: +{formatMoney(incomeInDisplay, displayCurrency, locale)}
-                </span>
-                <span className="text-slate-300 dark:text-slate-600">·</span>
-                <span className="text-slate-500 dark:text-slate-400 font-medium">
-                  {t.expenses.expenses_label}: −{formatMoney(totalInDisplay, displayCurrency, locale)}
-                </span>
-              </div>
-            )}
-            {showPendingHint && (
-              <button
-                type="button"
-                onClick={() => setUrlParam('paid', 'pending')}
-                className="mt-2 inline-flex items-center gap-1 text-[11px] text-peach-600 dark:text-peach-300 hover:underline"
-                title={t.expenses.pending_excluded_hint}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-peach-400" />
-                {pendingHintLabel}
-              </button>
-            )}
-            {currencyBreakdown.length > 1 && (
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
-                {currencyBreakdown.map((b, i) => (
-                  <span key={b.currency}>
-                    {i > 0 && <span className="opacity-50"> · </span>}
-                    {b.count} en {b.currency}
-                  </span>
-                ))}
-              </p>
-            )}
-            {someRateMissing && (
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5">
-                {t.expenses.rate_unavailable}
-              </p>
-            )}
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2.5">
+              {headlineCount}
+            </p>
           </div>
+
+          {/* Desglose ingresos/gastos cuando hay ingresos */}
+          {showBreakdown && (
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3">
+              <div className="rounded-xl border border-mint-200/70 dark:border-mint-500/30 bg-mint-50/60 dark:bg-mint-500/10 p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-mint-700/80 dark:text-mint-300/80 font-medium mb-0.5">
+                  {t.expenses.total_income}
+                </p>
+                <p className="text-sm font-semibold text-mint-700 dark:text-mint-300 break-all">
+                  +{formatMoney(incomeInDisplay, displayCurrency, locale)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-medium mb-0.5">
+                  {t.expenses.expenses_label}
+                </p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 break-all">
+                  −{formatMoney(totalInDisplay, displayCurrency, locale)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Notas inferiores: pendientes, monedas múltiples, tasa faltante */}
+          {(showPendingHint || currencyBreakdown.length > 1 || someRateMissing) && (
+            <div className="mt-4 flex flex-col items-center gap-1.5">
+              {showPendingHint && (
+                <button
+                  type="button"
+                  onClick={() => setUrlParam('paid', 'pending')}
+                  className="inline-flex items-center gap-1.5 text-xs text-peach-700 dark:text-peach-300 px-2.5 py-1 rounded-full bg-peach-50 dark:bg-peach-500/10 hover:bg-peach-100 dark:hover:bg-peach-500/20 transition-colors"
+                  title={t.expenses.pending_excluded_hint}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-peach-400" />
+                  {pendingHintLabel}
+                </button>
+              )}
+              {currencyBreakdown.length > 1 && (
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {currencyBreakdown.map((b, i) => (
+                    <span key={b.currency}>
+                      {i > 0 && <span className="opacity-50"> · </span>}
+                      {b.count} en {b.currency}
+                    </span>
+                  ))}
+                </p>
+              )}
+              {someRateMissing && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  {t.expenses.rate_unavailable}
+                </p>
+              )}
+            </div>
+          )}
         </div>
         </>
       ) : (
