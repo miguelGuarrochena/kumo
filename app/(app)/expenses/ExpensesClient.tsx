@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Plus, ChevronLeft, ChevronRight, Wallet, Search, SlidersHorizontal,
-  Camera, Loader2, Scale,
+  Camera, Loader2, Scale, Upload,
 } from 'lucide-react';
 import { deleteExpense, togglePaid } from './actions';
 import { toggleSplitPaid } from './splitsActions';
@@ -30,6 +30,7 @@ import { ArchiveView } from './ArchiveView';
 import { CurrencyInlineSelect } from './CurrencyInlineSelect';
 import { FilterChip } from './FilterChip';
 import { ExportMenu } from './ExportMenu';
+import { ImportSheet } from './ImportSheet';
 import { OcrPaywallSheet } from '@/components/OcrPaywallSheet';
 import { PaymentQuickSheet, type PaymentQuickCreditor } from '@/components/PaymentQuickSheet';
 import { NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
@@ -98,6 +99,7 @@ export const ExpensesClient = ({
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<Expense | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(filters.q);
   // Resalta el chip de tipo al instante (antes de que responda el server).
   const [optimisticKind, setOptimisticKind] = useState(filters.kind);
@@ -695,6 +697,14 @@ export const ExpensesClient = ({
             ))}
           </div>
           <ExportMenu filters={exportFilters} label={t.expenses.export} />
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline text-sm font-medium">{t.expenses.import}</span>
+          </button>
         </div>
       )}
 
@@ -1044,6 +1054,12 @@ export const ExpensesClient = ({
         value={adv}
         onApply={(next) => setAdv(next)}
         categories={categories}
+      />
+
+      <ImportSheet
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        defaultCurrency={defaultCurrency}
       />
 
       {/* --- Modal de alta/edición --- */}
