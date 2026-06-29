@@ -100,6 +100,17 @@ export const ExpensesClient = ({
   const [toDelete, setToDelete] = useState<Expense | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  // Dispositivo táctil (celular/tablet) → "Escanear ticket" con cámara.
+  // Puntero fino (desktop) → "Subir ticket" desde archivo.
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsTouch(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
   const [searchInput, setSearchInput] = useState(filters.q);
   // Resalta el chip de tipo al instante (antes de que responda el server).
   const [optimisticKind, setOptimisticKind] = useState(filters.kind);
@@ -539,33 +550,24 @@ export const ExpensesClient = ({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={onPhotoSelected}
             className="hidden"
           />
           <button
-            type="button"
-            onClick={() => setImportOpen(true)}
-            title={t.expenses.import_title}
-            aria-label={t.expenses.import}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm">{t.expenses.import}</span>
-          </button>
-          <button
             onClick={onScanClick}
             disabled={ocrLoading}
-            title={hasOcrAccess ? t.expenses.scan : t.expenses.scan_pro_only}
+            title={hasOcrAccess ? (isTouch ? t.expenses.scan : t.expenses.scan_upload) : t.expenses.scan_pro_only}
             className="relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait"
           >
             {ocrLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
+            ) : isTouch ? (
               <Camera className="w-4 h-4" />
+            ) : (
+              <Upload className="w-4 h-4" />
             )}
             <span className="hidden sm:inline text-sm">
-              {ocrLoading ? t.common.loading : t.expenses.scan}
+              {ocrLoading ? t.common.loading : isTouch ? t.expenses.scan : t.expenses.scan_upload}
             </span>
             {!hasOcrAccess && (
               <span className="absolute -top-1.5 -right-1.5 text-[9px] px-1 py-0.5 rounded-full bg-amber-500 text-white font-bold shadow-sm">
@@ -706,6 +708,18 @@ export const ExpensesClient = ({
               </button>
             ))}
           </div>
+          {activeKind === '' && (
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              title={t.expenses.import_title}
+              aria-label={t.expenses.import}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm">{t.expenses.import}</span>
+            </button>
+          )}
           <ExportMenu filters={exportFilters} label={t.expenses.export} />
         </div>
       )}

@@ -3,6 +3,7 @@
 import { Search } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 import { ThemeToggle } from './ThemeToggle';
+import { LangPill } from './LangPill';
 import { openCommandPalette } from '@/lib/commandPalette';
 
 // Posicionado en absolute para que fluya con el scroll en vez de quedar fijo arriba.
@@ -25,6 +26,7 @@ export const DesktopTopBar = () => {
           ⌘K
         </kbd>
       </button>
+      <LangPill />
       <ThemeToggle compact />
     </div>
   );
