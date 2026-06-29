@@ -35,7 +35,21 @@ export const ExpenseRow = ({
   const cat = expense.categories;
   const catLabel = cat ? categoryDisplayName(cat.name, t) : null;
   const dotColor = isIncome ? 'bg-mint-400' : cat ? COLOR_DOT[cat.color] ?? 'bg-slate-300' : 'bg-slate-300';
-  const isPending = expense.due_date && !expense.paid;
+  // Cualquier gasto no pagado se muestra como pendiente, tenga due_date o no.
+  // Si tiene due_date, diferenciamos visualmente: vencido (rojo), vence hoy
+  // (ámbar fuerte) o pendiente futuro (ámbar suave).
+  const isPending = !isIncome && !expense.paid;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const dueDate = expense.due_date ?? null;
+  const pendingState: 'overdue' | 'today' | 'future' | 'plain' = isPending
+    ? dueDate === null
+      ? 'plain'
+      : dueDate < todayStr
+        ? 'overdue'
+        : dueDate === todayStr
+          ? 'today'
+          : 'future'
+    : 'plain';
   const isDifferentCurrency = expense.currency !== displayCurrency;
   const splits = (expense as ExpenseWithSplits)._splits ?? [];
   const pendingSplits = splits.filter((s) => !s.paid).length;
@@ -54,8 +68,20 @@ export const ExpenseRow = ({
             </span>
           )}
           {isPending && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-peach-100 text-peach-400 font-medium">
-              {t.expenses.pending}
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                pendingState === 'overdue'
+                  ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300'
+                  : pendingState === 'today'
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'
+                    : 'bg-peach-100 text-peach-500 dark:bg-peach-500/15 dark:text-peach-300'
+              }`}
+            >
+              {pendingState === 'overdue'
+                ? t.expenses.overdue
+                : pendingState === 'today'
+                  ? t.expenses.due_today
+                  : t.expenses.pending}
             </span>
           )}
           {expense.is_recurring && (

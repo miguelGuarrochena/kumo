@@ -251,20 +251,38 @@ export const ExpensesClient = ({
   }, [clientFilter, expenses, visibleRows, clientPage, expensePageSize]);
 
   // Agregados sobre lo visible (ya filtrado por tipo + texto) para el encabezado.
+  // Los gastos NO pagados no suman al total: aparecen igual en la lista con
+  // badge "Pendiente / Vencido / Vence hoy", pero recién impactan el total
+  // cuando el usuario los marca como pagados.
   const clientAgg = useMemo(() => {
     if (!clientFilter) return null;
     let inc = 0, exp = 0, incCount = 0, expCount = 0, rateMissing = false;
+    let pendingCount = 0, pendingTotal = 0;
     const curCounts = new Map<string, number>();
     for (const e of visibleRows) {
       const conv = convertAmount(Number(e.amount), e.currency as Currency, displayCurrency, rates);
       curCounts.set(e.currency, (curCounts.get(e.currency) ?? 0) + 1);
       const isInc = e.kind === 'income';
+      // Ingresos no se "pagan", suman siempre. Gastos sólo si están pagados.
+      const isUnpaidExpense = !isInc && !e.paid;
       if (isInc) incCount++; else expCount++;
-      if (conv === null) rateMissing = true;
-      else if (isInc) inc += conv; else exp += conv;
+      if (conv === null) {
+        rateMissing = true;
+        if (isUnpaidExpense) pendingCount++;
+        continue;
+      }
+      if (isInc) {
+        inc += conv;
+      } else if (isUnpaidExpense) {
+        pendingCount++;
+        pendingTotal += conv;
+      } else {
+        exp += conv;
+      }
     }
     return {
       inc, exp, net: inc - exp, incCount, expCount, rateMissing,
+      pendingCount, pendingTotal,
       currencyBreakdown: Array.from(curCounts.entries())
         .map(([currency, count]) => ({ currency, count }))
         .sort((a, b) => b.count - a.count),
@@ -285,11 +303,17 @@ export const ExpensesClient = ({
     : totalCount;
 
   // Modo del encabezado según el tipo activo: gastos / ingresos / neto.
-  // "Todos" siempre muestra el neto (color y etiqueta consistentes).
-  const headlineMode: 'expense' | 'income' | 'net' =
+  // "Todos" muestra el neto sólo si hay ingresos en el período. Cuando no hay
+  // ingresos, "Todos" es funcionalmente lo mismo que "Gastos" — mostrarlo en
+  // rojo con signo negativo era confuso ("estás −$X" sugiere deuda cuando en
+  // realidad sólo es lo que gastaste). Lo tratamos como modo gasto puro:
+  // número sin signo, color de marca, sin desglose redundante.
+  const rawMode: 'expense' | 'income' | 'net' =
     activeKind === 'income' ? 'income'
     : activeKind === 'expense' ? 'expense'
     : 'net';
+  const headlineMode: 'expense' | 'income' | 'net' =
+    rawMode === 'net' && incomeInDisplay === 0 ? 'expense' : rawMode;
 
   const headlineValue =
     headlineMode === 'income' ? incomeInDisplay
@@ -299,10 +323,10 @@ export const ExpensesClient = ({
     headlineMode === 'income' ? t.expenses.income_month_label
     : headlineMode === 'expense' ? t.expenses.expenses_month_label
     : t.expenses.net_month_label;
-  // Sin "+": solo mostramos "−" cuando el neto es negativo (pérdida).
+  // Sin "+": solo mostramos "−" cuando el neto es negativo (pérdida real).
   const headlinePrefix = headlineMode === 'net' && netInDisplay < 0 ? '−' : '';
-  // Cada modo, su color: ingresos verde, gastos violeta (marca), neto neutro
-  // (oscuro) y, si el neto es negativo, rojo. Así "Todos" se distingue de "Gastos".
+  // Cada modo, su color: ingresos verde, gastos violeta (marca), neto teal
+  // (positivo) o rojo suave (negativo, sólo si hay ingresos en el período).
   const headlineColorClass =
     headlineMode === 'income'
       ? 'text-mint-600 dark:text-mint-400'
@@ -316,8 +340,16 @@ export const ExpensesClient = ({
     headlineMode === 'income' ? t.expenses.n_income.replace('{n}', String(headlineCountNum))
     : headlineMode === 'expense' ? t.expenses.n_expenses.replace('{n}', String(headlineCountNum))
     : t.expenses.n_movements.replace('{n}', String(headlineCountNum));
-  // El desglose Ingresos/Gastos solo tiene sentido en modo neto.
+  // El desglose Ingresos/Gastos solo tiene sentido en modo neto real.
   const showBreakdown = headlineMode === 'net';
+
+  // Mini-link "X pendientes este mes" debajo del total: aparece en cualquier
+  // modo que no sea 'income' (los ingresos no tienen estado pendiente).
+  const pendingCount = clientAgg?.pendingCount ?? 0;
+  const showPendingHint = headlineMode !== 'income' && pendingCount > 0;
+  const pendingHintLabel = pendingCount === 1
+    ? t.expenses.pending_count_one
+    : t.expenses.pending_count_many.replace('{n}', String(pendingCount));
 
   // Filtros para exportar: en vista "Por mes" acotamos al mes visible; en
   // "Todos" usamos los filtros activos. Siempre respeta el tipo (chip).
@@ -716,6 +748,17 @@ export const ExpensesClient = ({
                 </span>
               </div>
             )}
+            {showPendingHint && (
+              <button
+                type="button"
+                onClick={() => setUrlParam('paid', 'pending')}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] text-peach-600 dark:text-peach-300 hover:underline"
+                title={t.expenses.pending_excluded_hint}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-peach-400" />
+                {pendingHintLabel}
+              </button>
+            )}
             {currencyBreakdown.length > 1 && (
               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
                 {currencyBreakdown.map((b, i) => (
@@ -857,6 +900,17 @@ export const ExpensesClient = ({
                       {t.expenses.expenses_label}: −{formatMoney(totalInDisplay, displayCurrency, locale)}
                     </span>
                   </p>
+                )}
+                {showPendingHint && (
+                  <button
+                    type="button"
+                    onClick={() => setUrlParam('paid', 'pending')}
+                    className="mt-1 inline-flex items-center gap-1 text-[11px] text-peach-600 dark:text-peach-300 hover:underline"
+                    title={t.expenses.pending_excluded_hint}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-peach-400" />
+                    {pendingHintLabel}
+                  </button>
                 )}
               </div>
               <Select
