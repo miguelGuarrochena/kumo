@@ -378,7 +378,7 @@
   },
   "shopping": {
     "title": "Lista de compras",
-    "subtitle": "Anotá lo que falta. Tickeá mientras estás comprando.",
+    "subtitle": "Anotá lo que falta. Tachá mientras estás comprando.",
     "placeholder": "Qué necesitás...",
     "quantity": "Cantidad",
     "lists_label": "Listas de compras",
@@ -741,7 +741,7 @@
     "feature_metrics_title": "Métricas claras",
     "feature_metrics_desc": "Cuánto entra, cuánto sale y cuánto te queda. Gráficos por categoría, ingresos vs gastos y comparativas mes a mes.",
     "feature_shopping_title": "Lista de compras",
-    "feature_shopping_desc": "Múltiples listas (supermercado, farmacia). Tickeá mientras comprás. Limpiá con un click.",
+    "feature_shopping_desc": "Múltiples listas (supermercado, farmacia). Tachá mientras comprás. Limpiá con un click.",
     "how_title": "Empezar es facilísimo",
     "step1_title": "Entrá con Google o email",
     "step1_desc": "Un click con Google o un magic link a tu casilla. Sin contraseñas ni formularios largos.",
