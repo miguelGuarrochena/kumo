@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Plus, ChevronLeft, ChevronRight, Wallet, Search, SlidersHorizontal,
-  Camera, Loader2, Scale, Upload,
+  Camera, Loader2, Scale, Upload, ImageIcon,
 } from 'lucide-react';
+import { useClickOutside } from '@/lib/useClickOutside';
 import { deleteExpense, togglePaid } from './actions';
 import { toggleSplitPaid } from './splitsActions';
 import { SaldosTab } from '../split/SaldosTab';
@@ -132,6 +133,10 @@ export const ExpensesClient = ({
   const [sortBy, setSortBy] = useState<string>(filters.sort || 'date-desc');
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const [scanMenuOpen, setScanMenuOpen] = useState(false);
+  const scanWrapRef = useRef<HTMLDivElement>(null);
+  useClickOutside(scanWrapRef, scanMenuOpen, () => setScanMenuOpen(false));
   const [ocrPaywallOpen, setOcrPaywallOpen] = useState(false);
   const [ocrCheckoutLoading, setOcrCheckoutLoading] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -202,6 +207,12 @@ export const ExpensesClient = ({
   const onScanClick = () => {
     if (!hasOcrAccess) {
       setOcrPaywallOpen(true);
+      return;
+    }
+    // En táctil ofrecemos elegir origen (cámara o archivo); en desktop va
+    // directo al selector de archivos.
+    if (isTouch) {
+      setScanMenuOpen((v) => !v);
       return;
     }
     fileInputRef.current?.click();
@@ -546,6 +557,15 @@ export const ExpensesClient = ({
         </div>
         {activeSection === 'gastos' && (
         <div className="flex items-center gap-2 shrink-0">
+          {/* Input cámara (capture) y archivo/galería (sin capture). */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={onPhotoSelected}
+            className="hidden"
+          />
           <input
             ref={fileInputRef}
             type="file"
@@ -553,28 +573,56 @@ export const ExpensesClient = ({
             onChange={onPhotoSelected}
             className="hidden"
           />
-          <button
-            onClick={onScanClick}
-            disabled={ocrLoading}
-            title={hasOcrAccess ? (isTouch ? t.expenses.scan : t.expenses.scan_upload) : t.expenses.scan_pro_only}
-            className="relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait"
-          >
-            {ocrLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : isTouch ? (
-              <Camera className="w-4 h-4" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
-            <span className="hidden sm:inline text-sm">
-              {ocrLoading ? t.common.loading : isTouch ? t.expenses.scan : t.expenses.scan_upload}
-            </span>
-            {!hasOcrAccess && (
-              <span className="absolute -top-1.5 -right-1.5 text-[9px] px-1 py-0.5 rounded-full bg-amber-500 text-white font-bold shadow-sm">
-                {t.ocr.badge_paid}
+          <div ref={scanWrapRef} className="relative">
+            <button
+              onClick={onScanClick}
+              disabled={ocrLoading}
+              aria-haspopup={isTouch ? 'menu' : undefined}
+              aria-expanded={isTouch ? scanMenuOpen : undefined}
+              className="relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait"
+            >
+              {ocrLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isTouch ? (
+                <Camera className="w-4 h-4" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline text-sm">
+                {ocrLoading ? t.common.loading : isTouch ? t.expenses.scan : t.expenses.scan_upload}
               </span>
+              {!hasOcrAccess && (
+                <span className="absolute -top-1.5 -right-1.5 text-[9px] px-1 py-0.5 rounded-full bg-amber-500 text-white font-bold shadow-sm">
+                  {t.ocr.badge_paid}
+                </span>
+              )}
+            </button>
+            {isTouch && scanMenuOpen && (
+              <div
+                role="menu"
+                className="absolute z-50 right-0 top-full mt-1 min-w-[12rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden py-1"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setScanMenuOpen(false); cameraInputRef.current?.click(); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                >
+                  <Camera className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  {t.expenses.scan_take_photo}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setScanMenuOpen(false); fileInputRef.current?.click(); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                >
+                  <ImageIcon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                  {t.expenses.scan_choose_file}
+                </button>
+              </div>
             )}
-          </button>
+          </div>
 
           <button
             type="button"
