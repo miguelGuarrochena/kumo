@@ -2,8 +2,11 @@
 // 1) Maneja push notifications y sus clicks.
 // 2) Cache mínimo de la app shell para que cargue rápido y funcione en cortes de red.
 //    No cacheamos data de Supabase ni endpoints — siempre van a la red.
+// 3) Share target: recibe imágenes compartidas desde el share sheet del
+//    teléfono y las manda al flujo de escaneo de tickets (OCR).
 
-const CACHE = 'kumo-shell-v4';
+const CACHE = 'kumo-shell-v5';
+const SHARE_CACHE = 'kumo-share';
 const SHELL = ['/', '/manifest.webmanifest', '/icon.png', '/favicon.ico'];
 
 self.addEventListener('install', (event) => {
@@ -17,7 +20,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+      await Promise.all(keys.filter((k) => k !== CACHE && k !== SHARE_CACHE).map((k) => caches.delete(k)));
       await self.clients.claim();
     })(),
   );
@@ -25,9 +28,35 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  const url = new URL(req.url);
+
+  // Share target (manifest → action: /share-ocr): guardamos la imagen en el
+  // Cache API y redirigimos a /expenses?shared=1, donde el cliente la levanta
+  // y dispara el OCR. La ruta no existe en el server: vive solo acá.
+  if (req.method === 'POST' && url.origin === self.location.origin && url.pathname === '/share-ocr') {
+    event.respondWith(
+      (async () => {
+        try {
+          const formData = await req.formData();
+          const file = formData.get('image');
+          if (file && typeof file !== 'string') {
+            const cache = await caches.open(SHARE_CACHE);
+            await cache.put(
+              '/shared-ocr-image',
+              new Response(file, { headers: { 'Content-Type': file.type || 'image/jpeg' } }),
+            );
+          }
+        } catch {
+          // Si algo falla igual llevamos al usuario a la app.
+        }
+        return Response.redirect('/expenses?shared=1', 303);
+      })(),
+    );
+    return;
+  }
+
   if (req.method !== 'GET') return;
 
-  const url = new URL(req.url);
   // No tocamos APIs, auth ni recursos cross-origin (Supabase, MP, Resend, etc.)
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;

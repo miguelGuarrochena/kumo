@@ -81,6 +81,22 @@
     "calendar": "Calendario",
     "reminders": "Avisos"
   },
+  "quickAdd": {
+    "title": "Agregar",
+    "new_expense": "Nuevo gasto",
+    "new_expense_desc": "Cargalo a mano en segundos",
+    "scan": "Escanear ticket",
+    "scan_desc": "Sacale una foto y la IA completa los datos",
+    "new_income": "Nuevo ingreso",
+    "new_income_desc": "Registrá plata que entró",
+    "nlp": "Escribir con IA",
+    "nlp_desc": "Ej. «5000 supermercado con tarjeta»",
+    "fab_label": "Agregar movimiento",
+    "bar_placeholder": "Cargá un gasto: «5000 supermercado»…",
+    "bar_action": "Cargar",
+    "bar_scan": "Escanear",
+    "bar_new": "Nuevo"
+  },
   "menu": {
     "open": "Menú",
     "settings": "Configuración",

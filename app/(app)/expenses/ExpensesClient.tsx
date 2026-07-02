@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Plus, ChevronLeft, ChevronRight, Wallet, Search, SlidersHorizontal,
-  Camera, Loader2, Scale, Upload, ImageIcon,
+  Camera, Loader2, Scale, Upload, ImageIcon, Sparkles,
 } from 'lucide-react';
 import { useClickOutside } from '@/lib/useClickOutside';
 import { deleteExpense, togglePaid } from './actions';
@@ -98,6 +98,8 @@ export const ExpensesClient = ({
   const [activeSection, setActiveSection] = useState<ExpensesSection>(section);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [creating, setCreating] = useState(false);
+  // Tipo inicial del modal de alta (la carga rápida puede pedir "income").
+  const [createKind, setCreateKind] = useState<'expense' | 'income'>('expense');
   const [toDelete, setToDelete] = useState<Expense | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -190,6 +192,35 @@ export const ExpensesClient = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Intents de carga rápida (?new=1 / ?new=income / ?scan=1): llegan desde el
+  // "+" del nav mobile, el FAB de desktop o la carga rápida del Dashboard.
+  useEffect(() => {
+    const intentNew = searchParams.get('new');
+    const intentScan = searchParams.get('scan');
+    if (!intentNew && !intentScan) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('new');
+    params.delete('scan');
+    const qs = params.toString();
+    router.replace(qs ? `/expenses?${qs}` : '/expenses', { scroll: false });
+    if (intentNew) {
+      setAiSuggestion(null);
+      setAiSource(null);
+      setCreateKind(intentNew === 'income' ? 'income' : 'expense');
+      setCreating(true);
+      return;
+    }
+    // Escanear: mismo flujo que el botón del header.
+    if (!hasOcrAccess) {
+      setOcrPaywallOpen(true);
+      return;
+    }
+    const touch = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
+    if (touch) setScanMenuOpen(true);
+    else fileInputRef.current?.click();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const resolveCreditor = (expense: Expense): PaymentQuickCreditor | null => {
     const payerId = expense.paid_by_contact_id ?? selfContact?.id;
     if (!payerId) return null;
@@ -218,10 +249,7 @@ export const ExpensesClient = ({
     fileInputRef.current?.click();
   };
 
-  const onPhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
+  const processImage = async (file: File) => {
     const previewUrl = URL.createObjectURL(file);
     setOcrPreviewUrl(previewUrl);
     setOcrLoading(true);
@@ -251,6 +279,51 @@ export const ExpensesClient = ({
       setOcrPreviewUrl(null);
     }
   };
+
+  const onPhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    await processImage(file);
+  };
+
+  // Imagen compartida desde el share sheet del teléfono (?shared=1): el
+  // service worker la guardó en el Cache API; la levantamos y va directo
+  // al mismo flujo OCR que "Escanear ticket".
+  useEffect(() => {
+    if (searchParams.get('shared') !== '1') return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('shared');
+    const qs = params.toString();
+    router.replace(qs ? `/expenses?${qs}` : '/expenses', { scroll: false });
+    if (!hasOcrAccess) {
+      setOcrPaywallOpen(true);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      if (typeof caches === 'undefined') return;
+      // El SW guarda la imagen en paralelo al redirect: reintentamos un rato.
+      for (let i = 0; i < 15 && !cancelled; i++) {
+        try {
+          const cache = await caches.open('kumo-share');
+          const res = await cache.match('/shared-ocr-image');
+          if (res) {
+            await cache.delete('/shared-ocr-image');
+            const blob = await res.blob();
+            const file = new File([blob], 'shared.jpg', { type: blob.type || 'image/jpeg' });
+            if (!cancelled) await processImage(file);
+            return;
+          }
+        } catch {
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const convertToDisplay = (amount: number, currency: string): number | null =>
     convertAmount(amount, currency as Currency, displayCurrency, rates);
@@ -628,6 +701,7 @@ export const ExpensesClient = ({
             type="button"
             onClick={() => {
               setAiSuggestion(null);
+              setCreateKind('expense');
               setCreating(true);
             }}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl kumo-gradient text-white font-medium hover:opacity-90 active:scale-95 transition-all shadow-sm"
@@ -1049,6 +1123,46 @@ export const ExpensesClient = ({
                   ? t.expenses.no_expenses_desc
                   : t.expenses.no_movements_desc}
           </p>
+          {/* Mes realmente vacío (sin búsqueda/filtros): CTAs de carga directa */}
+          {view === 'month' && !searchLower && activeFilterCount === 0 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 max-w-sm mx-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setAiSuggestion(null);
+                  setCreateKind(activeKind === 'income' ? 'income' : 'expense');
+                  setCreating(true);
+                }}
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl kumo-gradient text-white text-sm font-medium hover:opacity-90 active:scale-95 transition-all shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                {activeKind === 'income' ? t.expenses.new_income : t.quickAdd.new_expense}
+              </button>
+              {activeKind !== 'income' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!hasOcrAccess) { setOcrPaywallOpen(true); return; }
+                      (isTouch ? cameraInputRef : fileInputRef).current?.click();
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all"
+                  >
+                    <Camera className="w-4 h-4" />
+                    {t.quickAdd.scan}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openCommandPalette()}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {t.quickAdd.nlp}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="kumo-card overflow-hidden">
@@ -1130,6 +1244,7 @@ export const ExpensesClient = ({
       <ExpenseSheet
         open={!!editing || creating}
         expense={editing}
+        initialKind={createKind}
         aiSuggestion={aiSuggestion}
         aiSource={aiSource}
         categories={categories}
@@ -1140,6 +1255,7 @@ export const ExpensesClient = ({
         onClose={() => {
           setEditing(null);
           setCreating(false);
+          setCreateKind('expense');
           setAiSuggestion(null);
           setAiSource(null);
         }}

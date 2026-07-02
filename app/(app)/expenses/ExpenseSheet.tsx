@@ -32,6 +32,8 @@ import { suggestRecurring } from './suggestRecurringAction';
 type ExpenseSheetProps = {
   open: boolean;
   expense: Expense | null;
+  /** Tipo inicial al crear (ej. "income" desde la carga rápida). */
+  initialKind?: 'expense' | 'income';
   aiSuggestion?: ExtractedExpense | null;
   aiSource?: 'ocr' | 'nlp' | null;
   categories: CategoryLite[];
@@ -45,6 +47,7 @@ type ExpenseSheetProps = {
 export const ExpenseSheet = ({
   open,
   expense,
+  initialKind = 'expense',
   aiSuggestion,
   aiSource = null,
   categories,
@@ -141,7 +144,7 @@ export const ExpenseSheet = ({
       setNotifyContactIds(selfId ? [selfId] : []);
     } else {
       setAmount('');
-      setKind('expense');
+      setKind(initialKind);
       setCurrency(defaultCurrency);
       setCategoryId('');
       setDescription('');

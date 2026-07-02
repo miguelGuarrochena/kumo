@@ -6,7 +6,8 @@ export type AnalyticsEvent =
   | { name: 'category_created'; props?: { color?: string } }
   | { name: 'reminder_created'; props?: { type?: string; contacts_count?: number } }
   | { name: 'photo_ocr_used'; props?: { success?: boolean } }
-  | { name: 'nlp_expense_used'; props?: { success?: boolean } }
+  | { name: 'nlp_expense_used'; props?: { success?: boolean; source?: 'palette' | 'dashboard' } }
+  | { name: 'quick_add_action'; props?: { intent?: 'new' | 'income' | 'scan' | 'nlp' } }
   | { name: 'theme_changed'; props: { theme: 'light' | 'dark' | 'system' } }
   | { name: 'currency_changed'; props: { from: string; to: string } }
   | { name: 'onboarding_step_completed'; props: { step: 1 | 2 | 3 | 4 } }

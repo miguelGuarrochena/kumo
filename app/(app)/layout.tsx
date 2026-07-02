@@ -12,6 +12,8 @@ import { NavigationProgress } from '@/components/NavigationProgress';
 import { WorkspaceSetup } from '@/components/WorkspaceSetup';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { CommandPalette } from '@/components/CommandPalette';
+import { QuickAddSheet } from '@/components/QuickAddSheet';
+import { QuickAddFab } from '@/components/QuickAddFab';
 import { TrialBanner } from '@/components/TrialBanner';
 import { findCurrentWorkspace } from '@/lib/workspace';
 import type { WorkspaceOption } from '@/components/WorkspaceSwitcher';
@@ -95,6 +97,8 @@ const AppLayout = async ({ children }: { children: React.ReactNode }) => {
       </div>
       <InstallPrompt />
       <CommandPalette />
+      <QuickAddSheet />
+      <QuickAddFab />
     </div>
   );
 };

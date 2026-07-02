@@ -81,6 +81,22 @@
     "calendar": "Calendar",
     "reminders": "Alerts"
   },
+  "quickAdd": {
+    "title": "Add",
+    "new_expense": "New expense",
+    "new_expense_desc": "Enter it manually in seconds",
+    "scan": "Scan receipt",
+    "scan_desc": "Snap a photo and AI fills in the details",
+    "new_income": "New income",
+    "new_income_desc": "Record money coming in",
+    "nlp": "Write with AI",
+    "nlp_desc": "E.g. “5000 groceries with card”",
+    "fab_label": "Add transaction",
+    "bar_placeholder": "Log an expense: “5000 groceries”…",
+    "bar_action": "Add",
+    "bar_scan": "Scan",
+    "bar_new": "New"
+  },
   "menu": {
     "open": "Menu",
     "settings": "Settings",

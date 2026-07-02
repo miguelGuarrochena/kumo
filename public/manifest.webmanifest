@@ -11,6 +11,16 @@
   "theme_color": "#6366f1",
   "categories": ["finance", "productivity", "lifestyle"],
   "lang": "es",
+  "share_target": {
+    "action": "/share-ocr",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        { "name": "image", "accept": ["image/*"] }
+      ]
+    }
+  },
   "icons": [
     { "src": "/icons/icon-64.png",  "type": "image/png", "sizes": "64x64",   "purpose": "any" },
     { "src": "/icons/icon-96.png",  "type": "image/png", "sizes": "96x96",   "purpose": "any" },

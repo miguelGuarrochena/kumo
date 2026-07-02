@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
+import { QuickAddBar } from './QuickAddBar';
 import { getLocale, getMessages } from '@/lib/i18n/server';
 import { categoryDisplayName } from '@/lib/categoryLabels';
 import { localeTag } from '@/lib/i18n/locale';
@@ -205,6 +206,9 @@ const DashboardPage = async () => {
           googleCalendarConnected={googleCalendarConnected}
         />
       )}
+
+      {/* Carga rápida: escribir en lenguaje natural, escanear o alta manual */}
+      <QuickAddBar />
 
       {/* Total del mes — hero card */}
       <div className="kumo-card p-5 sm:p-6">
