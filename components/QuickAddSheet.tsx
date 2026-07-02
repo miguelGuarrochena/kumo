@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet, Camera, TrendingUp, Sparkles } from 'lucide-react';
+import { Wallet, Camera, Upload, TrendingUp, Sparkles } from 'lucide-react';
 import { Sheet } from '@/components/Sheet';
 import { QUICK_ADD_OPEN_EVENT, quickAddHref, type QuickAddIntent } from '@/lib/quickAdd';
 import { openCommandPalette } from '@/lib/commandPalette';
@@ -19,11 +19,22 @@ export const QuickAddSheet = () => {
   const router = useRouter();
   const { t } = useT();
   const [open, setOpen] = useState(false);
+  // Táctil → "Escanear ticket" (cámara); desktop → "Subir ticket" (archivo).
+  const [isTouch, setIsTouch] = useState(false);
 
   useEffect(() => {
     const onOpen = () => setOpen(true);
     window.addEventListener(QUICK_ADD_OPEN_EVENT, onOpen);
     return () => window.removeEventListener(QUICK_ADD_OPEN_EVENT, onOpen);
+  }, []);
+
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsTouch(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
   }, []);
 
   const go = (intent: QuickAddIntent) => {
@@ -43,10 +54,10 @@ export const QuickAddSheet = () => {
     },
     {
       id: 'scan',
-      icon: Camera,
+      icon: isTouch ? Camera : Upload,
       iconClass: 'bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300',
-      title: t.quickAdd.scan,
-      desc: t.quickAdd.scan_desc,
+      title: isTouch ? t.quickAdd.scan : t.quickAdd.scan_upload,
+      desc: isTouch ? t.quickAdd.scan_desc : t.quickAdd.scan_upload_desc,
       onClick: () => go('scan'),
     },
     {

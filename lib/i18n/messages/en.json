@@ -95,7 +95,10 @@
     "bar_placeholder": "Log an expense: “5000 groceries”…",
     "bar_action": "Add",
     "bar_scan": "Scan",
-    "bar_new": "New"
+    "bar_new": "New",
+    "scan_upload": "Upload receipt",
+    "scan_upload_desc": "Upload a photo and AI fills in the details",
+    "bar_scan_upload": "Upload receipt"
   },
   "menu": {
     "open": "Menu",

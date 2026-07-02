@@ -1148,8 +1148,8 @@ export const ExpensesClient = ({
                     }}
                     className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all"
                   >
-                    <Camera className="w-4 h-4" />
-                    {t.quickAdd.scan}
+                    {isTouch ? <Camera className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
+                    {isTouch ? t.quickAdd.scan : t.quickAdd.scan_upload}
                   </button>
                   <button
                     type="button"

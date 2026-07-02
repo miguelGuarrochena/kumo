@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Sparkles, Camera, Plus, Loader2 } from 'lucide-react';
+import { Sparkles, Camera, Upload, Plus, Loader2 } from 'lucide-react';
 import { useT } from '@/lib/i18n/client';
 import { track } from '@/lib/analytics';
 import { looksExpenseIntent, NLP_EXPENSE_STORAGE_KEY } from '@/lib/nlp/detect';
@@ -19,6 +19,17 @@ export const QuickAddBar = () => {
   const { t } = useT();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
+  // Táctil → "Escanear ticket" (cámara); desktop → "Subir ticket" (archivo).
+  const [isTouch, setIsTouch] = useState(false);
+
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsTouch(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,8 +97,8 @@ export const QuickAddBar = () => {
           onClick={() => router.push(quickAddHref('scan') as never)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-sky-300 dark:hover:border-sky-500 active:scale-95 transition-all"
         >
-          <Camera className="w-3.5 h-3.5" />
-          {t.quickAdd.bar_scan}
+          {isTouch ? <Camera className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
+          {isTouch ? t.quickAdd.bar_scan : t.quickAdd.bar_scan_upload}
         </button>
         <button
           type="button"

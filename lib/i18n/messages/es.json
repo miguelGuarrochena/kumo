@@ -95,7 +95,10 @@
     "bar_placeholder": "Cargá un gasto: «5000 supermercado»…",
     "bar_action": "Cargar",
     "bar_scan": "Escanear",
-    "bar_new": "Nuevo"
+    "bar_new": "Nuevo",
+    "scan_upload": "Subir ticket",
+    "scan_upload_desc": "Subí una foto y la IA completa los datos",
+    "bar_scan_upload": "Subir ticket"
   },
   "menu": {
     "open": "Menú",
