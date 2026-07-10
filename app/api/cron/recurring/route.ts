@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { sendPush, type PushSubscriptionRow } from '@/lib/push/server';
+import { buildRecurringPushBody } from '@/lib/notifications/recurringDigest';
 
 type GeneratedRow = {
   g_id: string;
@@ -70,17 +71,14 @@ const handler = async (req: Request) => {
       const subs = pushByUser.get(userId) ?? [];
       if (subs.length === 0) continue;
 
-      const expenseRows = userRows.filter((r) => r.g_kind !== 'income');
-      const incomeRows = userRows.filter((r) => r.g_kind === 'income');
-      const noun =
-        incomeRows.length === 0 ? 'gasto' : expenseRows.length === 0 ? 'ingreso' : 'movimiento';
-
-      const single = userRows.length === 1 ? userRows[0] : undefined;
-      const body = single
-        ? `Se registró tu ${single.g_kind === 'income' ? 'ingreso' : 'gasto'} recurrente: ${
-            single.g_description ?? (single.g_kind === 'income' ? 'Ingreso' : 'Gasto')
-          } · ${single.g_amount} ${single.g_currency}`
-        : `Se registraron ${userRows.length} ${noun}s recurrentes de este período`;
+      const body = buildRecurringPushBody(
+        userRows.map((r) => ({
+          description: r.g_description,
+          amount: r.g_amount,
+          currency: r.g_currency,
+          kind: r.g_kind,
+        })),
+      );
 
       const payload = {
         title: 'Recurrentes al día · Kumo',
