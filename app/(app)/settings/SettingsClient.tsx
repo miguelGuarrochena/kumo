@@ -53,6 +53,9 @@ export const SettingsClient = ({
   );
   const [notifyExpenses, setNotifyExpenses] = useState(initialSettings?.notify_expenses ?? true);
   const [notifyReminders, setNotifyReminders] = useState(initialSettings?.notify_reminders ?? true);
+  const [notifyBudgets, setNotifyBudgets] = useState(initialSettings?.notify_budgets ?? true);
+  const [notifyBirthdays, setNotifyBirthdays] = useState(initialSettings?.notify_birthdays ?? true);
+  const [notifyRecurring, setNotifyRecurring] = useState(initialSettings?.notify_recurring ?? true);
   const [status, setStatus] = useState<SaveStatus>('idle');
 
   const firstRenderRef = useRef(true);
@@ -78,6 +81,9 @@ export const SettingsClient = ({
       fd.set('timezone', timezone);
       fd.set('notify_expenses', String(notifyExpenses));
       fd.set('notify_reminders', String(notifyReminders));
+      fd.set('notify_budgets', String(notifyBudgets));
+      fd.set('notify_birthdays', String(notifyBirthdays));
+      fd.set('notify_recurring', String(notifyRecurring));
       try {
         await saveSettings(fd);
         if (currency !== prevCurrency) {
@@ -99,7 +105,7 @@ export const SettingsClient = ({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [whatsapp, currency, timezone, notifyExpenses, notifyReminders]);
+  }, [whatsapp, currency, timezone, notifyExpenses, notifyReminders, notifyBudgets, notifyBirthdays, notifyRecurring]);
 
   return (
     <div className="space-y-4">
@@ -191,11 +197,38 @@ export const SettingsClient = ({
         <label className="flex items-center gap-3 py-2">
           <input
             type="checkbox"
+            checked={notifyBudgets}
+            onChange={(e) => setNotifyBudgets(e.target.checked)}
+            className="rounded text-sky-600"
+          />
+          <span className="text-sm">{t.settings.notify_budgets}</span>
+        </label>
+        <label className="flex items-center gap-3 py-2">
+          <input
+            type="checkbox"
+            checked={notifyRecurring}
+            onChange={(e) => setNotifyRecurring(e.target.checked)}
+            className="rounded text-sky-600"
+          />
+          <span className="text-sm">{t.settings.notify_recurring}</span>
+        </label>
+        <label className="flex items-center gap-3 py-2">
+          <input
+            type="checkbox"
             checked={notifyReminders}
             onChange={(e) => setNotifyReminders(e.target.checked)}
             className="rounded text-sky-600"
           />
           <span className="text-sm">{t.settings.notify_reminders}</span>
+        </label>
+        <label className="flex items-center gap-3 py-2">
+          <input
+            type="checkbox"
+            checked={notifyBirthdays}
+            onChange={(e) => setNotifyBirthdays(e.target.checked)}
+            className="rounded text-sky-600"
+          />
+          <span className="text-sm">{t.settings.notify_birthdays}</span>
         </label>
         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
           <PushToggle vapidPublicKey={vapidPublicKey} />

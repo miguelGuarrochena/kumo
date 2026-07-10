@@ -249,7 +249,12 @@ export async function POST(request: Request) {
 
   for (const rem of reminders) {
     const userSettings = settingsByUser.get(rem.user_id);
-    if (userSettings && !userSettings.notify_reminders) {
+    // Cumpleaños y recordatorios tienen toggles separados.
+    const isBirthday = rem.reminder_type === 'birthday';
+    const allowedByPrefs = isBirthday
+      ? userSettings?.notify_birthdays !== false
+      : userSettings?.notify_reminders !== false;
+    if (!allowedByPrefs) {
       skipped++;
       continue;
     }

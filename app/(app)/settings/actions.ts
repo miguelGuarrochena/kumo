@@ -18,6 +18,9 @@ export async function saveSettings(formData: FormData) {
     timezone: (formData.get('timezone') as string) ?? 'America/Argentina/Buenos_Aires',
     notify_expenses: formData.get('notify_expenses') === 'true',
     notify_reminders: formData.get('notify_reminders') === 'true',
+    notify_budgets: formData.get('notify_budgets') === 'true',
+    notify_birthdays: formData.get('notify_birthdays') === 'true',
+    notify_recurring: formData.get('notify_recurring') === 'true',
     updated_at: new Date().toISOString(),
   };
 

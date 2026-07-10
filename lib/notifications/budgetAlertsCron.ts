@@ -99,7 +99,7 @@ export async function runBudgetAlerts(
       .from('categories')
       .select('id, name')
       .in('workspace_id', workspaceIds),
-    supabase.from('user_settings').select('user_id, notify_expenses'),
+    supabase.from('user_settings').select('user_id, notify_budgets'),
     supabase.from('push_subscriptions').select('id, user_id, endpoint, p256dh, auth'),
     getRates(),
   ]);
@@ -129,10 +129,10 @@ export async function runBudgetAlerts(
     ((categoriesRaw ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]),
   );
 
-  const notifyExpenses = new Map(
-    ((settingsRaw ?? []) as { user_id: string; notify_expenses: boolean }[]).map((s) => [
+  const notifyBudgets = new Map(
+    ((settingsRaw ?? []) as { user_id: string; notify_budgets: boolean }[]).map((s) => [
       s.user_id,
-      s.notify_expenses,
+      s.notify_budgets,
     ]),
   );
 
@@ -182,7 +182,7 @@ export async function runBudgetAlerts(
 
     let anyPush = false;
     for (const userId of members) {
-      if (notifyExpenses.get(userId) === false) continue;
+      if (notifyBudgets.get(userId) === false) continue;
       const subs = pushByUser.get(userId) ?? [];
       if (subs.length === 0) continue;
 

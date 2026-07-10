@@ -227,6 +227,9 @@ type UserSettingsRow = {
   whatsapp_verified: boolean;
   notify_expenses: boolean;
   notify_reminders: boolean;
+  notify_budgets: boolean;
+  notify_birthdays: boolean;
+  notify_recurring: boolean;
   default_currency: string;
   timezone: string;
   onboarded: boolean;
@@ -244,6 +247,9 @@ type UserSettingsInsert = {
   whatsapp_verified?: boolean;
   notify_expenses?: boolean;
   notify_reminders?: boolean;
+  notify_budgets?: boolean;
+  notify_birthdays?: boolean;
+  notify_recurring?: boolean;
   default_currency?: string;
   timezone?: string;
   onboarded?: boolean;
@@ -261,6 +267,9 @@ type UserSettingsUpdate = {
   whatsapp_verified?: boolean;
   notify_expenses?: boolean;
   notify_reminders?: boolean;
+  notify_budgets?: boolean;
+  notify_birthdays?: boolean;
+  notify_recurring?: boolean;
   default_currency?: string;
   timezone?: string;
   onboarded?: boolean;
@@ -697,7 +706,16 @@ export type Database = {
       };
       generate_recurring_expenses: {
         Args: Record<string, never>;
-        Returns: number;
+        Returns: {
+          g_id: string;
+          g_user_id: string;
+          g_workspace_id: string;
+          g_description: string | null;
+          g_amount: number;
+          g_currency: string;
+          g_kind: 'expense' | 'income';
+          g_expense_date: string;
+        }[];
       };
       compute_next_occurrence: {
         Args: { base_date: string; recurrence: string };

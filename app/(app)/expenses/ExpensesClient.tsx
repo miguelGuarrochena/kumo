@@ -1022,8 +1022,13 @@ export const ExpensesClient = ({
               {showPendingHint && (
                 <button
                   type="button"
-                  onClick={() => setUrlParam('paid', 'pending')}
-                  className="inline-flex items-center gap-1.5 text-xs text-peach-700 dark:text-peach-300 px-2.5 py-1 rounded-full bg-peach-50 dark:bg-peach-500/10 hover:bg-peach-100 dark:hover:bg-peach-500/20 transition-colors"
+                  onClick={() => setAdv((a) => ({ ...a, paid: a.paid === 'pending' ? '' : 'pending' }))}
+                  aria-pressed={adv.paid === 'pending'}
+                  className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                    adv.paid === 'pending'
+                      ? 'text-peach-800 dark:text-peach-200 bg-peach-100 dark:bg-peach-500/20 ring-1 ring-peach-300 dark:ring-peach-500/40'
+                      : 'text-peach-700 dark:text-peach-300 bg-peach-50 dark:bg-peach-500/10 hover:bg-peach-100 dark:hover:bg-peach-500/20'
+                  }`}
                   title={t.expenses.pending_excluded_hint}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-peach-400" />
