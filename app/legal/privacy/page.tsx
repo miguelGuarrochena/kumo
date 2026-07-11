@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'Cómo Kumo trata tus datos personales y financieros.',
 };
 
-const UPDATED = '10 de junio de 2026';
+const UPDATED = '11 de julio de 2026';
 
 const PrivacyPage = () => {
   return (
@@ -123,7 +123,28 @@ const PrivacyPage = () => {
         automáticos diarios.
       </p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">6. Cookies</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">6. Uso limitado de datos de Google (Google Limited Use)</h2>
+      <p>
+        El uso que Kumo hace de la información recibida de las APIs de Google se ajusta a la{' '}
+        <a
+          href="https://developers.google.com/terms/api-services-user-data-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Google API Services User Data Policy
+        </a>
+        , incluidos sus requisitos de Uso Limitado (Limited Use). En concreto, los datos de Google Calendar que
+        obtenemos se usan <strong>únicamente</strong> para brindar y mejorar la función de sincronización de
+        recordatorios y vencimientos visible para vos. No los usamos para publicidad; no los vendemos ni los
+        transferimos a terceros; y no los usamos para desarrollar, entrenar ni mejorar modelos de inteligencia
+        artificial o aprendizaje automático.
+      </p>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        Kumo&apos;s use of information received from Google APIs adheres to the Google API Services User Data Policy,
+        including the Limited Use requirements.
+      </p>
+
+      <h2 className="text-xl font-bold mt-8 mb-3">7. Cookies</h2>
       <p>Kumo usa cookies en estas categorías:</p>
       <ul className="list-disc pl-5 space-y-1">
         <li>
@@ -136,16 +157,16 @@ const PrivacyPage = () => {
       </ul>
       <p>No usamos cookies publicitarias ni compartimos datos con redes de tracking.</p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">7. Menores de edad</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">8. Menores de edad</h2>
       <p>Kumo no está dirigida a menores de 13 años. Si detectamos una cuenta de un menor, la eliminamos.</p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">8. Cambios en esta política</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">9. Cambios en esta política</h2>
       <p>
         Si la actualizamos te avisamos por email y dentro de la app. La versión más reciente siempre está en{' '}
         <code>/legal/privacy</code>.
       </p>
 
-      <h2 className="text-xl font-bold mt-8 mb-3">9. Contacto</h2>
+      <h2 className="text-xl font-bold mt-8 mb-3">10. Contacto</h2>
       <p>
         Consultas: <a href="mailto:info@kumo-app.com">info@kumo-app.com</a>
       </p>
